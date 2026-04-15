@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GotcherApp — Technology Stack</title>
+  <style>
+    :root {
+      --pink:    #f472b6;
+      --purple:  #a78bfa;
+      --teal:    #2dd4bf;
+      --blue:    #60a5fa;
+      --green:   #4ade80;
+      --yellow:  #facc15;
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --muted:   #94a3b8;
+      --text:    #e2e8f0;
+      --heading: #f8fafc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      width: 260px;
+      min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 28px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .nav-logo {
+      padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .nav-logo span {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav-logo p {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-section {
+      padding: 8px 20px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    nav a {
+      display: block;
+      padding: 6px 20px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 13.5px;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    nav a:hover {
+      color: var(--heading);
+      background: rgba(255,255,255,0.04);
+      border-left-color: var(--purple);
+    }
+
+    /* ── Main content ── */
+    main {
+      flex: 1;
+      max-width: 860px;
+      padding: 56px 48px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      margin-bottom: 56px;
+    }
+    .hero h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--heading);
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 600px;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .arch-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 24px;
+      font-weight: 700;
+    }
+    .arch-layers {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 540px;
+    }
+    .arch-box {
+      width: 100%;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .arch-box.browser  { background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.4); }
+    .arch-box.api      { background: rgba(96,165,250,0.15);  border: 1px solid rgba(96,165,250,0.4); }
+    .arch-box.database { background: rgba(45,212,191,0.15);  border: 1px solid rgba(45,212,191,0.4); }
+    .arch-box h3 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .arch-box.browser  h3 { color: var(--purple); }
+    .arch-box.api      h3 { color: var(--blue); }
+    .arch-box.database h3 { color: var(--teal); }
+    .arch-box p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .arch-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 2px 0;
+      gap: 1px;
+    }
+    .arch-arrow span {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .arch-arrow::before, .arch-arrow::after {
+      content: '';
+      width: 1px;
+      height: 12px;
+      background: var(--border);
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 64px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--heading);
+    }
+
+    /* ── Tech card ── */
+    .tech-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      transition: border-color 0.15s;
+    }
+    .tech-card:hover {
+      border-color: #475569;
+    }
+
+    .tech-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .tech-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .tech-card-header h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--heading);
+      line-height: 1.3;
+    }
+    .tech-card-header h3 small {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 6px;
+    }
+
+    .what, .why, .where {
+      margin-bottom: 12px;
+    }
+    .label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .what .label { color: var(--blue); }
+    .why  .label { color: var(--green); }
+    .where .label { color: var(--yellow); }
+
+    .what p, .why p { font-size: 14px; color: #cbd5e1; }
+
+    /* ── File pills ── */
+    .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .file-pill {
+      font-size: 12px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 2px 8px;
+      color: #93c5fd;
+    }
+
+    /* ── Code block ── */
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-size: 12.5px;
+      line-height: 1.6;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+    }
+    code {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 12.5px;
+      background: rgba(255,255,255,0.07);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #e2e8f0;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    .kw  { color: #ff79c6; }
+    .str { color: #f1fa8c; }
+    .cmt { color: #6272a4; }
+    .cls { color: #8be9fd; }
+    .fn  { color: #50fa7b; }
+    .num { color: #bd93f9; }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      margin: 10px 0;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    td code { font-size: 12px; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 13.5px;
+    }
+    .callout.tip    { border-color: var(--green);  background: rgba(74,222,128,0.07); }
+    .callout.warn   { border-color: var(--yellow); background: rgba(250,204,21,0.07); }
+    .callout.info   { border-color: var(--blue);   background: rgba(96,165,250,0.07); }
+    .callout strong { display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .callout.tip  strong { color: var(--green); }
+    .callout.warn strong { color: var(--yellow); }
+    .callout.info strong { color: var(--blue); }
+
+    /* ── Color badges per category ── */
+    .badge-java    { background: rgba(250,167,72,0.15); color: #faa748; border: 1px solid rgba(250,167,72,0.3); }
+    .badge-spring  { background: rgba(116,185,78,0.15); color: #74b94e; border: 1px solid rgba(116,185,78,0.3); }
+    .badge-db      { background: rgba(45,212,191,0.15); color: #2dd4bf; border: 1px solid rgba(45,212,191,0.3); }
+    .badge-test    { background: rgba(244,114,182,0.15);color: #f472b6; border: 1px solid rgba(244,114,182,0.3);}
+    .badge-react   { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+    .badge-ui      { background: rgba(167,139,250,0.15);color: #a78bfa; border: 1px solid rgba(167,139,250,0.3);}
+    .badge-infra   { background: rgba(148,163,184,0.15);color: #94a3b8; border: 1px solid rgba(148,163,184,0.3);}
+    .badge-tool    { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+
+    /* ── Commands grid ── */
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .cmd-item {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .cmd-item code {
+      display: block;
+      background: none;
+      padding: 0;
+      color: var(--green);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .cmd-item p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ══ Sidebar ══ -->
+  <nav>
+    <div class="nav-logo">
+      <span>GotcherApp</span>
+      <p>Tech Stack Guide</p>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <a href="#arch">Architecture</a>
+
+    <div class="nav-section">Backend</div>
+    <a href="#java">Java 21</a>
+    <a href="#spring-boot">Spring Boot</a>
+    <a href="#spring-security">Spring Security</a>
+    <a href="#jdbc">JdbcTemplate</a>
+    <a href="#jjwt">JJWT (Tokens)</a>
+    <a href="#flyway">Flyway (Migrations)</a>
+    <a href="#postgres">PostgreSQL</a>
+    <a href="#actuator">Actuator</a>
+    <a href="#mail">Spring Mail</a>
+    <a href="#cloudinary">Cloudinary</a>
+    <a href="#gradle">Gradle</a>
+    <a href="#testing">JUnit 5 + Mockito</a>
+
+    <div class="nav-section">Frontend</div>
+    <a href="#react">React 18</a>
+    <a href="#vite">Vite</a>
+    <a href="#tailwind">Tailwind CSS</a>
+    <a href="#shadcn">shadcn/ui + Radix</a>
+    <a href="#lucide">lucide-react</a>
+    <a href="#recharts">recharts</a>
+    <a href="#jspdf">jsPDF</a>
+    <a href="#localstorage">localStorage</a>
+
+    <div class="nav-section">Infrastructure</div>
+    <a href="#docker">Docker Compose</a>
+    <a href="#pgadmin">pgAdmin</a>
+
+    <div class="nav-section">Reference</div>
+    <a href="#env">Environment Vars</a>
+    <a href="#commands">Common Commands</a>
+  </nav>
+
+  <!-- ══ Main ══ -->
+  <main>
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>The <span>Baby Steps</span> Stack</h1>
+      <p>Everything a new developer needs to understand how this application is built, why each piece exists, and where to find it in the code.</p>
+    </div>
+
+    <!-- Architecture -->
+    <div id="arch" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(167,139,250,0.15)">🏗️</div>
+        <h2>Architecture Overview</h2>
+      </div>
+
+      <p style="color:var(--muted); font-size:14px; margin-bottom:24px;">
+        Three tiers, fully local in development. The frontend never touches the database directly — all data flows through the REST API.
+      </p>
+
+      <div class="arch">
+        <div class="arch-title">Request flow</div>
+        <div class="arch-layers">
+          <div class="arch-box browser">
+            <h3>Browser — port 3000</h3>
+            <p>React · Vite · Tailwind · recharts · jsPDF</p>
+          </div>
+          <div class="arch-arrow"><span>HTTP + JWT Bearer token</span></div>
+          <div class="arch-box api">
+            <h3>Spring Boot API — port 3001</h3>
+            <p>Spring Security · JdbcTemplate · JJWT · Flyway · Actuator</p>
+          </div>
+          <div class="arch-arrow"><span>JDBC</span></div>
+          <div class="arch-box database">
+            <h3>PostgreSQL 16 — port 5432</h3>
+            <p>Docker · users · baby_profiles · journal · growth · feeding</p>
+          </div>
+        </div>
+      </div>
+
+      <table>
+        <tr><th>Concern</th><th>Owner</th><th>Port</th></tr>
+        <tr><td>UI rendering</td><td>React + Vite</td><td>3000</td></tr>
+        <tr><td>Business logic + auth</td><td>Spring Boot</td><td>3001</td></tr>
+        <tr><td>Data persistence</td><td>PostgreSQL (Docker)</td><td>5432</td></tr>
+        <tr><td>DB admin UI</td><td>pgAdmin 4 (Docker)</td><td>5050</td></tr>
+      </table>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         BACKEND
+    ══════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(251,146,60,0.15)">☕</div>
+        <h2>Backend Technologies</h2>
+      </div>
+
+      <!-- Java 21 -->
+      <div id="java" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-java">Language</span>
+          <h3>Java 21 <small>LTS release</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>The programming language the entire backend is written in. Java 21 is a Long-Term Support release, meaning it receives security patches for years.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Spring Boot (our web framework) is a Java-first ecosystem. Java 21 adds modern features like records, pattern matching, and sealed classes that reduce boilerplate significantly.</p>
+        </div>
+        <div class="where">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/src/main/java/</span>
+            <span class="file-pill">Backend/build.gradle.kts → toolchain</span>
+          </div>
+        </div>
+        <div class="callout info" style="margin-top:12px">
+          <strong>Note</strong>
+          Java records are used throughout — <code>GrowthRecord</code>, <code>FeedingLog</code>, <code>AuthPrincipal</code>, all the request/response DTOs. A record is an immutable data class with automatically generated constructor, getters, equals, and toString.
+        </div>
+      </div>
+
+      <!-- Spring Boot -->
+      <div id="spring-boot" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-spring">Framework</span>
+          <h3>Spring Boot 3.4.1</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>Spring Boot is the glue that holds the backend together. It starts an embedded web server (Tomcat), wires up all dependencies automatically, and routes incoming HTTP requests to the right handler methods.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Without it, you'd manually configure a servlet container, write XML to wire dependencies, and manage connection pools by hand. Spring Boot replaces all of that with annotations and sensible defaults — <em>convention over configuration</em>.</p>
+        </div>
+        <div class="where">
+          <div class="label">Key annotations to know</div>
+        </div>
+        <table>
+          <tr><th>Annotation</th><th>Meaning</th></tr>
+          <tr><td><code>@RestController</code></td><td>This class handles HTTP requests. Methods return JSON automatically.</td></tr>
+          <tr><td><code>@RequestMapping("/path")</code></td><td>All routes in this class start with this prefix.</td></tr>
+          <tr><td><code>@GetMapping</code> / <code>@PostMapping</code></td><td>Handles GET / POST requests on this method.</td></tr>
+          <tr><td><code>@Service</code></td><td>Business logic class — Spring manages its lifecycle.</td></tr>
+          <tr><td><code>@RequestBody</code></td><td>Deserialize incoming JSON into a Java object.</td></tr>
+          <tr><td><code>@PathVariable</code></td><td>Bind a <code>{segment}</code> from the URL.</td></tr>
+        </table>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">GotcherAppApplication.java</span>
+            <span class="file-pill">application.properties</span>
+            <span class="file-pill">*Controller.java (all 6)</span>
+            <span class="file-pill">*Service.java (all 6)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spring Security -->
+      <div id="spring-security" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-spring">Security</span>
+          <h3>Spring Security 6</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>The authentication and authorization layer. Every HTTP request passes through Spring Security before it reaches a controller. It decides: "Is this person allowed to do this?"</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>We need to protect every endpoint so users can only see their own data. Spring Security plugs directly into Spring Boot and gives us a clean hook (filters) for our JWT-based auth scheme.</p>
+        </div>
+        <div class="where">
+          <div class="label">How the auth flow works</div>
+        </div>
+        <div style="background:#0d1117; border-radius:8px; padding:16px; margin:8px 0; font-size:13px; line-height:1.8; border:1px solid var(--border)">
+          1. User logs in → API issues a <strong style="color:var(--pink)">JWT access token</strong> (15 min) + <strong style="color:var(--purple)">refresh token</strong> (7 days)<br>
+          2. Frontend stores both in <code>localStorage</code><br>
+          3. Every request includes <code>Authorization: Bearer &lt;token&gt;</code><br>
+          4. <code>JwtAuthFilter</code> intercepts, verifies signature, loads user into <code>SecurityContext</code><br>
+          5. Controllers receive the user via <code>@AuthenticationPrincipal AuthPrincipal</code><br>
+          6. On token expiry → frontend calls <code>POST /auth/refresh</code> to rotate both tokens
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">config/SecurityConfig.java</span>
+            <span class="file-pill">security/JwtAuthFilter.java</span>
+            <span class="file-pill">security/JwtUtil.java</span>
+            <span class="file-pill">security/AuthPrincipal.java</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- JdbcTemplate -->
+      <div id="jdbc" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-db">Database</span>
+          <h3>JdbcTemplate <small>Raw SQL layer</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A Spring utility that wraps Java's low-level JDBC API. It handles opening/closing database connections, creating prepared statements, binding parameters safely, and converting checked exceptions into unchecked ones — so you can focus on writing SQL.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it (instead of an ORM like Hibernate)</div>
+          <p>This app started life as a Node.js project using raw SQL queries. The philosophy carried over: write exact SQL, see exactly what queries run, and avoid the performance surprises of auto-generated ORM queries. For an app of this size, raw SQL is simpler to reason about.</p>
+        </div>
+        <div class="where">
+          <div class="label">Common patterns you'll see</div>
+        </div>
+        <pre><code><span class="cmt">// Select a list of rows</span>
+jdbc.query(<span class="str">"SELECT * FROM growth_records WHERE baby_profile_id = ?"</span>,
+    (rs, i) -> <span class="kw">new</span> <span class="cls">GrowthRecord</span>(rs.getLong(<span class="str">"id"</span>), rs.getString(<span class="str">"recorded_date"</span>), ...),
+    profileId);
+
+<span class="cmt">// Insert a row and get the generated ID</span>
+jdbc.queryForObject(<span class="str">"INSERT INTO ... RETURNING id"</span>, Long.class, args...);
+
+<span class="cmt">// Update / delete — returns rows affected</span>
+jdbc.update(<span class="str">"DELETE FROM growth_records WHERE id = ? AND baby_profile_id = ?"</span>, id, profileId);</code></pre>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">growth/GrowthService.java</span>
+            <span class="file-pill">feeding/FeedingService.java</span>
+            <span class="file-pill">journal/JournalService.java</span>
+            <span class="file-pill">auth/AuthService.java</span>
+          </div>
+        </div>
+        <div class="callout warn">
+          <strong>Testing gotcha</strong>
+          <code>JdbcTemplate.queryForList</code> has two overloads. When mocking in tests with 5+ arguments, Java may resolve to the wrong overload. If you see <code>PotentialStubbingProblem</code>, add <code>@MockitoSettings(strictness = Strictness.LENIENT)</code> to the test class.
+        </div>
+      </div>
+
+      <!-- JJWT -->
+      <div id="jjwt" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-java">Security</span>
+          <h3>JJWT 0.12.6 <small>JWT tokens</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A Java library for creating and verifying JSON Web Tokens (JWTs). A JWT is a compact, signed string that encodes a payload (user ID, email, expiry) — the server can verify it without a database lookup because the signature proves it hasn't been tampered with.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>JWTs let us build a stateless API. The server doesn't maintain session state for every user — the token carries all necessary information. Only refresh tokens (which issue new access tokens) are stored in the database.</p>
+        </div>
+        <div class="where">
+          <div class="label">JWT structure</div>
+        </div>
+        <div style="background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:14px; font-family:monospace; font-size:13px; word-break:break-all; margin:8px 0">
+          <span style="color:#ff79c6">eyJhbGciOiJIUzI1NiJ9</span>.<span style="color:#f1fa8c">eyJzdWIiOiIxIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0</span>.<span style="color:#50fa7b">signature</span>
+          <br><br>
+          <span style="color:#ff79c6">header</span> · <span style="color:#f1fa8c">payload (userId, email, exp)</span> · <span style="color:#50fa7b">HMAC-SHA256 signature</span>
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">security/JwtUtil.java</span>
+            <span class="file-pill">Backend/.env → JWT_SECRET</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flyway -->
+      <div id="flyway" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-db">Database</span>
+          <h3>Flyway <small>Schema migrations</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A database migration tool that tracks which SQL scripts have been applied to a database, and runs new ones in order when the application starts. Think of it as version control for your database schema.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Without Flyway, every developer would need to manually run SQL scripts to keep their local database in sync. On production, a missed script could mean the app crashes on startup. Flyway automates this — it runs exactly once per environment, in the right order.</p>
+        </div>
+        <div class="where">
+          <div class="label">Migration files (in order)</div>
+        </div>
+        <table>
+          <tr><th>File</th><th>What it creates/changes</th></tr>
+          <tr><td><code>V1__create_users.sql</code></td><td>users table (email, password hash, display name)</td></tr>
+          <tr><td><code>V2__create_refresh_tokens.sql</code></td><td>refresh token storage</td></tr>
+          <tr><td><code>V3__create_baby_profiles.sql</code></td><td>baby_profiles (one per user)</td></tr>
+          <tr><td><code>V4__create_milestones.sql</code></td><td>achieved milestone keys</td></tr>
+          <tr><td><code>V5__create_journal_entries.sql</code></td><td>journal entries (week, title, story)</td></tr>
+          <tr><td><code>V6__add_journal_image_url.sql</code></td><td>adds image_url column to journal</td></tr>
+          <tr><td><code>V7__baseline_gap.sql</code></td><td>intentional placeholder — V7 was skipped</td></tr>
+          <tr><td><code>V8__create_baby_profile_display_fields.sql</code></td><td>adds parent name, phone to profile</td></tr>
+          <tr><td><code>V9__create_growth_records.sql</code></td><td>growth tracking table</td></tr>
+          <tr><td><code>V10__create_feeding_logs.sql</code></td><td>feeding session table</td></tr>
+          <tr><td><code>V11__growth_records_imperial_units.sql</code></td><td>renames metric columns → imperial</td></tr>
+        </table>
+        <div class="callout warn" style="margin-top:12px">
+          <strong>Important rule</strong>
+          Never edit a migration file that has already been applied to any database. Flyway checksums every applied migration and will refuse to start if one has changed. Always create a new migration file instead.
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/db/migration/</span>
+            <span class="file-pill">application.properties → spring.flyway.*</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PostgreSQL -->
+      <div id="postgres" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-db">Database</span>
+          <h3>PostgreSQL 16 <small>via Docker</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>The relational database where all application data lives — users, baby profiles, milestones, journal entries, growth records, and feeding logs.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>PostgreSQL is the most feature-complete open-source relational database. We chose it over MySQL for its stricter SQL compliance, better support for advanced data types, and broad hosting provider support.</p>
+        </div>
+        <div class="where">
+          <div class="label">Local dev credentials</div>
+        </div>
+        <pre><code>Host:     localhost:5432
+Database: gotcherapp
+User:     gotcherapp_app
+Password: changeme_local  (from Backend/.env)</code></pre>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/docker-compose.yml</span>
+            <span class="file-pill">Backend/db/init/01-setup.sql</span>
+            <span class="file-pill">Backend/db/migration/ (all V*.sql)</span>
+            <span class="file-pill">Backend/.env → PG* vars</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actuator -->
+      <div id="actuator" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-spring">Ops</span>
+          <h3>Spring Boot Actuator <small>Health checks</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A Spring Boot module that exposes operational HTTP endpoints. We use it for the <code>/actuator/health</code> endpoint.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Reverse proxies (Caddy, nginx) and load balancers need a way to check "is this app alive?" before routing traffic to it. The health endpoint answers that question: <code>{"status":"UP"}</code>.</p>
+        </div>
+        <div class="where">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">build.gradle.kts → spring-boot-starter-actuator</span>
+            <span class="file-pill">application.properties → management.endpoints.web.exposure.include=health</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spring Mail -->
+      <div id="mail" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-spring">Email</span>
+          <h3>Spring Mail <small>SMTP / transactional email</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>Spring's email abstraction layer. It wraps JavaMail and provides a simple <code>JavaMailSender</code> bean for sending emails from the application.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>The app will eventually send password reset emails and welcome messages. The SMTP configuration is already wired up but disabled by default — leave <code>SMTP_HOST</code> blank to skip email entirely.</p>
+        </div>
+        <div class="where">
+          <div class="label">To enable</div>
+        </div>
+        <pre><code><span class="cmt"># Backend/.env</span>
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USERNAME=apikey
+SMTP_PASSWORD=your-sendgrid-api-key</code></pre>
+      </div>
+
+      <!-- Cloudinary -->
+      <div id="cloudinary" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-java">Media</span>
+          <h3>Cloudinary <small>Image storage + CDN</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A cloud media management platform. It stores uploaded images, performs on-the-fly transformations (resize, crop, format conversion), and delivers them through a global CDN.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Journal entries support baby photo uploads. Storing images as binary data in PostgreSQL is impractical at any real scale. Cloudinary provides durable cloud storage, automatic format optimization (JPEG → WebP), and a CDN so images load fast globally.</p>
+        </div>
+        <div class="where">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/.env → CLOUDINARY_* vars</span>
+            <span class="file-pill">journal upload endpoint (multipart → Cloudinary → stores URL)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gradle -->
+      <div id="gradle" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-tool">Build Tool</span>
+          <h3>Gradle <small>with Kotlin DSL</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>The build tool for the Java backend. It compiles source files, resolves library dependencies, runs tests, and packages everything into a runnable JAR file.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Gradle is the standard build tool for modern Spring Boot projects. The Kotlin DSL (<code>build.gradle.kts</code>) provides type safety and IDE auto-completion that the older Groovy DSL lacks. The Gradle wrapper (<code>gradlew</code>) means no one needs to install Gradle — the correct version downloads automatically on first run.</p>
+        </div>
+        <div class="where">
+          <div class="label">Commands you'll use daily</div>
+        </div>
+        <div class="cmd-grid">
+          <div class="cmd-item"><code>./gradlew bootRun</code><p>Start the Spring Boot server</p></div>
+          <div class="cmd-item"><code>./gradlew test</code><p>Run all unit tests</p></div>
+          <div class="cmd-item"><code>./gradlew compileJava</code><p>Compile only — no run, no tests</p></div>
+          <div class="cmd-item"><code>./gradlew build</code><p>Compile + test + package JAR</p></div>
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/build.gradle.kts</span>
+            <span class="file-pill">Backend/settings.gradle.kts</span>
+            <span class="file-pill">Backend/gradlew (run this, not gradle)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- JUnit + Mockito -->
+      <div id="testing" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-test">Testing</span>
+          <h3>JUnit 5 + Mockito <small>Unit testing</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p><strong>JUnit 5</strong> is the Java test runner — it finds <code>@Test</code> methods, runs them, and reports results. <strong>Mockito</strong> is a mocking library that replaces real dependencies (like the database) with controllable fakes called "mocks".</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Unit tests verify a single class in isolation — no running database, no web server. Tests run in milliseconds and catch regressions early. Mocks let us simulate "what if the database returns empty?" without needing a real database record.</p>
+        </div>
+        <div class="where">
+          <div class="label">Anatomy of a test</div>
+        </div>
+        <pre><code><span class="kw">@ExtendWith</span>(MockitoExtension.class)
+<span class="kw">class</span> <span class="cls">GrowthControllerTest</span> {
+
+    <span class="kw">@Mock</span> <span class="cls">GrowthService</span> growthService;       <span class="cmt">// fake — behaviour set by when()</span>
+    <span class="kw">@InjectMocks</span> <span class="cls">GrowthController</span> controller; <span class="cmt">// real controller, gets mock injected</span>
+
+    <span class="kw">@Test</span>
+    <span class="kw">void</span> <span class="fn">addRecord_returns201</span>() {
+        when(growthService.<span class="fn">addRecord</span>(eq(1L), any())).thenReturn(RECORD);
+
+        var result = controller.<span class="fn">addRecord</span>(PRINCIPAL, REQUEST);
+
+        assertEquals(HttpStatus.CREATED, result.<span class="fn">getStatusCode</span>());
+    }
+}</code></pre>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/src/test/java/com/gotcherapp/api/</span>
+            <span class="file-pill">Reports: Backend/build/reports/tests/test/index.html</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         FRONTEND
+    ══════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(96,165,250,0.15)">⚛️</div>
+        <h2>Frontend Technologies</h2>
+      </div>
+
+      <!-- React -->
+      <div id="react" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-react">UI Framework</span>
+          <h3>React 18</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A JavaScript library for building user interfaces out of reusable components. Each component manages its own state and re-renders automatically when that state changes.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>React's component model maps naturally to a tabbed app — Journal, Growth, Feeding, and Milestones are each self-contained sections that own their data fetching and local state. It is the most widely used UI library in the industry.</p>
+        </div>
+        <div class="where">
+          <div class="label">React hooks used in this app</div>
+        </div>
+        <table>
+          <tr><th>Hook</th><th>Where it's used</th></tr>
+          <tr><td><code>useState</code></td><td>Form inputs, data arrays (entries, records, logs), loading/saving flags</td></tr>
+          <tr><td><code>useEffect</code></td><td>Fetching data from the API when a tab loads</td></tr>
+          <tr><td><code>useRef</code></td><td>Feeding tab timer — stores the <code>setInterval</code> ID so it can be cleared on stop</td></tr>
+        </table>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/src/components/BabySteps.jsx</span>
+            <span class="file-pill">Frontend/src/App.jsx</span>
+            <span class="file-pill">Frontend/src/components/LoginPage.jsx</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vite -->
+      <div id="vite" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-tool">Build Tool</span>
+          <h3>Vite 6</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>The frontend build tool and development server. In development it serves files to the browser with hot module replacement (change a file → browser updates instantly, no full page reload). For production, it bundles everything into optimized static files.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Vite is dramatically faster than older tools like Create React App (which used webpack under the hood). It starts in under a second and handles file updates near-instantly.</p>
+        </div>
+        <div class="where">
+          <div class="label">Commands</div>
+        </div>
+        <div class="cmd-grid">
+          <div class="cmd-item"><code>npm run dev</code><p>Dev server at localhost:3000</p></div>
+          <div class="cmd-item"><code>npm run build</code><p>Production bundle → Frontend/dist/</p></div>
+        </div>
+        <div class="callout tip" style="margin-top:12px">
+          <strong>Path alias</strong>
+          <code>@/</code> is an alias for <code>Frontend/src/</code>. So <code>import { cn } from '@/lib/utils'</code> works anywhere without counting <code>../../</code> dots.
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/vite.config.js</span>
+            <span class="file-pill">Frontend/package.json → scripts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tailwind -->
+      <div id="tailwind" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-ui">Styling</span>
+          <h3>Tailwind CSS v3</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A utility-first CSS framework. Instead of writing <code>.card { padding: 16px; border-radius: 8px; }</code> in a separate stylesheet, you compose styles directly on elements using class names like <code>p-4 rounded-lg</code>.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Utility classes keep styles co-located with markup, eliminate the "what do I name this class?" problem, and enforce a consistent design system (8px spacing scale, fixed color palette). Combined with shadcn/ui, it produces a polished result with minimal custom CSS.</p>
+        </div>
+        <div class="where">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/tailwind.config.js</span>
+            <span class="file-pill">Frontend/src/index.css → @tailwind directives + CSS vars</span>
+            <span class="file-pill">Every .jsx file → className="..."</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- shadcn/ui -->
+      <div id="shadcn" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-ui">Components</span>
+          <h3>shadcn/ui + Radix UI</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p><strong>Radix UI</strong> provides accessible, headless (completely unstyled) component behaviors — modal focus trapping, dropdown keyboard navigation, tab panel ARIA roles — all the hard stuff. <strong>shadcn/ui</strong> layers Tailwind styles on top and gives us components we can copy into our project and own completely.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Accessibility is hard to get right from scratch. Radix handles all ARIA roles and keyboard interactions. Being "copy-paste" (not an installed package) means we own the component code and can tweak any detail without fighting a black box.</p>
+        </div>
+        <div class="where">
+          <div class="label">Components in use</div>
+        </div>
+        <div class="file-list">
+          <span class="file-pill">button.jsx</span>
+          <span class="file-pill">card.jsx</span>
+          <span class="file-pill">input.jsx</span>
+          <span class="file-pill">label.jsx</span>
+          <span class="file-pill">textarea.jsx</span>
+          <span class="file-pill">dialog.jsx</span>
+          <span class="file-pill">tabs.jsx</span>
+          <span class="file-pill">select.jsx</span>
+          <span class="file-pill">badge.jsx</span>
+          <span class="file-pill">switch.jsx</span>
+          <span class="file-pill">checkbox.jsx</span>
+          <span class="file-pill">separator.jsx</span>
+        </div>
+        <div class="callout info" style="margin-top:12px">
+          <strong>The cn() helper</strong>
+          <code>import { cn } from '@/lib/utils'</code> — merges Tailwind class names safely, resolving conflicts (e.g., two padding classes → last one wins). Use it any time you conditionally combine class strings.
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/src/components/ui/</span>
+            <span class="file-pill">Frontend/src/lib/utils.js</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- lucide-react -->
+      <div id="lucide" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-ui">Icons</span>
+          <h3>lucide-react</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A React icon library with 1,000+ SVG icons available as components. Each icon is a self-contained React component that renders a crisp SVG at any size.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Icons communicate meaning faster than text alone. lucide-react is the icon set used by shadcn/ui, so it's already in the dependency tree and the style is consistent with the rest of the UI.</p>
+        </div>
+        <div class="where">
+          <div class="label">Usage example</div>
+        </div>
+        <pre><code><span class="kw">import</span> { Baby, BookOpen, TrendingUp, Milk, Trash2 } <span class="kw">from</span> <span class="str">'lucide-react'</span>
+
+&lt;<span class="cls">Baby</span> className=<span class="str">"w-6 h-6 text-pink-400"</span> /&gt;</code></pre>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">BabySteps.jsx → top import block</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- recharts -->
+      <div id="recharts" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-react">Charts</span>
+          <h3>recharts</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A composable charting library for React, built on D3 under the hood. Charts are expressed as JSX components — you compose them like any other React component.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>The Growth Tracker needs a line chart to visualize baby weight, height, and head circumference over time. recharts integrates naturally into the React component model without requiring imperative D3 code.</p>
+        </div>
+        <div class="where">
+          <div class="label">How data is shaped for the chart</div>
+        </div>
+        <pre><code><span class="cmt">// Each growth record becomes one data point:</span>
+{ date: <span class="str">"11/03"</span>, weight: <span class="num">7.5</span>, height: <span class="num">20.0</span>, head: <span class="num">13.5</span> }
+
+<span class="cmt">// Then passed to the chart:</span>
+&lt;<span class="cls">LineChart</span> data={chartData}&gt;
+  &lt;<span class="cls">Line</span> dataKey=<span class="str">"weight"</span> stroke=<span class="str">"#f472b6"</span> name=<span class="str">"Weight (lbs)"</span> /&gt;
+  &lt;<span class="cls">Line</span> dataKey=<span class="str">"height"</span> stroke=<span class="str">"#60a5fa"</span> name=<span class="str">"Height (in)"</span> /&gt;
+  &lt;<span class="cls">Line</span> dataKey=<span class="str">"head"</span>   stroke=<span class="str">"#4ade80"</span> name=<span class="str">"Head (in)"</span> /&gt;
+&lt;/<span class="cls">LineChart</span>&gt;</code></pre>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">BabySteps.jsx → Growth tab section</span>
+            <span class="file-pill">Frontend/package.json → "recharts"</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- jsPDF -->
+      <div id="jspdf" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-react">Export</span>
+          <h3>jsPDF <small>Client-side PDF generation</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A JavaScript library that generates PDF files entirely inside the browser — no server needed. It draws text, images, and shapes onto a virtual PDF canvas, then triggers a file download.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>The Memory Book feature lets parents export their baby's journal as a PDF keepsake. Generating it client-side means no sensitive journal content is sent to a server for rendering, and there's no added server load.</p>
+        </div>
+        <div class="where">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/src/lib/pdf.js</span>
+          </div>
+        </div>
+        <div class="callout info">
+          <strong>Paywall seam</strong>
+          <code>pdf.js</code> exports two functions: <code>generatePdf()</code> builds the PDF object, and <code>downloadPdf()</code> triggers the save. The split is intentional — a future paywall check sits between the two.
+        </div>
+      </div>
+
+      <!-- localStorage -->
+      <div id="localstorage" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-react">Browser API</span>
+          <h3>localStorage</h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A browser built-in API that stores key-value string data persistently — it survives page refreshes and browser restarts, but is private to the current browser (not synced across devices).</p>
+        </div>
+        <div class="why">
+          <div class="label">Where we use it (two places)</div>
+        </div>
+        <table>
+          <tr><th>Key</th><th>What it stores</th><th>Why</th></tr>
+          <tr>
+            <td><code>gotcher_session</code></td>
+            <td>JWT access token + refresh token</td>
+            <td>Keeps the user logged in across page refreshes without a server-side session</td>
+          </tr>
+          <tr>
+            <td><code>gotcher_active_feed</code></td>
+            <td>Feed start time + type</td>
+            <td>If the page is refreshed mid-feed, the timer resumes from the saved start time instead of resetting to zero</td>
+          </tr>
+        </table>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Frontend/src/lib/auth.js → saveSession / getStoredSession</span>
+            <span class="file-pill">BabySteps.jsx → Feeding tab timer logic</span>
+          </div>
+        </div>
+        <div class="callout warn">
+          <strong>Security note</strong>
+          localStorage is readable by any JavaScript on the page (XSS vulnerability). For a future hardening pass, consider moving auth tokens to <code>httpOnly</code> cookies, which are inaccessible to JavaScript.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         INFRASTRUCTURE
+    ══════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(148,163,184,0.15)">🐳</div>
+        <h2>Infrastructure</h2>
+      </div>
+
+      <!-- Docker -->
+      <div id="docker" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-infra">Container</span>
+          <h3>Docker Compose <small>Local dev environment</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>Docker runs applications in isolated containers. Docker Compose lets you define multiple containers (PostgreSQL + pgAdmin) in a single YAML file and start them all with one command.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>Docker eliminates the "works on my machine" problem. Every developer gets an identical PostgreSQL 16 setup regardless of their OS — no manual installation, no version conflicts, no leftover data from other projects.</p>
+        </div>
+        <div class="where">
+          <div class="label">Services</div>
+        </div>
+        <table>
+          <tr><th>Service</th><th>Image</th><th>Port</th><th>Purpose</th></tr>
+          <tr><td><code>postgres</code></td><td>postgres:16</td><td>5432</td><td>Primary database</td></tr>
+          <tr><td><code>pgadmin</code></td><td>dpage/pgadmin4</td><td>5050</td><td>Database admin UI</td></tr>
+        </table>
+        <div class="cmd-grid" style="margin-top:12px">
+          <div class="cmd-item"><code>docker compose up -d</code><p>Start containers in background</p></div>
+          <div class="cmd-item"><code>docker compose down</code><p>Stop and remove containers</p></div>
+          <div class="cmd-item"><code>docker compose logs postgres</code><p>View PostgreSQL logs</p></div>
+          <div class="cmd-item"><code>docker compose ps</code><p>Check container status</p></div>
+        </div>
+        <div class="callout warn" style="margin-top:12px">
+          <strong>Port conflict</strong>
+          TavernTales (another project on this machine) uses the same ports: 5432, 5050, 3000, 3001. Both projects cannot run at the same time. Use <code>stop-services.sh</code> from the project root before switching projects.
+        </div>
+        <div class="where" style="margin-top:12px">
+          <div class="label">Where in the code</div>
+          <div class="file-list">
+            <span class="file-pill">Backend/docker-compose.yml</span>
+            <span class="file-pill">Backend/db/init/01-setup.sql</span>
+            <span class="file-pill">Backend/.env → DOCKER_* vars</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- pgAdmin -->
+      <div id="pgadmin" class="tech-card">
+        <div class="tech-card-header">
+          <span class="tech-badge badge-infra">Admin UI</span>
+          <h3>pgAdmin 4 <small>Database GUI</small></h3>
+        </div>
+        <div class="what">
+          <div class="label">What it is</div>
+          <p>A web-based GUI for PostgreSQL. Browse tables, run SQL queries, view query plans, and manage users — all from a browser.</p>
+        </div>
+        <div class="why">
+          <div class="label">Why we use it</div>
+          <p>It provides a quick way to inspect the database during development without memorizing <code>psql</code> command-line syntax. Useful for verifying that seed data loaded correctly or debugging a query.</p>
+        </div>
+        <div class="where">
+          <div class="label">Access</div>
+        </div>
+        <pre><code>URL:      http://localhost:5050
+Email:    admin@gotcherapp.com  (from Backend/.env)
+Password: admin                 (from Backend/.env)
+
+<span class="cmt"># Then add a server connection:</span>
+Host:     postgres   <span class="cmt"># Docker service name, not localhost</span>
+Port:     5432
+Database: gotcherapp
+Username: gotcherapp_app
+Password: changeme_local</code></pre>
+        <div class="callout warn">
+          <strong>Known issue — pgAdmin 8.14+</strong>
+          pgAdmin rejects email addresses with <code>.local</code> TLD and will crash-loop. Always use a <code>.com</code> or other standard TLD for <code>DOCKER_PGADMIN_EMAIL</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ENV VARS
+    ══════════════════════════════════════ -->
+    <div id="env" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(74,222,128,0.15)">🔑</div>
+        <h2>Environment Variables</h2>
+      </div>
+
+      <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">All secrets live in <code>Backend/.env</code> (gitignored). Use <code>Backend/.env.example</code> as your starting template. Never commit real credentials.</p>
+
+      <div class="tech-card">
+        <table>
+          <tr><th>Variable</th><th>Used by</th><th>Description</th></tr>
+          <tr><td><code>JWT_SECRET</code></td><td>JwtUtil</td><td>32+ char secret for signing tokens. Change this before any real deployment.</td></tr>
+          <tr><td><code>PGHOST / PGPORT / PGUSER / PGPASSWORD / PGDATABASE</code></td><td>Spring DataSource</td><td>PostgreSQL connection details</td></tr>
+          <tr><td><code>DOCKER_POSTGRES_PASSWORD</code></td><td>docker-compose.yml</td><td>PostgreSQL superuser password inside the container</td></tr>
+          <tr><td><code>DOCKER_PGADMIN_EMAIL / PASSWORD</code></td><td>docker-compose.yml</td><td>pgAdmin login credentials</td></tr>
+          <tr><td><code>CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET</code></td><td>Journal image upload</td><td>Cloudinary account credentials</td></tr>
+          <tr><td><code>SMTP_HOST / PORT / USERNAME / PASSWORD</code></td><td>Spring Mail</td><td>SMTP server for email. Leave blank to disable.</td></tr>
+          <tr><td><code>FRONTEND_URL</code></td><td>SecurityConfig CORS</td><td>Allowed origin for API requests (e.g., http://localhost:3000)</td></tr>
+          <tr><td><code>VITE_API_URL</code></td><td>Frontend/src/lib/api.js</td><td>API base URL read by the frontend. Set in <code>Frontend/.env.local</code>.</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         COMMANDS
+    ══════════════════════════════════════ -->
+    <div id="commands" class="section">
+      <div class="section-header">
+        <div class="section-icon" style="background:rgba(74,222,128,0.15)">⌨️</div>
+        <h2>Common Commands</h2>
+      </div>
+
+      <div class="tech-card">
+        <div class="label" style="color:var(--blue); margin-bottom:8px">Start the full stack</div>
+        <pre><code><span class="cmt"># From project root (starts everything):</span>
+./start-services.sh
+
+<span class="cmt"># Or manually:</span>
+cd Backend && docker compose up -d    <span class="cmt"># 1. Start DB</span>
+cd Backend && ./gradlew bootRun       <span class="cmt"># 2. Start API (new terminal)</span>
+cd Frontend && npm run dev            <span class="cmt"># 3. Start frontend (new terminal)</span></code></pre>
+
+        <div class="label" style="color:var(--yellow); margin-bottom:8px; margin-top:16px">Load demo data</div>
+        <pre><code>./seed-demo-user.sh              <span class="cmt"># Creates demo@gotcherapp.com with full profile</span>
+./seed-demo-growth-feeding.sh    <span class="cmt"># Adds growth records + feeding logs to demo account</span></code></pre>
+
+        <div class="label" style="color:var(--pink); margin-bottom:8px; margin-top:16px">Run backend tests</div>
+        <pre><code>cd Backend && ./gradlew test
+<span class="cmt"># Open test report:</span>
+open Backend/build/reports/tests/test/index.html</code></pre>
+
+        <div class="label" style="color:var(--green); margin-bottom:8px; margin-top:16px">Stop everything</div>
+        <pre><code>./stop-services.sh    <span class="cmt"># Stops Docker containers + kills ports 3000/3001</span></code></pre>
+      </div>
+    </div>
+
+    <footer>
+      GotcherApp · Baby Steps · Last updated 2026-03-27
+    </footer>
+
+  </main>
+</div>
+
+</body>
+</html>

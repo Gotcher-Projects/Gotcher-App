@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Gradle Wrapper — downloads Gradle 8.11.1 on first run, then delegates to it.
+# Note: 8.12 has a known bug with the test task on Java 21 ("Type T not present").
+set -e
+
+GRADLE_VERSION="8.11.1"
+GRADLE_INSTALL_DIR="$HOME/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin"
+GRADLE_CMD="$GRADLE_INSTALL_DIR/bin/gradle"
+
+if [ ! -f "$GRADLE_CMD" ]; then
+  echo "[gradlew] Gradle ${GRADLE_VERSION} not found — downloading..."
+  mkdir -p "$GRADLE_INSTALL_DIR"
+  TMP_DIR=$(mktemp -d)
+  GRADLE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$GRADLE_URL" -o "$TMP_DIR/gradle.zip"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$GRADLE_URL" -O "$TMP_DIR/gradle.zip"
+  else
+    echo "[gradlew] ERROR: Neither curl nor wget found. Please install Gradle manually."
+    exit 1
+  fi
+
+  unzip -q "$TMP_DIR/gradle.zip" -d "$TMP_DIR/gradle_extract"
+  cp -r "$TMP_DIR/gradle_extract/gradle-${GRADLE_VERSION}/." "$GRADLE_INSTALL_DIR/"
+  rm -rf "$TMP_DIR"
+  echo "[gradlew] Gradle ${GRADLE_VERSION} installed to $GRADLE_INSTALL_DIR"
+fi
+
+exec "$GRADLE_CMD" "$@"
