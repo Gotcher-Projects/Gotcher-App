@@ -195,7 +195,7 @@ All decisions in the plan file.
 
 ---
 
-## Session 8 — CDC Growth Percentiles
+## Session 8 — CDC Growth Percentiles ✓ COMPLETE
 
 ```
 Session 8 of quick-wins. Branch: feature/growth-percentiles.
@@ -217,26 +217,64 @@ V17 and the corresponding field to the profile form. All decisions in the plan f
 
 ---
 
-## Session 9 — Journal Photo Focal Point
+## Session 10 — Demo Seed, Code Review & Test Coverage
 
 ```
-Session 9 of quick-wins. Branch: feature/journal-focal-point.
+Session 10 of quick-wins. Branch: feature/demo-and-testing.
+Plan: plans/quick-wins/s10-demo-and-testing.md
+
+Three parts — work through them in order:
+
+1. Demo seed script (seed-demo-user.sh) — add milestones, vaccines, appointments, and
+   first-times sections. Also add today's feeding logs so the Dashboard stats cards are
+   populated immediately after seeding. Fix the birthdate comment. Do not change the
+   birthdate itself.
+
+2. Code review — read DashboardTab.jsx, HealthTab.jsx, and the S7 changes in BabySteps.jsx.
+   Fix anything found. Also fix run-all-tests.sh: it checks for build.gradle.kts but the
+   backend uses build.gradle — the backend suite is silently skipped every run.
+
+3. Test coverage — extract the stat helpers from DashboardTab into
+   Frontend/src/lib/dashboardStats.js, then add test files:
+     Frontend/src/test/babyAge.test.js
+     Frontend/src/test/dashboardStats.test.js
+     Frontend/src/test/utils.test.js
+     Backend/src/test/java/.../AuthServiceTest.java
+     Backend/src/test/java/.../MilestoneServiceTest.java
+
+Read the plan file for the full list of what to seed, what to test, and what to check
+in the review. Run ./run-all-tests.sh at the end — all suites must pass.
+```
+
+---
+
+## Session 9 — Photo Crop & Orientation ✓ COMPLETE
+
+```
+Session 9 of quick-wins. Branch: feature/photo-crop-orientation.
 Plan: plans/quick-wins/s9-journal-focal-point.md
 
-Full stack. Check the latest migration number before creating the new one (could be V17
-or V18 depending on whether S8 added a migration).
+Full stack. Check the latest migration number before creating the new one (could be V17 or V18).
 
 Backend:
-1. New migration — ALTER TABLE journal_entries ADD COLUMN image_position VARCHAR(10) DEFAULT 'center'
-2. Journal update DTO — add imagePosition field
-3. JournalService update() — add image_position to dynamic SET clause
+1. New migration — ALTER TABLE journal_entries ADD COLUMN image_orientation VARCHAR(11) DEFAULT 'landscape'
+                   ALTER TABLE first_times ADD COLUMN image_orientation VARCHAR(11) DEFAULT 'landscape'
+   (both statements in one migration file)
+2. Journal update DTO + response DTO — add imageOrientation field
+3. JournalService update() — add image_orientation to dynamic SET clause
+4. FirstTime record + update DTO — add imageOrientation field
+5. FirstTimeService update() — add image_orientation to dynamic SET clause
 
-Frontend (Frontend/src/components/BabySteps.jsx):
-4. Apply objectPosition style to journal entry hero images
-5. Add 3-button focal point toggle (Top / Center / Bottom) to cards with photos
-6. Optimistic update on click — send PATCH /journal/{id} with imagePosition immediately
+Frontend:
+6. Frontend/src/lib/imageUtils.js — new file: openCropModal(file, onComplete)
+   - Modal with image preview + Landscape/Portrait toggle (4:3 / 3:4)
+   - Crop box constrained to ratio, canvas export, max 1400px long edge, quality 0.85
+   - Calls onComplete({ blob, orientation: 'landscape' | 'portrait' })
+   - Check if react-image-crop is installed in package.json; install if not
+7. Frontend/src/components/tabs/MemoriesTab.jsx — wire openCropModal into both journal and
+   first times photo upload onChange handlers; use orientation-driven card heights
+   (h-72 portrait, h-48 landscape/default)
 
-Read the journal section of BabySteps.jsx (search for JournalTab) and the backend journal
-files before coding. Follow the same nullable partial-update pattern as AppointmentService.
-All decisions in the plan file.
+Read MemoriesTab.jsx, JournalService.java, FirstTimeService.java, FirstTimeController.java
+before coding. All decisions in the plan file.
 ```

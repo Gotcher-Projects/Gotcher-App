@@ -2,21 +2,25 @@ import { jsPDF } from 'jspdf';
 import { formatEntryDate } from './formatting';
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const PAGE_W = 210;       // A4 mm
-const PAGE_H = 297;       // A4 mm
-const MARGIN = 18;        // left/right/top/bottom
+const PAGE_W    = 210;
+const PAGE_H    = 297;
+const MARGIN    = 16;
 const CONTENT_W = PAGE_W - MARGIN * 2;
+const CARD_PAD  = 5;
+const HDR_H     = 24;
+const ENTRY_GAP = 10;
 
-const LINE_H     = 5.5;   // body text line height
-const TITLE_H    = 9;     // entry title line height
-const DATE_H     = 6;     // week/date line height
-const IMG_MAX_H  = 140;   // max image height in mm
-const SEP_H      = 10;    // vertical gap between entries
-const HDR_H      = 22;    // page header block height
+const META_H  = 5.5;
+const TITLE_H = 9;
+const LINE_H  = 5.5;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Portrait side-by-side column layout
+const IMG_COL_W   = CONTENT_W * 0.40;
+const COL_GAP     = 4;
+const TXT_COL_W   = CONTENT_W - IMG_COL_W - COL_GAP;
 
-// Returns { dataUrl, drawnH } preserving aspect ratio, capped at IMG_MAX_H.
+// ── Image helpers ─────────────────────────────────────────────────────────────
+
 async function loadImageDataUrl(url) {
   try {
     return await new Promise(resolve => {
@@ -27,10 +31,7 @@ async function loadImageDataUrl(url) {
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         canvas.getContext('2d').drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const drawnH = Math.min(CONTENT_W / aspectRatio, IMG_MAX_H);
-        resolve({ dataUrl, drawnH });
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
       };
       img.onerror = () => resolve(null);
       img.src = url;
@@ -40,218 +41,298 @@ async function loadImageDataUrl(url) {
   }
 }
 
-function formatEntryDateForPdf(entry) {
-  return formatEntryDate(entry.entry_date || entry.date);
+// Returns layout descriptor used by both entryBlockH and renderEntry.
+function resolveImgLayout(raw, orientation) {
+  if (!raw) return null;
+  if (orientation === 'portrait') {
+    const drawW = IMG_COL_W;
+    const drawH = drawW * (4 / 3);
+    return { dataUrl: raw.dataUrl, drawW, drawH, portrait: true };
+  }
+  // landscape — full width, capped at 90mm tall
+  const drawH = Math.min(CONTENT_W * 0.75, 90);
+  return { dataUrl: raw.dataUrl, drawW: CONTENT_W, drawH, portrait: false };
 }
 
-// imgData is { dataUrl, drawnH } or null.
-function entryHeight(storyLines, imgData) {
-  const imgBlock = imgData ? imgData.drawnH + 3 + 4 : 0; // 3 top gap + 4 bottom pad
-  return DATE_H + TITLE_H + (storyLines.length * LINE_H) + imgBlock + SEP_H;
+// storyLines must already be wrapped to the correct column width for this entry.
+function entryBlockH(storyLines, imgLayout) {
+  if (imgLayout?.portrait) {
+    // Side-by-side: height = taller of image column or text column
+    const textColH = CARD_PAD + META_H + TITLE_H + 2
+      + (storyLines.length > 0 ? storyLines.length * LINE_H + 3 : 0)
+      + CARD_PAD;
+    const imgColH = CARD_PAD + imgLayout.drawH + CARD_PAD;
+    return Math.max(textColH, imgColH);
+  }
+  // Stacked landscape layout
+  let h = CARD_PAD + META_H + TITLE_H + 3;
+  if (imgLayout) h += 4 + imgLayout.drawH + 5;
+  if (storyLines.length > 0) h += storyLines.length * LINE_H + 4;
+  h += CARD_PAD;
+  return h;
 }
 
-function drawCoverPage(doc, babyName) {
+// ── Cover page ────────────────────────────────────────────────────────────────
+
+function drawCoverPage(doc, babyName, entryCount) {
   const cx = PAGE_W / 2;
 
-  // Background
-  doc.setFillColor(249, 243, 255);
+  doc.setFillColor(252, 246, 255);
   doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-  // Top decorative band
-  doc.setFillColor(233, 213, 255);
-  doc.rect(0, 0, PAGE_W, 58, 'F');
+  doc.setFillColor(237, 220, 255);
+  doc.rect(0, 0, PAGE_W, 65, 'F');
 
-  // Decorative circles in top band
-  doc.setFillColor(220, 190, 250);
-  doc.ellipse(25, 26, 20, 20, 'F');
-  doc.setFillColor(200, 220, 255);
-  doc.ellipse(PAGE_W - 25, 28, 16, 16, 'F');
-  doc.setFillColor(255, 210, 230);
-  doc.ellipse(PAGE_W - 8, 8, 9, 9, 'F');
+  doc.setFillColor(216, 190, 248);
+  doc.ellipse(22, 24, 22, 22, 'F');
+  doc.setFillColor(195, 220, 255);
+  doc.ellipse(PAGE_W - 22, 26, 17, 17, 'F');
+  doc.setFillColor(255, 208, 230);
+  doc.ellipse(PAGE_W - 6, 6, 10, 10, 'F');
+  doc.setFillColor(200, 240, 220);
+  doc.ellipse(8, PAGE_H - 30, 14, 14, 'F');
 
-  // Baby name
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(38);
-  doc.setTextColor(120, 40, 160);
-  doc.text(`${babyName}'s`, cx, 118, { align: 'center' });
+  doc.setFontSize(40);
+  doc.setTextColor(110, 35, 155);
+  doc.text(`${babyName}'s`, cx, 120, { align: 'center' });
 
-  // "Memory Journal"
-  doc.setFontSize(30);
-  doc.setTextColor(50, 120, 180);
+  doc.setFontSize(28);
+  doc.setTextColor(45, 115, 175);
   doc.text('Memory Journal', cx, 138, { align: 'center' });
 
-  // Decorative rule
-  doc.setDrawColor(200, 160, 235);
+  doc.setDrawColor(195, 155, 230);
   doc.setLineWidth(0.8);
-  doc.line(cx - 45, 148, cx + 45, 148);
+  doc.line(cx - 50, 148, cx + 50, 148);
 
-  // Subtitle
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  doc.setTextColor(150, 110, 185);
-  doc.text('A collection of precious moments', cx, 161, { align: 'center' });
+  doc.setTextColor(145, 105, 180);
+  doc.text('A collection of precious moments', cx, 162, { align: 'center' });
 
-  // Generation date
-  const genDate = formatEntryDate(new Date());
-  doc.setFontSize(9);
-  doc.setTextColor(185, 165, 210);
-  doc.text(`Generated ${genDate}`, cx, 272, { align: 'center' });
+  if (entryCount > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(175, 150, 205);
+    doc.text(`${entryCount} ${entryCount === 1 ? 'memory' : 'memories'} inside`, cx, 174, { align: 'center' });
+  }
 
-  // Bottom decorative band
-  doc.setFillColor(210, 230, 255);
-  doc.rect(0, PAGE_H - 18, PAGE_W, 18, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(190, 170, 215);
+  doc.text(`Generated ${formatEntryDate(new Date())}`, cx, 274, { align: 'center' });
+
+  doc.setFillColor(210, 232, 255);
+  doc.rect(0, PAGE_H - 16, PAGE_W, 16, 'F');
 }
 
+// ── Page header ───────────────────────────────────────────────────────────────
+
 function drawPageHeader(doc, babyName, pageNum, totalPages) {
-  doc.setFillColor(250, 245, 255);
+  doc.setFillColor(251, 247, 255);
   doc.rect(0, 0, PAGE_W, HDR_H - 4, 'F');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(120, 40, 160);
+  doc.setFontSize(13);
+  doc.setTextColor(110, 35, 155);
   doc.text(`${babyName}'s Memory Journal`, MARGIN, 13);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  const genDate = formatEntryDate(new Date());
-  doc.text(`Generated ${genDate}`, MARGIN, 19);
-  doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_W - MARGIN, 19, { align: 'right' });
+  doc.setFontSize(7.5);
+  doc.setTextColor(160, 145, 175);
+  doc.text(`Generated ${formatEntryDate(new Date())}`, MARGIN, 20);
+  doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_W - MARGIN, 20, { align: 'right' });
 
-  // Thin rule under header
-  doc.setDrawColor(220, 200, 240);
-  doc.setLineWidth(0.4);
+  doc.setDrawColor(220, 200, 242);
+  doc.setLineWidth(0.35);
   doc.line(MARGIN, HDR_H - 2, PAGE_W - MARGIN, HDR_H - 2);
 }
 
-// ── Core: render one entry at currentY, return new Y ────────────────────────
-function renderEntry(doc, entry, storyLines, imgData, y) {
-  const h = entryHeight(storyLines, imgData);
-  const cardH = h - SEP_H + 2;
+// ── Entry renderer ────────────────────────────────────────────────────────────
+
+function renderEntry(doc, entry, storyLines, imgLayout, y) {
+  const blockH = entryBlockH(storyLines, imgLayout);
+  const cardH  = blockH - ENTRY_GAP / 2;
+  const x      = MARGIN;
+
+  // Card background
+  doc.setFillColor(252, 248, 255);
+  doc.roundedRect(x - 2, y, CONTENT_W + 4, cardH, 2, 2, 'F');
 
   // Left accent bar
-  doc.setFillColor(180, 90, 220);
-  doc.rect(MARGIN - 5, y - 2, 2.5, cardH, 'F');
+  doc.setFillColor(170, 80, 215);
+  doc.roundedRect(x - 2, y, 3, cardH, 1.5, 1.5, 'F');
 
-  // Week pill background
-  doc.setFillColor(248, 240, 255);
-  doc.rect(MARGIN, y, 22, DATE_H - 1.5, 'F');
+  if (imgLayout?.portrait) {
+    // ── Portrait: image left, text right ─────────────────────────────────
 
-  // Week label inside pill
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(140, 60, 190);
-  doc.text(`Week ${entry.week}`, MARGIN + 1.5, y + DATE_H - 3);
+    const imgX  = x + 2;
+    const textX = imgX + IMG_COL_W + COL_GAP;
 
-  // Date to the right
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(160, 150, 175);
-  doc.text(`  ${formatEntryDateForPdf(entry)}`, MARGIN + 24, y + DATE_H - 3);
-  y += DATE_H;
+    // Image — starts with card top padding
+    doc.addImage(
+      imgLayout.dataUrl, 'JPEG',
+      imgX, y + CARD_PAD,
+      imgLayout.drawW, imgLayout.drawH,
+      undefined, 'FAST'
+    );
 
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(40, 30, 60);
-  doc.text(entry.title, MARGIN, y + TITLE_H - 2);
-  y += TITLE_H;
+    // Text column
+    let cy = y + CARD_PAD;
 
-  // Story
-  if (storyLines.length > 0) {
+    // Week pill
+    doc.setFillColor(243, 232, 255);
+    doc.roundedRect(textX, cy, 22, META_H - 0.5, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(130, 50, 185);
+    doc.text(`Week ${entry.week}`, textX + 1.5, cy + META_H - 1.8);
+    cy += META_H + 1;
+
+    // Title — slightly smaller to fit column
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(35, 25, 55);
+    const titleLines = doc.splitTextToSize(entry.title, TXT_COL_W - 2);
+    doc.text(titleLines, textX, cy + TITLE_H - 2);
+    cy += titleLines.length * TITLE_H;
+
+    // Date
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(70, 60, 85);
-    doc.text(storyLines, MARGIN, y + LINE_H - 1);
-    y += storyLines.length * LINE_H;
+    doc.setFontSize(7.5);
+    doc.setTextColor(165, 150, 180);
+    doc.text(formatEntryDate(entry.entry_date || entry.date), textX, cy + META_H - 1.5);
+    cy += META_H + 3;
+
+    // Divider
+    doc.setDrawColor(225, 205, 242);
+    doc.setLineWidth(0.25);
+    doc.line(textX, cy, textX + TXT_COL_W - 2, cy);
+    cy += 3;
+
+    // Story
+    if (storyLines.length > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(65, 55, 80);
+      doc.text(storyLines, textX, cy + LINE_H - 1);
+    }
+
+  } else {
+    // ── Landscape / no image: stacked ────────────────────────────────────
+
+    let cy = y + CARD_PAD;
+
+    // Week pill + date row
+    doc.setFillColor(243, 232, 255);
+    doc.roundedRect(x + 2, cy, 22, META_H - 0.5, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(130, 50, 185);
+    doc.text(`Week ${entry.week}`, x + 3.5, cy + META_H - 1.8);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(165, 150, 180);
+    doc.text(formatEntryDate(entry.entry_date || entry.date), x + CONTENT_W - 2, cy + META_H - 1.8, { align: 'right' });
+    cy += META_H + 1;
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(35, 25, 55);
+    doc.text(entry.title, x + 2, cy + TITLE_H - 2);
+    cy += TITLE_H;
+
+    // Image
+    if (imgLayout) {
+      cy += 2;
+      doc.setDrawColor(225, 205, 242);
+      doc.setLineWidth(0.25);
+      doc.line(x + 2, cy, x + CONTENT_W - 2, cy);
+      cy += 2;
+      doc.addImage(imgLayout.dataUrl, 'JPEG', x, cy, imgLayout.drawW, imgLayout.drawH, undefined, 'FAST');
+      cy += imgLayout.drawH + 5;
+    }
+
+    // Story
+    if (storyLines.length > 0) {
+      if (!imgLayout) {
+        cy += 2;
+        doc.setDrawColor(225, 205, 242);
+        doc.setLineWidth(0.25);
+        doc.line(x + 2, cy, x + CONTENT_W - 2, cy);
+        cy += 3;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(65, 55, 80);
+      doc.text(storyLines, x + 2, cy + LINE_H - 1);
+    }
   }
 
-  // Image — aspect-ratio-preserving
-  if (imgData) {
-    y += 3;
-    doc.setDrawColor(220, 200, 240);
-    doc.setLineWidth(0.3);
-    doc.rect(MARGIN, y, CONTENT_W, imgData.drawnH);
-    doc.addImage(imgData.dataUrl, 'JPEG', MARGIN, y, CONTENT_W, imgData.drawnH, undefined, 'FAST');
-    y += imgData.drawnH + 4;
-  }
+  // Separator between entries
+  const sepY = y + cardH + 4;
+  doc.setDrawColor(228, 212, 245);
+  doc.setLineWidth(0.25);
+  doc.line(x + 20, sepY, PAGE_W - MARGIN - 20, sepY);
 
-  // Separator line
-  y += 3;
-  doc.setDrawColor(230, 215, 245);
-  doc.setLineWidth(0.3);
-  doc.line(MARGIN + 10, y, PAGE_W - MARGIN - 10, y);
-  y += SEP_H - 3;
-
-  return y;
+  return y + blockH + ENTRY_GAP;
 }
 
-// ── Public: build the PDF doc object (paywall seam: caller decides to download) ──
+// ── Public API ────────────────────────────────────────────────────────────────
+
 export async function generatePdf(entries, babyName) {
-  const sorted = [...entries].sort((a, b) => a.week - b.week);
+  const sorted = [...entries].sort((a, b) =>
+    (a.week - b.week) || (a.entry_date || '').localeCompare(b.entry_date || '')
+  );
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-  // Pre-load all images in parallel (returns { dataUrl, drawnH } or null)
-  const imageDatas = await Promise.all(
+  const rawImages = await Promise.all(
     sorted.map(e => e.image_url ? loadImageDataUrl(e.image_url) : Promise.resolve(null))
   );
+  const imgLayouts = sorted.map((e, i) => resolveImgLayout(rawImages[i], e.image_orientation));
 
-  // Pre-compute wrapped story lines for each entry
+  // Wrap story at the appropriate column width for each entry's orientation
   doc.setFontSize(9.5);
-  const storyLinesArr = sorted.map(e =>
-    e.story ? doc.splitTextToSize(e.story, CONTENT_W) : []
-  );
+  const storyLinesArr = sorted.map((e, i) => {
+    if (!e.story) return [];
+    const wrapW = imgLayouts[i]?.portrait ? TXT_COL_W - 2 : CONTENT_W - 4;
+    return doc.splitTextToSize(e.story, wrapW);
+  });
 
-  // Cover page
-  drawCoverPage(doc, babyName);
+  drawCoverPage(doc, babyName, sorted.length);
   doc.addPage();
 
-  // Two-pass: count pages so header can show "Page X of Y"
   function countPages() {
-    let y = HDR_H;
-    let pages = 1;
+    let y = HDR_H, pages = 1;
     const usableH = PAGE_H - MARGIN;
     for (let i = 0; i < sorted.length; i++) {
-      const h = entryHeight(storyLinesArr[i], imageDatas[i]);
-      if (i > 0 && y + h > usableH) {
-        pages++;
-        y = HDR_H;
-      }
+      const h = entryBlockH(storyLinesArr[i], imgLayouts[i]);
+      if (i > 0 && y + h > usableH) { pages++; y = HDR_H; }
       y += h;
     }
     return pages;
   }
   const totalPages = countPages();
 
-  // Real render
-  let y = HDR_H;
-  let pageNum = 1;
+  let y = HDR_H, pageNum = 1;
   const usableH = PAGE_H - MARGIN;
-
   drawPageHeader(doc, babyName, pageNum, totalPages);
 
   for (let i = 0; i < sorted.length; i++) {
-    const entry = sorted[i];
-    const storyLines = storyLinesArr[i];
-    const imgData = imageDatas[i];
-    const h = entryHeight(storyLines, imgData);
-
-    // Page break if needed (never break mid-entry)
+    const h = entryBlockH(storyLinesArr[i], imgLayouts[i]);
     if (i > 0 && y + h > usableH) {
       doc.addPage();
       pageNum++;
       drawPageHeader(doc, babyName, pageNum, totalPages);
       y = HDR_H;
     }
-
-    y = renderEntry(doc, entry, storyLines, imgData, y);
+    y = renderEntry(doc, sorted[i], storyLinesArr[i], imgLayouts[i], y);
   }
 
   return doc;
 }
 
-// ── Public: trigger download (drop paywall logic here when ready) ─────────────
 export function downloadPdf(doc, babyName) {
   const slug = (babyName || 'baby').toLowerCase().replace(/\s+/g, '-');
   doc.save(`${slug}-memory-journal.pdf`);

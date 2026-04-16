@@ -88,15 +88,15 @@ Features agreed on but not yet scheduled. Add to queue above when ready to build
 - [x] DECISION: Remove the AI book / Anthropic integration entirely
 - [x] Replaced with plain journal-to-summary compiler (no external API)
 
-### 8. Journal — Memory Summary Rework (next session)
-- [ ] Current plain-text compiler has poor formatting and no images
-- [ ] Rework as a PDF export (browser-based for now — e.g. `jsPDF` or `react-to-pdf`)
-  - Include baby photos inline in the PDF, one entry per page or section
-  - Nice typography — not raw `<pre>` text
-- [ ] PDF generation is free tier for now; **future plan: charge users for PDF export**
-  - Design the feature so a paywall can be dropped in front of it later
-  - Keep the compile logic decoupled from the download trigger for easy gating
-- [ ] Images are currently not included in the summary at all — must be fixed in the rework
+### 8. Journal — Memory Book PDF (done, future improvements noted)
+- [x] jsPDF browser-based export — cover page, per-entry cards, inline photos
+- [x] Card layout mirrors UI: week + title + date → image → story (landscape); image left / text right (portrait)
+- [x] Paywall seam in place — `generatePdf()` and `downloadPdf()` are separate exports
+- [ ] **Tech debt — PDF export system:** The current jsPDF approach works but has limits.
+  Consider replacing with a server-side or headless-browser renderer (Puppeteer, Playwright,
+  or a React-to-PDF service) when paying users are involved. Benefits: real CSS/font rendering,
+  better image quality control, no canvas CORS workarounds. Not urgent — revisit when the
+  paywall is ready to go live.
 
 ### 9. Journal — Future Entry Types (larger expansion)
 - Current entry type: text + optional single photo

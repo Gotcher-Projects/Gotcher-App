@@ -23,6 +23,7 @@
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-image-crop": "^11.0.10",
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.6.1"
   },

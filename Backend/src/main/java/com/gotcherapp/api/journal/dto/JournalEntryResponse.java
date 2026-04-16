@@ -8,4 +8,5 @@ public record JournalEntryResponse(
         String title,
         String story,
         @JsonProperty("entry_date") String entryDate,
-        @JsonProperty("image_url") String imageUrl) {}
+        @JsonProperty("image_url") String imageUrl,
+        @JsonProperty("image_orientation") String imageOrientation) {}

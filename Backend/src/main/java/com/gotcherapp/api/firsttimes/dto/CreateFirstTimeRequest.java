@@ -4,5 +4,6 @@ public record CreateFirstTimeRequest(
     String label,
     String occurredDate,
     String imageUrl,
-    String notes
+    String notes,
+    String imageOrientation
 ) {}

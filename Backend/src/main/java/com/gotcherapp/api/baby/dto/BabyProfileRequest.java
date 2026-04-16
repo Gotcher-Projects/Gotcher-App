@@ -4,5 +4,6 @@ public record BabyProfileRequest(
     String babyName,
     String birthdate,
     String parentName,
-    String phone
+    String phone,
+    String sex
 ) {}

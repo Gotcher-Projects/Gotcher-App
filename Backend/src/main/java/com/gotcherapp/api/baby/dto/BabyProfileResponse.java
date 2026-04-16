@@ -5,5 +5,6 @@ public record BabyProfileResponse(
     String babyName,
     String birthdate,
     String parentName,
-    String phone
+    String phone,
+    String sex
 ) {}

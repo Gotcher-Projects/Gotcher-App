@@ -4,5 +4,6 @@ public record UpdateFirstTimeRequest(
     String label,
     String occurredDate,
     String notes,
-    String imageUrl
+    String imageUrl,
+    String imageOrientation
 ) {}

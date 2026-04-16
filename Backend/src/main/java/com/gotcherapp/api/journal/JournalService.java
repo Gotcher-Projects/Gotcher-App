@@ -7,6 +7,7 @@ import com.gotcherapp.api.journal.dto.JournalEntryUpdateRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +27,7 @@ public class JournalService {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList(
-            "SELECT id, week, title, story, entry_date, image_url FROM journal_entries WHERE baby_profile_id = ? ORDER BY entry_date DESC",
+            "SELECT id, week, title, story, entry_date, image_url, image_orientation FROM journal_entries WHERE baby_profile_id = ? ORDER BY entry_date DESC",
             profileId.get()
         ).stream().map(this::mapRow).toList();
     }
@@ -35,8 +36,10 @@ public class JournalService {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
         Map<String, Object> row = jdbc.queryForMap(
-            "INSERT INTO journal_entries (baby_profile_id, week, title, story, image_url) VALUES (?, ?, ?, ?, ?) RETURNING id, week, title, story, entry_date, image_url",
-            profileId.get(), req.week(), req.title(), req.story(), req.imageUrl()
+            "INSERT INTO journal_entries (baby_profile_id, week, title, story, image_url, image_orientation) " +
+            "VALUES (?, ?, ?, ?, ?, COALESCE(?, 'landscape')) " +
+            "RETURNING id, week, title, story, entry_date, image_url, image_orientation",
+            profileId.get(), req.week(), req.title(), req.story(), req.imageUrl(), req.imageOrientation()
         );
         return mapRow(row);
     }
@@ -44,19 +47,39 @@ public class JournalService {
     public Optional<JournalEntryResponse> update(Long userId, Long entryId, JournalEntryUpdateRequest req) {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return Optional.empty();
+
+        List<String> setClauses = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+
+        if (req.title() != null)            { setClauses.add("title = ?");             params.add(req.title()); }
+        if (req.story() != null)            { setClauses.add("story = ?");             params.add(req.story()); }
+        if (req.imageOrientation() != null) { setClauses.add("image_orientation = ?"); params.add(req.imageOrientation()); }
+
+        if (setClauses.isEmpty()) {
+            List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT id, week, title, story, entry_date, image_url, image_orientation FROM journal_entries WHERE id = ? AND baby_profile_id = ?",
+                entryId, profileId.get()
+            );
+            return rows.isEmpty() ? Optional.empty() : Optional.of(mapRow(rows.get(0)));
+        }
+
+        params.add(entryId);
+        params.add(profileId.get());
+
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "UPDATE journal_entries SET title = ?, story = ? WHERE id = ? AND baby_profile_id = ? RETURNING id, week, title, story, entry_date, image_url",
-            req.title(), req.story(), entryId, profileId.get()
+            "UPDATE journal_entries SET " + String.join(", ", setClauses) +
+            " WHERE id = ? AND baby_profile_id = ?" +
+            " RETURNING id, week, title, story, entry_date, image_url, image_orientation",
+            params.toArray()
         );
-        if (rows.isEmpty()) return Optional.empty();
-        return Optional.of(mapRow(rows.get(0)));
+        return rows.isEmpty() ? Optional.empty() : Optional.of(mapRow(rows.get(0)));
     }
 
     public Optional<JournalEntryResponse> updateImage(Long userId, Long entryId, String imageUrl) {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return Optional.empty();
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "UPDATE journal_entries SET image_url = ? WHERE id = ? AND baby_profile_id = ? RETURNING id, week, title, story, entry_date, image_url",
+            "UPDATE journal_entries SET image_url = ? WHERE id = ? AND baby_profile_id = ? RETURNING id, week, title, story, entry_date, image_url, image_orientation",
             imageUrl, entryId, profileId.get()
         );
         if (rows.isEmpty()) return Optional.empty();
@@ -82,7 +105,8 @@ public class JournalService {
             (String) row.get("title"),
             (String) row.get("story"),
             entryDate,
-            (String) row.get("image_url")
+            (String) row.get("image_url"),
+            (String) row.get("image_orientation")
         );
     }
 }

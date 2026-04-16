@@ -20,7 +20,7 @@ public class BabyProfileService {
 
     public Optional<BabyProfileResponse> getProfile(Long userId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, baby_name, birthdate, parent_name, phone FROM baby_profiles WHERE user_id = ?",
+            "SELECT id, baby_name, birthdate, parent_name, phone, sex FROM baby_profiles WHERE user_id = ?",
             userId
         );
         if (rows.isEmpty()) return Optional.empty();
@@ -30,21 +30,23 @@ public class BabyProfileService {
     public BabyProfileResponse upsert(Long userId, BabyProfileRequest req) {
         String birthdate = (req.birthdate() != null && !req.birthdate().isBlank()) ? req.birthdate() : null;
         Map<String, Object> row = jdbc.queryForMap("""
-            INSERT INTO baby_profiles (user_id, baby_name, birthdate, parent_name, phone)
-            VALUES (?, ?, ?::date, ?, ?)
+            INSERT INTO baby_profiles (user_id, baby_name, birthdate, parent_name, phone, sex)
+            VALUES (?, ?, ?::date, ?, ?, ?)
             ON CONFLICT (user_id) DO UPDATE SET
                 baby_name   = EXCLUDED.baby_name,
                 birthdate   = EXCLUDED.birthdate,
                 parent_name = EXCLUDED.parent_name,
                 phone       = EXCLUDED.phone,
+                sex         = EXCLUDED.sex,
                 updated_at  = NOW()
-            RETURNING id, baby_name, birthdate, parent_name, phone
+            RETURNING id, baby_name, birthdate, parent_name, phone, sex
             """,
             userId,
             req.babyName(),
             birthdate,
             req.parentName(),
-            req.phone()
+            req.phone(),
+            req.sex()
         );
         return mapRow(row);
     }
@@ -57,7 +59,8 @@ public class BabyProfileService {
             (String) row.get("baby_name"),
             birthdate,
             (String) row.get("parent_name"),
-            (String) row.get("phone")
+            (String) row.get("phone"),
+            (String) row.get("sex")
         );
     }
 }

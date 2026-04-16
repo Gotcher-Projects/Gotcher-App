@@ -1,5 +1,5 @@
 # Session 8 — CDC Growth Percentiles Overlay
-**Status:** Pending
+**Status:** Complete
 **Branch:** feature/growth-percentiles
 **Depends on:** S6 complete (Growth lives inside Health tab after restructure)
 

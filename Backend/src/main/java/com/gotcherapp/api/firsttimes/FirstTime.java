@@ -7,5 +7,6 @@ public record FirstTime(
     String occurredDate,
     String imageUrl,
     String notes,
-    String createdAt
+    String createdAt,
+    String imageOrientation
 ) {}
