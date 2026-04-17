@@ -100,6 +100,52 @@ describe('logoutUser', () => {
   });
 });
 
+// ── validateSession ────────────────────────────────────────────────────────
+
+describe('validateSession', () => {
+  let validateSession;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn());
+    localStorage.clear();
+    ({ validateSession } = await import('../lib/auth.js'));
+  });
+
+  it('returns true when /auth/me succeeds', async () => {
+    fetch.mockResolvedValueOnce({ ok: true, status: 200 });
+    expect(await validateSession()).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns false for non-401 error from /auth/me', async () => {
+    fetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    expect(await validateSession()).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns true when /auth/me returns 401 but refresh succeeds', async () => {
+    fetch
+      .mockResolvedValueOnce({ ok: false, status: 401 })  // /auth/me
+      .mockResolvedValueOnce({ ok: true,  status: 200 }); // /auth/refresh
+    expect(await validateSession()).toBe(true);
+  });
+
+  it('returns false and clears localStorage when refresh fails', async () => {
+    localStorage.setItem('gotcherapp_user', JSON.stringify({ id: 1 }));
+    fetch
+      .mockResolvedValueOnce({ ok: false, status: 401 }) // /auth/me
+      .mockResolvedValueOnce({ ok: false, status: 401 }); // /auth/refresh fails
+    expect(await validateSession()).toBe(false);
+    expect(localStorage.getItem('gotcherapp_user')).toBeNull();
+  });
+
+  it('returns false on network error', async () => {
+    fetch.mockRejectedValueOnce(new Error('Network error'));
+    expect(await validateSession()).toBe(false);
+  });
+});
+
 // ── saveSession / getStoredSession ─────────────────────────────────────────
 
 describe('saveSession / getStoredSession', () => {

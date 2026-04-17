@@ -14,7 +14,7 @@ EMAIL="demo@gotcherapp.com"
 PASSWORD="DemoPass1"
 DISPLAY_NAME="Sarah Mitchell"
 BABY_NAME="Lily"
-# Born ~20 weeks ago from 2026-03-22
+# Born ~24 weeks ago from 2026-04-15
 BIRTHDATE="2025-11-02"
 PARENT_NAME="Sarah Mitchell"
 PHONE="555-012-3456"
@@ -22,7 +22,7 @@ PHONE="555-012-3456"
 echo "==> Registering demo user..."
 REG=$(curl -sf -X POST "$API/auth/register" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"displayName\":\"$DISPLAY_NAME\"}" || true)
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\",\"display_name\":\"$DISPLAY_NAME\"}" || true)
 
 if [ -z "$REG" ]; then
   echo "    (Registration failed — user may already exist, attempting login...)"
@@ -132,17 +132,22 @@ now = datetime.now(timezone.utc)
 
 sessions = [
     # (days_ago, start_hour, start_min, duration_min, type)
-    (3, 7,  0,  22, "breast_left"),
-    (3, 10, 30, 20, "breast_right"),
-    (3, 14, 0,  18, "bottle"),
-    (3, 19, 15, 15, "breast_left"),
+    # Today (days_ago=0) — 3 feeds spaced ~3h apart so dashboard stats show data
+    (0, 7,  0,  20, "breast_left"),
+    (0, 10, 15, 18, "breast_right"),
+    (0, 13, 30, 22, "breast_left"),
+    # Yesterday and prior days
+    (1, 7,  0,  25, "breast_left"),
+    (1, 11, 30, 19, "breast_right"),
+    (1, 16, 0,  14, "bottle"),
     (2, 6,  45, 23, "breast_right"),
     (2, 11, 0,  20, "breast_left"),
     (2, 15, 30, 16, "formula"),
     (2, 19, 0,  17, "breast_right"),
-    (1, 7,  0,  25, "breast_left"),
-    (1, 11, 30, 19, "breast_right"),
-    (1, 16, 0,  14, "bottle"),
+    (3, 7,  0,  22, "breast_left"),
+    (3, 10, 30, 20, "breast_right"),
+    (3, 14, 0,  18, "bottle"),
+    (3, 19, 15, 15, "breast_left"),
 ]
 
 def req(method, path, body=None):
@@ -272,13 +277,148 @@ for days_ago, hour, minute, ptype, color, consistency, notes in logs:
 
 PYEOF
 
+# ── Milestones ────────────────────────────────────────────────────────────────
+echo "==> Seeding milestones (weeks 0–20, ~70% achieved)..."
+
+# MILESTONES structure (from babyData.js):
+#   0:  ["Turns toward voices", "Lifts head during tummy time", "High contrast patterns"]
+#   4:  ["Social smiling", "Tracks objects side to side", "Brings hands to mouth"]
+#   8:  ["Coos and babbles", "Better head control", "Kicks and stretches"]
+#  12:  ["Laughs out loud", "Holds head steady", "Grasps toys and shakes them"]
+#  16:  ["Rolls tummy to back", "Reaches for objects", "Brings feet to hands"]
+#  20:  ["Rolls both ways", "Responds to name", "Babbles ba-da sounds"]
+#
+# Key format: ${groupWeek}-${index}  (0-indexed)
+# Seeding ~70% — skip a few to look realistic
+
+post_milestone() {
+  local KEY="$1"
+  curl -sf -X POST "$API/milestones/$KEY" \
+    -H "Authorization: Bearer $TOKEN" \
+    > /dev/null
+  echo "    $KEY"
+}
+
+# Week 0 group — all 3 achieved
+post_milestone "0-0"
+post_milestone "0-1"
+post_milestone "0-2"
+# Week 4 group — all 3 achieved
+post_milestone "4-0"
+post_milestone "4-1"
+post_milestone "4-2"
+# Week 8 group — 2 of 3 (skip "Kicks and stretches")
+post_milestone "8-0"
+post_milestone "8-1"
+# Week 12 group — all 3 achieved
+post_milestone "12-0"
+post_milestone "12-1"
+post_milestone "12-2"
+# Week 16 group — 2 of 3 (skip "Brings feet to hands")
+post_milestone "16-0"
+post_milestone "16-1"
+# Week 20 group — 1 of 3 (only "Rolls both ways" — just started this group)
+post_milestone "20-0"
+
+echo "    Done (14 of 18 milestones = 78% achieved)"
+
+# ── Vaccines ──────────────────────────────────────────────────────────────────
+echo "==> Seeding vaccines (birth, 2m, 4m schedules)..."
+
+# VACCINES structure (from babyData.js):
+#   birth: ["Hepatitis B (HepB) — 1st dose"]  → birth-0
+#   2m:    6 vaccines                           → 2m-0 through 2m-5
+#   4m:    5 vaccines                           → 4m-0 through 4m-4
+
+post_vaccine() {
+  local KEY="$1"
+  curl -sf -X POST "$API/vaccines/$KEY" \
+    -H "Authorization: Bearer $TOKEN" \
+    > /dev/null
+  echo "    $KEY"
+}
+
+# Birth vaccines
+post_vaccine "birth-0"
+# 2-month vaccines
+post_vaccine "2m-0"
+post_vaccine "2m-1"
+post_vaccine "2m-2"
+post_vaccine "2m-3"
+post_vaccine "2m-4"
+post_vaccine "2m-5"
+# 4-month vaccines
+post_vaccine "4m-0"
+post_vaccine "4m-1"
+post_vaccine "4m-2"
+post_vaccine "4m-3"
+post_vaccine "4m-4"
+
+echo "    Done (12 vaccines: birth + 2m + 4m complete)"
+
+# ── Appointments ──────────────────────────────────────────────────────────────
+echo "==> Seeding appointments (2 past, 2 upcoming)..."
+
+post_appt() {
+  local DATE="$1"
+  local TYPE="$2"
+  local DOCTOR="$3"
+  local NOTES="$4"
+  local COMPLETED="$5"
+  curl -sf -X POST "$API/appointments" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d "{\"appointmentDate\":\"$DATE\",\"appointmentType\":$(json_str "$TYPE"),\"doctorName\":$(json_str "$DOCTOR"),\"notes\":$(json_str "$NOTES"),\"isCompleted\":$COMPLETED}" \
+    > /dev/null
+  echo "    $DATE: $TYPE (completed=$COMPLETED)"
+}
+
+# Past appointments (completed)
+post_appt "2026-01-06" "2-Month Well Visit" "Dr. Emily Chen" "All vaccines given. Weight 11.5 lbs, height 23 in. Doing great!" "true"
+post_appt "2026-03-03" "4-Month Well Visit" "Dr. Emily Chen" "4-month vaccines administered. Weight 14.2 lbs. Developmental milestones on track." "true"
+# Upcoming appointments
+post_appt "2026-05-05" "6-Month Well Visit" "Dr. Emily Chen" "Bring insurance card. Discuss starting solids." "false"
+post_appt "2026-04-28" "Lactation Consultant" "Nurse Practitioner Sarah" "Follow-up on feeding schedule and solid food introduction timing." "false"
+
+echo "    Done (2 past, 2 upcoming)"
+
+# ── First Times ───────────────────────────────────────────────────────────────
+echo "==> Seeding first times..."
+
+post_first() {
+  local LABEL="$1"
+  local DATE="$2"
+  local NOTES="$3"
+  curl -sf -X POST "$API/first-times" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d "{\"label\":$(json_str "$LABEL"),\"occurredDate\":\"$DATE\",\"notes\":$(json_str "$NOTES"),\"imageOrientation\":\"landscape\"}" \
+    > /dev/null
+  echo "    $DATE: $LABEL"
+}
+
+post_first "Smile" "2025-12-01" "A real, genuine smile — not gas! Both eyes crinkled up and everything. I cried happy tears."
+post_first "Laugh" "2026-01-10" "I was making silly faces and she just burst out laughing. The best sound in the world."
+post_first "Rolled over" "2026-02-14" "Valentine's Day — she gave us the best gift. Rolled over on the play mat and looked so proud of herself."
+post_first "Bath" "2025-11-05" "She was not impressed at first, then settled right in. Wrapped her up in the hooded towel — she looked like a tiny burrito."
+post_first "Grabbed a toy" "2026-01-28" "Reached out and grabbed the hanging ring on her activity gym. Held it for a full five seconds before letting go."
+post_first "Slept 5 hours straight" "2025-12-20" "We woke up in a panic thinking something was wrong. She was just... sleeping. Angels were singing."
+post_first "Solid food" "2026-04-10" "Sweet potato puree. She scrunched her face, then opened her mouth for more. She's ready!"
+post_first "Trip to the park" "2026-03-15" "Sat in the stroller and watched the trees. Completely transfixed by the leaves moving in the breeze."
+
+echo "    Done (8 first times)"
+
 echo ""
 echo "Done! Demo account ready:"
 echo "  Email:    $EMAIL"
 echo "  Password: $PASSWORD"
-echo "  Baby:     $BABY_NAME (born $BIRTHDATE, ~22 weeks)"
+echo "  Baby:     $BABY_NAME (born $BIRTHDATE, ~24 weeks)"
 echo "  Journal:  8 entries (weeks 2, 4, 6, 8, 10, 12, 16, 20)"
 echo "  Growth:   6 records (newborn → 20 weeks, imperial units)"
-echo "  Feeding:  11 completed sessions (last 3 days)"
+echo "  Feeding:  14 sessions (3 today + last 3 days)"
 echo "  Sleep:    25 sessions (7 nights + 18 naps, last 7 days)"
 echo "  Poop:     16 entries (last 7 days)"
+echo "  Milestones: 14 achieved (weeks 0–20)"
+echo "  Vaccines: 12 given (birth + 2m + 4m complete)"
+echo "  Appointments: 4 (2 past, 2 upcoming)"
+echo "  First Times: 8 entries"

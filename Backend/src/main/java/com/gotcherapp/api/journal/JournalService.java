@@ -33,13 +33,12 @@ public class JournalService {
     }
 
     public JournalEntryResponse create(Long userId, JournalEntryRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         Map<String, Object> row = jdbc.queryForMap(
             "INSERT INTO journal_entries (baby_profile_id, week, title, story, image_url, image_orientation) " +
             "VALUES (?, ?, ?, ?, ?, COALESCE(?, 'landscape')) " +
             "RETURNING id, week, title, story, entry_date, image_url, image_orientation",
-            profileId.get(), req.week(), req.title(), req.story(), req.imageUrl(), req.imageOrientation()
+            profileId, req.week(), req.title(), req.story(), req.imageUrl(), req.imageOrientation()
         );
         return mapRow(row);
     }

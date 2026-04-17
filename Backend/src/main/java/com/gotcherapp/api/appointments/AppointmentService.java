@@ -33,8 +33,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponse create(Long userId, AppointmentRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         if (req.appointmentDate() == null || req.appointmentDate().isBlank()) {
             throw new IllegalArgumentException("appointmentDate is required");
         }
@@ -43,7 +42,7 @@ public class AppointmentService {
             VALUES (?, ?::date, ?, ?, ?, ?)
             RETURNING id, appointment_date, doctor_name, appointment_type, notes, is_completed, created_at
             """,
-            profileId.get(),
+            profileId,
             req.appointmentDate(),
             req.doctorName(),
             req.appointmentType(),

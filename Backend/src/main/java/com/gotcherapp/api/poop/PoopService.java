@@ -26,6 +26,7 @@ public class PoopService {
     }
 
     public List<PoopLog> getLogs(Long userId, int limitDays) {
+        limitDays = Math.min(limitDays, 3650);
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList("""
@@ -40,8 +41,7 @@ public class PoopService {
     }
 
     public PoopLog addLog(Long userId, PoopRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
 
         String type = req.type() != null ? req.type() : "normal";
         if (!VALID_TYPES.contains(type)) throw new IllegalArgumentException("Invalid type: " + type);
@@ -57,7 +57,7 @@ public class PoopService {
             VALUES (?, ?::timestamptz, ?, ?, ?, ?)
             RETURNING id, logged_at, type, color, consistency, notes
             """,
-            profileId.get(), loggedAt, type, req.color(), req.consistency(), req.notes()
+            profileId, loggedAt, type, req.color(), req.consistency(), req.notes()
         );
         return mapRow(row);
     }

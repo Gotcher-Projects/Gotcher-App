@@ -40,8 +40,8 @@ class JournalControllerTest {
 
     @Test
     void create_returns201_onSuccess() {
-        var req = new JournalEntryRequest(4, "First smile", "So cute", null);
-        var entry = new JournalEntryResponse(1L, 4, "First smile", "So cute", "2026-01-01", null);
+        var req = new JournalEntryRequest(4, "First smile", "So cute", null, null);
+        var entry = new JournalEntryResponse(1L, 4, "First smile", "So cute", "2026-01-01", null, null);
         when(journalService.create(1L, req)).thenReturn(entry);
 
         var response = journalController.create(principal, req);
@@ -52,7 +52,7 @@ class JournalControllerTest {
 
     @Test
     void create_returns400_whenNoProfile() {
-        var req = new JournalEntryRequest(4, "Title", "Story", null);
+        var req = new JournalEntryRequest(4, "Title", "Story", null, null);
         when(journalService.create(1L, req)).thenThrow(new IllegalStateException("No baby profile found"));
 
         var response = journalController.create(principal, req);
@@ -84,7 +84,7 @@ class JournalControllerTest {
     @Test
     void updateImage_returns200_withUpdatedEntry() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "img.jpg", "image/jpeg", new byte[]{1});
-        var updatedEntry = new JournalEntryResponse(5L, 4, "Title", "Story", "2026-01-01", "https://url");
+        var updatedEntry = new JournalEntryResponse(5L, 4, "Title", "Story", "2026-01-01", "https://url", null);
         when(imageUploadService.upload(file, "journal", 1L)).thenReturn("https://url");
         when(journalService.updateImage(1L, 5L, "https://url")).thenReturn(Optional.of(updatedEntry));
 

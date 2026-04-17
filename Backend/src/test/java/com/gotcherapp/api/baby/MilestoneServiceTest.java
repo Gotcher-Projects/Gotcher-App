@@ -60,7 +60,7 @@ class MilestoneServiceTest {
 
     @Test
     void achieve_insertsRow_whenProfileExists() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
 
         milestoneService.achieve(USER_ID, KEY);
 
@@ -69,7 +69,7 @@ class MilestoneServiceTest {
 
     @Test
     void achieve_throwsIllegalState_whenNoProfile() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenThrow(IllegalStateException.class);
 
         assertThrows(IllegalStateException.class, () -> milestoneService.achieve(USER_ID, KEY));
         verifyNoInteractions(jdbc);
@@ -78,7 +78,7 @@ class MilestoneServiceTest {
     @Test
     void achieve_isIdempotent_onConflict() {
         // ON CONFLICT DO NOTHING means calling achieve twice should call update twice without error
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         when(jdbc.update(anyString(), eq(PROFILE_ID), eq(KEY))).thenReturn(0); // 0 rows = conflict/no-op
 
         assertDoesNotThrow(() -> {

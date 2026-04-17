@@ -23,6 +23,7 @@ public class SleepService {
     }
 
     public List<SleepLog> getLogs(Long userId, int limitDays) {
+        limitDays = Math.min(limitDays, 3650);
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList("""
@@ -37,8 +38,7 @@ public class SleepService {
     }
 
     public SleepLog addLog(Long userId, SleepRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         if (!VALID_TYPES.contains(req.type())) {
             throw new IllegalArgumentException("Invalid sleep type: " + req.type());
         }
@@ -50,7 +50,7 @@ public class SleepService {
             VALUES (?, ?, ?::timestamptz, ?::timestamptz, ?)
             RETURNING id, type, started_at, ended_at, notes
             """,
-            profileId.get(), req.type(), req.startedAt(), req.endedAt(), req.notes()
+            profileId, req.type(), req.startedAt(), req.endedAt(), req.notes()
         );
         return mapRow(row);
     }

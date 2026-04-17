@@ -28,7 +28,7 @@ class BabyProfileControllerTest {
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(USER_ID, EMAIL);
 
     private static final BabyProfileResponse PROFILE = new BabyProfileResponse(
-        PROFILE_ID, "Lily", "2025-06-01", "Jane", "555-0100"
+        PROFILE_ID, "Lily", "2025-06-01", "Jane", "555-0100", null
     );
 
     // ── GET /baby-profile ─────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ class BabyProfileControllerTest {
     @Test
     void upsertProfile_returns200_withSavedProfile() {
         when(babyProfileService.upsert(eq(USER_ID), any())).thenReturn(PROFILE);
-        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100");
+        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100", null);
 
         var result = babyProfileController.upsertProfile(PRINCIPAL, req);
 
@@ -68,7 +68,7 @@ class BabyProfileControllerTest {
     @Test
     void upsertProfile_delegatesToService() {
         when(babyProfileService.upsert(eq(USER_ID), any())).thenReturn(PROFILE);
-        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100");
+        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100", null);
 
         babyProfileController.upsertProfile(PRINCIPAL, req);
 

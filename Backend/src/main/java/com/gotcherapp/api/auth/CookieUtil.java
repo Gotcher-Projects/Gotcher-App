@@ -3,26 +3,33 @@ package com.gotcherapp.api.auth;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CookieUtil {
 
-    private static final boolean SECURE = "true".equalsIgnoreCase(System.getenv("SECURE_COOKIES"));
+    private final boolean secure;
 
-    public static void setAccessTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
+    public CookieUtil(@Value("${app.cookies.secure:false}") boolean secure) {
+        this.secure = secure;
+    }
+
+    public void setAccessTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
         Cookie c = new Cookie("access_token", token);
         c.setHttpOnly(true);
         c.setPath("/");
         c.setMaxAge(maxAgeSeconds);
-        c.setSecure(SECURE);
+        c.setSecure(secure);
         response.addCookie(c);
     }
 
-    public static void setRefreshTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
+    public void setRefreshTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
         Cookie c = new Cookie("refresh_token", token);
         c.setHttpOnly(true);
         c.setPath("/auth");
         c.setMaxAge(maxAgeSeconds);
-        c.setSecure(SECURE);
+        c.setSecure(secure);
         response.addCookie(c);
     }
 

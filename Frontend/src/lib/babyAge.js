@@ -1,4 +1,4 @@
-import { MILESTONES, ACTIVITIES, PRODUCTS } from './babyData';
+import { MILESTONES, ACTIVITIES } from './babyData';
 
 export function getWeek(birthdate) {
   if (!birthdate) return 0;
@@ -33,6 +33,8 @@ export function formatBabyAge(birthdate) {
 }
 
 export function getMilestones(week) {
+  // Key format: floor(week/4)*4 — groups weeks 0-3→0, 4-7→4, etc.
+  // Same grouping used as the stable milestone ID prefix (e.g. "4-0", "4-1").
   const key = Math.floor(week / 4) * 4;
   return MILESTONES[key] || [];
 }
@@ -42,7 +44,15 @@ export function getActivities(week) {
   return ACTIVITIES[key] || [];
 }
 
-export function getProducts(week) {
-  const key = Math.floor(week / 8) * 8;
-  return PRODUCTS[key] || [];
+// Returns the exact calendar month count (0-indexed), matching formatBabyAge's logic.
+export function getMonths(birthdate) {
+  if (!birthdate) return 0;
+  const birth = new Date(birthdate + 'T00:00:00');
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  const anniversary = new Date(birth);
+  anniversary.setMonth(anniversary.getMonth() + months);
+  if (anniversary > now) months--;
+  return Math.max(0, months);
 }

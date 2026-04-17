@@ -26,21 +26,24 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final CookieUtil cookieUtil;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    public AuthController(AuthService authService, EmailVerificationService emailVerificationService) {
+    public AuthController(AuthService authService, EmailVerificationService emailVerificationService,
+                          CookieUtil cookieUtil) {
         this.authService = authService;
         this.emailVerificationService = emailVerificationService;
+        this.cookieUtil = cookieUtil;
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletResponse response) {
         try {
             AuthResponse data = authService.register(req);
-            CookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
-            CookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
+            cookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
+            cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
             return ResponseEntity.status(HttpStatus.CREATED).body(data);
         } catch (IllegalArgumentException e) {
             return ApiError.badRequest(e.getMessage());
@@ -53,8 +56,8 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse response) {
         try {
             AuthResponse data = authService.login(req);
-            CookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
-            CookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
+            cookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
+            cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
             return ApiError.badRequest(e.getMessage());
@@ -70,8 +73,8 @@ public class AuthController {
         String refreshToken = CookieUtil.getCookieValue(request, "refresh_token");
         try {
             AuthResponse data = authService.refresh(refreshToken);
-            CookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
-            CookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
+            cookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
+            cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
             CookieUtil.clearAuthCookies(response);

@@ -280,6 +280,14 @@ function renderEntry(doc, entry, storyLines, imgLayout, y) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/**
+ * Build a jsPDF document from journal entries. Sorts by week then date, loads and
+ * crops all images, lays out a cover page + paginated entry cards.
+ * @param {Array<{id: number, week: number, title: string, story?: string, entry_date?: string,
+ *   image_url?: string, image_orientation?: 'portrait'|'landscape'}>} entries
+ * @param {string} babyName - used in cover title and page header
+ * @returns {Promise<jsPDF>} — call downloadPdf(doc, babyName) to trigger save
+ */
 export async function generatePdf(entries, babyName) {
   const sorted = [...entries].sort((a, b) =>
     (a.week - b.week) || (a.entry_date || '').localeCompare(b.entry_date || '')

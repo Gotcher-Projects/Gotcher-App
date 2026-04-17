@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import PillNav from "@/components/ui/PillNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpd
 // ── Journal ────────────────────────────────────────────────────────────────────
 
 function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
+  const cancelCropRef = useRef(null);
+  useEffect(() => () => cancelCropRef.current?.(), []);
+
   const [title, setTitle] = useState("");
   const [story, setStory] = useState("");
   const [croppedPhoto, setCroppedPhoto] = useState(null);
@@ -148,7 +151,7 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                   const file = e.target.files[0];
                   if (!file) return;
                   e.target.value = '';
-                  openCropModal(file, ({ blob, orientation }) => setCroppedPhoto({ blob, orientation }));
+                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
                 }}
               />
             </label>
@@ -214,7 +217,7 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                             const file = ev.target.files[0];
                             if (!file) return;
                             ev.target.value = '';
-                            openCropModal(file, ({ blob, orientation }) => setEditCroppedPhoto({ blob, orientation }));
+                            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
                           }}
                         />
                       </label>
@@ -327,6 +330,9 @@ const FIRST_TIME_PRESETS = [
 ];
 
 function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, onError }) {
+  const cancelCropRef = useRef(null);
+  useEffect(() => () => cancelCropRef.current?.(), []);
+
   const [mode, setMode] = useState('suggestions'); // 'suggestions' | 'custom'
   const [label, setLabel] = useState('');
   const [date, setDate] = useState('');
@@ -419,7 +425,7 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
                   const file = e.target.files[0];
                   if (!file) return;
                   e.target.value = '';
-                  openCropModal(file, ({ blob, orientation }) => setCroppedImage({ blob, orientation }));
+                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
                 }}
                 className="text-xs"
               />
@@ -572,7 +578,7 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
             const file = e.target.files[0];
             if (!file) return;
             e.target.value = '';
-            openCropModal(file, ({ blob, orientation }) => setEditCroppedImage({ blob, orientation }));
+            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
           }}
           className="text-xs"
         />

@@ -84,10 +84,10 @@ class BabyProfileServiceTest {
             "parent_name", "Jane",
             "phone",       "555-0100"
         );
-        when(jdbc.queryForMap(anyString(), eq(USER_ID), eq("Lily"), eq("2025-06-01"), eq("Jane"), eq("555-0100")))
+        when(jdbc.queryForMap(anyString(), eq(USER_ID), eq("Lily"), eq("2025-06-01"), eq("Jane"), eq("555-0100"), isNull()))
             .thenReturn(row);
 
-        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100");
+        var req = new BabyProfileRequest("Lily", "2025-06-01", "Jane", "555-0100", null);
         BabyProfileResponse result = babyProfileService.upsert(USER_ID, req);
 
         assertEquals("Lily", result.babyName());
@@ -102,10 +102,10 @@ class BabyProfileServiceTest {
         row.put("birthdate",   null);
         row.put("parent_name", "Jane");
         row.put("phone",       null);
-        when(jdbc.queryForMap(anyString(), eq(USER_ID), eq("Lily"), isNull(), eq("Jane"), isNull()))
+        when(jdbc.queryForMap(anyString(), eq(USER_ID), eq("Lily"), isNull(), eq("Jane"), isNull(), isNull()))
             .thenReturn(row);
 
-        var req = new BabyProfileRequest("Lily", "", "Jane", null);
+        var req = new BabyProfileRequest("Lily", "", "Jane", null, null);
         BabyProfileResponse result = babyProfileService.upsert(USER_ID, req);
 
         assertNotNull(result);

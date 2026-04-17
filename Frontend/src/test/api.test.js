@@ -129,4 +129,25 @@ describe('apiRequest', () => {
 
     window.removeEventListener('session-expired', listener);
   });
+
+  it('deduplicates concurrent 401s — refresh is called exactly once', async () => {
+    // Both requests get 401 simultaneously, but only one refresh should fire.
+    fetch
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) }) // req A: 401
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) }) // req B: 401
+      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({}) }) // refresh
+      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ a: 1 }) }) // retry A
+      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ b: 2 }) }); // retry B
+
+    const [a, b] = await Promise.all([apiRequest('/a'), apiRequest('/b')]);
+
+    // Three fetch calls total: 401-A, refresh, retry-A  — plus 401-B and retry-B = 5
+    // But refresh deduplication means both A and B await the same refresh promise.
+    // Exact call count depends on ordering, but refresh must appear exactly once.
+    const calls = fetch.mock.calls.map(c => c[0]);
+    const refreshCalls = calls.filter(url => url.includes('/auth/refresh'));
+    expect(refreshCalls).toHaveLength(1);
+    expect(a).toEqual({ a: 1 });
+    expect(b).toEqual({ b: 2 });
+  });
 });

@@ -24,4 +24,10 @@ public class BabyProfileRepository {
         if (rows.isEmpty()) return Optional.empty();
         return Optional.of(((Number) rows.get(0).get("id")).longValue());
     }
+
+    /** Returns the baby_profile id, or throws IllegalStateException if the user has no profile. */
+    public Long requireProfileId(Long userId) {
+        return findProfileIdByUserId(userId)
+            .orElseThrow(() -> new IllegalStateException("No baby profile found. Save a baby profile first."));
+    }
 }

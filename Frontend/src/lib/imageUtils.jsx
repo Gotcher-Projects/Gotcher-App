@@ -149,4 +149,6 @@ export function openCropModal(file, onComplete) {
       onCancel={close}
     />
   )
+
+  return close
 }

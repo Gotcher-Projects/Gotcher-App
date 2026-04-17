@@ -133,16 +133,17 @@ public class AuthService {
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE id = ?", stored.get("id"));
 
         List<Map<String, Object>> userRows = jdbc.queryForList(
-            "SELECT id, email, email_verified FROM users WHERE id = ?", userId);
+            "SELECT id, email, display_name, email_verified FROM users WHERE id = ?", userId);
         if (userRows.isEmpty()) throw new InvalidTokenException();
 
         String email = (String) userRows.get(0).get("email");
+        String displayName = (String) userRows.get(0).get("display_name");
         boolean emailVerified = Boolean.TRUE.equals(userRows.get(0).get("email_verified"));
         String newAccessToken = jwtUtil.generateAccessToken(userId, email);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, newRefreshToken);
 
-        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, null, emailVerified));
+        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified));
     }
 
     public void logout(String refreshToken) {
@@ -161,8 +162,16 @@ public class AuthService {
     }
 
     // ── Custom exceptions ─────────────────────────────────────────────────────
-    public static class EmailAlreadyExistsException extends RuntimeException {}
-    public static class InvalidCredentialsException extends RuntimeException {}
-    public static class AccountDisabledException extends RuntimeException {}
-    public static class InvalidTokenException extends RuntimeException {}
+    public static class EmailAlreadyExistsException extends RuntimeException {
+        public EmailAlreadyExistsException() { super("Email already registered"); }
+    }
+    public static class InvalidCredentialsException extends RuntimeException {
+        public InvalidCredentialsException() { super("Invalid credentials"); }
+    }
+    public static class AccountDisabledException extends RuntimeException {
+        public AccountDisabledException() { super("Account is disabled"); }
+    }
+    public static class InvalidTokenException extends RuntimeException {
+        public InvalidTokenException() { super("Invalid or expired token"); }
+    }
 }

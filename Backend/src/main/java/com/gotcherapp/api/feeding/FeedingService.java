@@ -26,8 +26,9 @@ public class FeedingService {
         this.babyProfileRepository = babyProfileRepository;
     }
 
-    /** Returns logs from the past {@code limitDays} days, newest first. */
+    /** Returns logs from the past {@code limitDays} days, newest first. Capped at 3650 days. */
     public List<FeedingLog> getLogs(Long userId, int limitDays) {
+        limitDays = Math.min(limitDays, 3650);
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList("""
@@ -42,8 +43,7 @@ public class FeedingService {
     }
 
     public FeedingLog startFeed(Long userId, StartFeedRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         if (!VALID_TYPES.contains(req.type())) {
             throw new IllegalArgumentException("Invalid feed type: " + req.type());
         }
@@ -53,7 +53,7 @@ public class FeedingService {
             VALUES (?, ?, ?::timestamptz)
             RETURNING id, type, started_at, ended_at, amount_ml, notes
             """,
-            profileId.get(), req.type(), startedAt
+            profileId, req.type(), startedAt
         );
         return mapRow(row);
     }

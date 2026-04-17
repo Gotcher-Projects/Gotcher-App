@@ -30,8 +30,7 @@ public class GrowthService {
     }
 
     public GrowthRecord addRecord(Long userId, GrowthRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         if (req.recordedDate() == null || req.recordedDate().isBlank()) {
             throw new IllegalArgumentException("recordedDate is required");
         }
@@ -40,7 +39,7 @@ public class GrowthService {
             VALUES (?, ?::date, ?, ?, ?, ?)
             RETURNING id, recorded_date, weight_lbs, height_in, head_in, notes
             """,
-            profileId.get(),
+            profileId,
             req.recordedDate(),
             req.weightLbs(),
             req.heightIn(),

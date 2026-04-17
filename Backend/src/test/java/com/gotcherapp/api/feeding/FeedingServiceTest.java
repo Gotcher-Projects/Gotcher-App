@@ -56,7 +56,7 @@ class FeedingServiceTest {
 
     @Test
     void startFeed_throwsIllegalState_whenNoProfile() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenThrow(IllegalStateException.class);
         var req = new StartFeedRequest("breast_left", null);
 
         assertThrows(IllegalStateException.class, () -> feedingService.startFeed(USER_ID, req));
@@ -65,7 +65,7 @@ class FeedingServiceTest {
 
     @Test
     void startFeed_throwsIllegalArgument_whenInvalidType() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         var req = new StartFeedRequest("coffee", null);
 
         assertThrows(IllegalArgumentException.class, () -> feedingService.startFeed(USER_ID, req));
@@ -74,7 +74,7 @@ class FeedingServiceTest {
 
     @Test
     void startFeed_returnsLog_onSuccess() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         when(jdbc.queryForMap(anyString(), eq(PROFILE_ID), eq("bottle"), any())).thenReturn(buildRow(false));
 
         var req = new StartFeedRequest("bottle", "2026-03-27T10:00:00Z");

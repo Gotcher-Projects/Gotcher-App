@@ -55,7 +55,7 @@ class GrowthServiceTest {
 
     @Test
     void addRecord_throwsIllegalState_whenNoProfile() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenThrow(IllegalStateException.class);
         var req = new GrowthRequest("2026-01-15", new BigDecimal("12.50"), new BigDecimal("21.5"), null, null);
 
         assertThrows(IllegalStateException.class, () -> growthService.addRecord(USER_ID, req));
@@ -64,7 +64,7 @@ class GrowthServiceTest {
 
     @Test
     void addRecord_throwsIllegalArgument_whenDateMissing() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         var req = new GrowthRequest(null, new BigDecimal("12.50"), null, null, null);
 
         assertThrows(IllegalArgumentException.class, () -> growthService.addRecord(USER_ID, req));
@@ -73,7 +73,7 @@ class GrowthServiceTest {
 
     @Test
     void addRecord_returnsRecord_onSuccess() {
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
+        when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         when(jdbc.queryForMap(anyString(), eq(PROFILE_ID), eq("2026-01-15"),
             eq(new BigDecimal("12.50")), eq(new BigDecimal("21.5")), isNull(), isNull()))
             .thenReturn(buildRow());

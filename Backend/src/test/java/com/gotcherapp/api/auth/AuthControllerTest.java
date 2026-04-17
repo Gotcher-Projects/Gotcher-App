@@ -24,6 +24,7 @@ class AuthControllerTest {
 
     @Mock AuthService authService;
     @Mock EmailVerificationService emailVerificationService;
+    @Mock CookieUtil cookieUtil;
     @InjectMocks AuthController authController;
 
     private static final Long USER_ID = 1L;
@@ -62,8 +63,8 @@ class AuthControllerTest {
 
         authController.register(req, response);
 
-        assertNotNull(response.getCookie("access_token"));
-        assertNotNull(response.getCookie("refresh_token"));
+        verify(cookieUtil).setAccessTokenCookie(same(response), eq("access.token"), anyInt());
+        verify(cookieUtil).setRefreshTokenCookie(same(response), eq(REFRESH_TOKEN), anyInt());
     }
 
     @Test
@@ -106,8 +107,8 @@ class AuthControllerTest {
 
         authController.login(new LoginRequest(EMAIL, "password123"), response);
 
-        assertNotNull(response.getCookie("access_token"));
-        assertNotNull(response.getCookie("refresh_token"));
+        verify(cookieUtil).setAccessTokenCookie(same(response), eq("access.token"), anyInt());
+        verify(cookieUtil).setRefreshTokenCookie(same(response), eq(REFRESH_TOKEN), anyInt());
     }
 
     @Test
@@ -161,8 +162,8 @@ class AuthControllerTest {
 
         authController.refresh(request, response);
 
-        assertNotNull(response.getCookie("access_token"));
-        assertNotNull(response.getCookie("refresh_token"));
+        verify(cookieUtil).setAccessTokenCookie(same(response), eq("access.token"), anyInt());
+        verify(cookieUtil).setRefreshTokenCookie(same(response), eq(REFRESH_TOKEN), anyInt());
     }
 
     @Test

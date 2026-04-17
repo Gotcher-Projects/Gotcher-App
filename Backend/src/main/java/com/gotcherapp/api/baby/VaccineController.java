@@ -26,12 +26,12 @@ public class VaccineController {
     }
 
     @PostMapping("/{key}")
-    public ResponseEntity<?> achieve(
+    public ResponseEntity<?> markAdministered(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable String key
     ) {
         try {
-            vaccineService.achieve(principal.userId(), key);
+            vaccineService.markAdministered(principal.userId(), key);
             return ResponseEntity.ok(Map.of("key", key));
         } catch (IllegalStateException e) {
             return ApiError.badRequest(e.getMessage());
@@ -39,11 +39,11 @@ public class VaccineController {
     }
 
     @DeleteMapping("/{key}")
-    public ResponseEntity<?> unachieve(
+    public ResponseEntity<?> markNotAdministered(
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable String key
     ) {
-        vaccineService.unachieve(principal.userId(), key);
+        vaccineService.markNotAdministered(principal.userId(), key);
         return ResponseEntity.noContent().build();
     }
 }

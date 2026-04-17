@@ -33,8 +33,7 @@ public class FirstTimeService {
     }
 
     public FirstTime create(Long userId, CreateFirstTimeRequest req) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new IllegalStateException("No baby profile found. Save a baby profile first.");
+        Long profileId = babyProfileRepository.requireProfileId(userId);
         if (req.label() == null || req.label().isBlank()) {
             throw new IllegalArgumentException("label is required");
         }
@@ -46,7 +45,7 @@ public class FirstTimeService {
             VALUES (?, ?, ?::date, ?, ?, COALESCE(?, 'landscape'))
             RETURNING id, baby_profile_id, label, occurred_date, image_url, notes, created_at, image_orientation
             """,
-            profileId.get(),
+            profileId,
             req.label(),
             req.occurredDate(),
             req.imageUrl(),

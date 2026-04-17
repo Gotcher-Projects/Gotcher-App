@@ -92,6 +92,7 @@ Features agreed on but not yet scheduled. Add to queue above when ready to build
 - [x] jsPDF browser-based export — cover page, per-entry cards, inline photos
 - [x] Card layout mirrors UI: week + title + date → image → story (landscape); image left / text right (portrait)
 - [x] Paywall seam in place — `generatePdf()` and `downloadPdf()` are separate exports
+- [ ] **Tech debt — Backend RowMapper utility:** Multiple services (`JournalService`, `FeedingService`, `SleepService`, `PoopService`, `GrowthService`, `AppointmentService`, `FirstTimeService`) each have their own copy-pasted `mapRow()` lambda. Extract a shared `RowMappers` utility class with static factory methods per entity. Cosmetic only — no correctness impact.
 - [ ] **Tech debt — PDF export system:** The current jsPDF approach works but has limits.
   Consider replacing with a server-side or headless-browser renderer (Puppeteer, Playwright,
   or a React-to-PDF service) when paying users are involved. Benefits: real CSS/font rendering,

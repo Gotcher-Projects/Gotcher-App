@@ -3,7 +3,7 @@ import { apiRequest, apiUpload } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Baby } from "lucide-react";
-import { getWeek, getActivities } from "../lib/babyAge";
+import { getWeek, getMonths, getActivities } from "../lib/babyAge";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
 import TrackTab from "./tabs/TrackTab";
@@ -11,11 +11,11 @@ import HealthTab from "./tabs/HealthTab";
 import DiscoverTab from "./tabs/DiscoverTab";
 
 // ── Local storage helpers ──────────────────────────────────────────────────────
-function save(key, data) {
+function saveLocal(key, data) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
 }
 
-function load(key) {
+function loadLocal(key) {
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : null;
@@ -61,7 +61,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   useEffect(() => {
-    const saved = load("babyStepsData");
+    const saved = loadLocal("babyStepsData");
     if (saved) {
       setData(d => ({ ...d, ...saved, profile: { ...d.profile, ...(saved.profile || {}) } }));
     } else if (user) {
@@ -73,7 +73,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }, []);
 
   useEffect(() => {
-    save("babyStepsData", data);
+    saveLocal("babyStepsData", data);
   }, [data]);
 
   useEffect(() => {
@@ -179,13 +179,24 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
     setData(d => ({ ...d, journal: d.journal.map(e => e.id === id ? entry : e) }));
   }
 
-  async function deleteJournalEntry(id) {
-    setData(d => ({ ...d, journal: d.journal.filter(e => e.id !== id) }));
+  async function deleteWithRecovery(optimisticUpdate, deletePath, refetch, errorMsg, restoreMsg) {
+    optimisticUpdate();
     try {
-      await apiRequest(`/journal/${id}`, { method: 'DELETE' });
+      await apiRequest(deletePath, { method: 'DELETE' });
     } catch {
-      apiRequest('/journal').then(entries => setData(d => ({ ...d, journal: entries }))).catch(() => {});
+      onError(errorMsg);
+      refetch().catch(() => onError(restoreMsg));
     }
+  }
+
+  async function deleteJournalEntry(id) {
+    await deleteWithRecovery(
+      () => setData(d => ({ ...d, journal: d.journal.filter(e => e.id !== id) })),
+      `/journal/${id}`,
+      () => apiRequest('/journal').then(entries => setData(d => ({ ...d, journal: entries }))),
+      "Failed to delete journal entry",
+      "Failed to restore journal",
+    );
   }
 
   async function startFeed(type) {
@@ -207,12 +218,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deleteFeed(id) {
-    setFeeding(f => f.filter(l => l.id !== id));
-    try {
-      await apiRequest(`/feeding/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/feeding?days=7').then(logs => setFeeding(logs)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setFeeding(f => f.filter(l => l.id !== id)),
+      `/feeding/${id}`,
+      () => apiRequest('/feeding?days=7').then(logs => setFeeding(logs)),
+      "Failed to delete feeding entry",
+      "Failed to restore feeding log",
+    );
   }
 
   async function manualAddFeed(req) {
@@ -234,12 +246,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deleteSleepLog(id) {
-    setSleep(s => s.filter(l => l.id !== id));
-    try {
-      await apiRequest(`/sleep/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/sleep?days=30').then(logs => setSleep(logs)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setSleep(s => s.filter(l => l.id !== id)),
+      `/sleep/${id}`,
+      () => apiRequest('/sleep?days=30').then(logs => setSleep(logs)),
+      "Failed to delete sleep entry",
+      "Failed to restore sleep log",
+    );
   }
 
   async function addPoopLog(req) {
@@ -248,12 +261,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deletePoopLog(id) {
-    setPoop(p => p.filter(l => l.id !== id));
-    try {
-      await apiRequest(`/poop/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/poop?days=14').then(logs => setPoop(logs)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setPoop(p => p.filter(l => l.id !== id)),
+      `/poop/${id}`,
+      () => apiRequest('/poop?days=14').then(logs => setPoop(logs)),
+      "Failed to delete poop entry",
+      "Failed to restore poop log",
+    );
   }
 
   async function addGrowthRecord(req) {
@@ -265,12 +279,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deleteGrowthRecord(id) {
-    setGrowth(g => g.filter(r => r.id !== id));
-    try {
-      await apiRequest(`/growth/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/growth').then(records => setGrowth(records)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setGrowth(g => g.filter(r => r.id !== id)),
+      `/growth/${id}`,
+      () => apiRequest('/growth').then(records => setGrowth(records)),
+      "Failed to delete growth record",
+      "Failed to restore growth records",
+    );
   }
 
   async function toggleVaccine(key, checked) {
@@ -297,12 +312,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deleteAppointment(id) {
-    setAppointments(a => a.filter(x => x.id !== id));
-    try {
-      await apiRequest(`/appointments/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/appointments').then(list => setAppointments(list)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setAppointments(a => a.filter(x => x.id !== id)),
+      `/appointments/${id}`,
+      () => apiRequest('/appointments').then(list => setAppointments(list)),
+      "Failed to delete appointment",
+      "Failed to restore appointments",
+    );
   }
 
   async function addFirstTime(req) {
@@ -316,12 +332,13 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   async function deleteFirstTime(id) {
-    setFirsts(f => f.filter(x => x.id !== id));
-    try {
-      await apiRequest(`/first-times/${id}`, { method: 'DELETE' });
-    } catch {
-      apiRequest('/first-times').then(list => setFirsts(list)).catch(() => {});
-    }
+    await deleteWithRecovery(
+      () => setFirsts(f => f.filter(x => x.id !== id)),
+      `/first-times/${id}`,
+      () => apiRequest('/first-times').then(list => setFirsts(list)),
+      "Failed to delete first time",
+      "Failed to restore first times",
+    );
   }
 
   async function toggleMilestone(key, checked) {
@@ -370,7 +387,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }
 
   const week = getWeek(data.profile.birthdate);
-  const months = Math.floor(week / 4.345);
+  const months = getMonths(data.profile.birthdate);
   const activities = getActivities(week);
 
   return (
