@@ -18,7 +18,12 @@ Get the app live. Run through the deploy process end-to-end on the VPS, run Flyw
 4. ✅ **Backend Dockerfile fixed** — swapped eclipse-temurin + gradlew wrapper for official gradle:8.11.1-jdk21-alpine image (gradle/wrapper/ dir was never committed to repo)
    📝 GUIDE UPDATE NEEDED: Note that gradle wrapper dir is not in repo — Dockerfile uses official Gradle image instead
 
-5. **Copy config to VPS**
+5. ✅ **Docker build successful** — all three images built and containers started
+   📝 GUIDE UPDATE NEEDED: Note gradle.properties must not contain org.gradle.java.home — move to ~/.gradle/gradle.properties locally using printf not echo (spaces in path)
+
+6. ✅ **All services started cleanly** — Caddy TLS certs issued, all 19 Flyway migrations applied, API started in 4.8s
+
+7. **Copy config to VPS**
    ```bash
    scp docker-compose.prod.yml deploy@<VPS_IP>:~/gotcherapp/
    scp Caddyfile deploy@<VPS_IP>:~/gotcherapp/

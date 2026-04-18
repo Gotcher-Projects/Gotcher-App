@@ -9,7 +9,7 @@
 
 set -e
 
-API="http://localhost:3001"
+API="${API:-http://localhost:3001}"
 EMAIL="demo@gotcherapp.com"
 PASSWORD="DemoPass1"
 DISPLAY_NAME="Sarah Mitchell"
