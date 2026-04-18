@@ -1,0 +1,1 @@
+ALTER TABLE diaper_logs ALTER COLUMN type DROP NOT NULL;
