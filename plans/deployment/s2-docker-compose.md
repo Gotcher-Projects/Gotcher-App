@@ -1,7 +1,7 @@
 # S2 — Docker Compose & Caddy
-**Status:** Pending
+**Status:** Complete — 2026-04-17
 **Branch:** deployment/docker-compose
-**Depends on:** S1 complete (domain + VPS IP known)
+**Depends on:** S1 complete ✅ (domain: `michaelgotcher.com`, VPS: `87.99.153.7`)
 
 ## Goal
 Write all config files needed to run the app in production. By end of this session, `docker compose up -d` on the VPS should bring up the full stack with HTTPS.
@@ -39,7 +39,17 @@ Write all config files needed to run the app in production. By end of this sessi
 | `VITE_API_URL` | Frontend build arg | Derived from `APP_DOMAIN` at build time: `https://${APP_DOMAIN}/api` |
 | `SMTP_*` | Backend .env | Optional — email verification |
 
-## Verification
+## Progress Checklist
+
+### Files
+- [x] `deploy.sh` — written
+- [x] `backup.sh` — written
+- [x] `Frontend/Dockerfile` — multi-stage Node → Caddy
+- [x] `Caddyfile` — static files + /api/* proxy + www redirect
+- [x] `docker-compose.prod.yml` — caddy, api, postgres services
+- [x] `.env.prod.example` — all prod env vars documented
+
+### Verification
 - [ ] `docker compose -f docker-compose.prod.yml config` validates without errors
 - [ ] Frontend Dockerfile builds locally: `docker build -f Frontend/Dockerfile -t frontend-test .`
 - [ ] Backend Dockerfile builds locally: `docker build -f Backend/Dockerfile -t api-test .`

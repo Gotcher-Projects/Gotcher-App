@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import PillNav from "@/components/ui/PillNav";
 import FeedingTab from "./FeedingTab";
 import SleepTab from "./SleepTab";
-import PoopTab from "./PoopTab";
+import DiaperTab from "./DiaperTab";
 
-export default function TrackTab({ feeding, sleep, poop, onStart, onStop, onDeleteFeed, onManualAdd, onAddSleep, onDeleteSleep, onAddPoop, onDeletePoop, onError }) {
+export default function TrackTab({ feeding, sleep, diaper, onStart, onStop, onDeleteFeed, onManualAdd, onAddSleep, onDeleteSleep, onAddDiaper, onDeleteDiaper, onError }) {
   const [view, setView] = useState('feeding');
 
   return (
@@ -13,14 +13,14 @@ export default function TrackTab({ feeding, sleep, poop, onStart, onStop, onDele
         options={[
           { value: 'feeding', label: 'Feeding' },
           { value: 'sleep',   label: 'Sleep' },
-          { value: 'poop',    label: 'Poop' },
+          { value: 'diaper',  label: 'Diaper' },
         ]}
         active={view}
         onChange={setView}
       />
       {view === 'feeding' && <FeedingTab logs={feeding} onStart={onStart} onStop={onStop} onDelete={onDeleteFeed} onManualAdd={onManualAdd} onError={onError} />}
       {view === 'sleep'   && <SleepTab logs={sleep} onAdd={onAddSleep} onDelete={onDeleteSleep} onError={onError} />}
-      {view === 'poop'    && <PoopTab logs={poop} onAdd={onAddPoop} onDelete={onDeletePoop} onError={onError} />}
+      {view === 'diaper'  && <DiaperTab logs={diaper} onAdd={onAddDiaper} onDelete={onDeleteDiaper} onError={onError} />}
     </>
   );
 }

@@ -229,8 +229,8 @@ for days_ago, sh, sm, eh, em, stype, notes in sessions:
 
 PYEOF
 
-# ── Poop Logs ─────────────────────────────────────────────────────────────────
-echo "==> Creating poop logs (last 7 days)..."
+# ── Diaper Logs ───────────────────────────────────────────────────────────────
+echo "==> Creating diaper logs (last 7 days)..."
 
 python3 - "$API" "$TOKEN" << 'PYEOF'
 import sys, json, urllib.request
@@ -246,34 +246,45 @@ def req(method, path, body=None):
     with urllib.request.urlopen(r) as resp:
         return json.loads(resp.read())
 
-# (days_ago, hour, min, type, color, consistency, notes)
+# (days_ago, hour, min, category, type, color, consistency, notes)
 logs = [
-    (7,  9, 30, "normal", "yellow",  "seedy",   "Classic newborn yellow"),
-    (7, 16,  0, "normal", "yellow",  "seedy",   None),
-    (6,  8, 45, "normal", "brown",   "normal",  None),
-    (6, 14, 15, "loose",  "yellow",  "watery",  "A bit runny today"),
-    (5, 10,  0, "normal", "yellow",  "seedy",   None),
-    (5, 17, 30, "normal", "brown",   "normal",  None),
-    (4,  9, 15, "normal", "yellow",  "seedy",   None),
-    (4, 13,  0, "normal", "yellow",  "seedy",   None),
-    (4, 18, 30, "normal", "brown",   "normal",  "After formula bottle"),
-    (3,  8, 30, "normal", "yellow",  "seedy",   None),
-    (3, 15,  0, "normal", "brown",   "normal",  None),
-    (2,  9,  0, "normal", "yellow",  "seedy",   None),
-    (2, 14, 30, "normal", "yellow",  "seedy",   None),
-    (1,  8, 15, "normal", "yellow",  "seedy",   None),
-    (1, 12, 45, "normal", "brown",   "normal",  None),
-    (1, 17,  0, "loose",  "green",   "watery",  "Green one — might be foremilk"),
+    (7,  7,  0, "pee",  None,     None,      None,      None),
+    (7,  9, 30, "poop", "normal", "yellow",  "seedy",   "Classic newborn yellow"),
+    (7, 12,  0, "pee",  None,     None,      None,      None),
+    (7, 16,  0, "poop", "normal", "yellow",  "seedy",   None),
+    (6,  8, 45, "poop", "normal", "brown",   "normal",  None),
+    (6, 11, 30, "pee",  None,     None,      None,      None),
+    (6, 14, 15, "poop", "loose",  "yellow",  "watery",  "A bit runny today"),
+    (5,  7, 45, "pee",  None,     None,      None,      None),
+    (5, 10,  0, "poop", "normal", "yellow",  "seedy",   None),
+    (5, 17, 30, "poop", "normal", "brown",   "normal",  None),
+    (4,  9, 15, "poop", "normal", "yellow",  "seedy",   None),
+    (4, 13,  0, "poop", "normal", "yellow",  "seedy",   None),
+    (4, 18, 30, "poop", "normal", "brown",   "normal",  "After formula bottle"),
+    (3,  8, 30, "poop", "normal", "yellow",  "seedy",   None),
+    (3, 15,  0, "poop", "normal", "brown",   "normal",  None),
+    (2,  9,  0, "poop", "normal", "yellow",  "seedy",   None),
+    (2, 14, 30, "poop", "normal", "yellow",  "seedy",   None),
+    (1,  8, 15, "poop", "normal", "yellow",  "seedy",   None),
+    (1, 12, 45, "poop", "normal", "brown",   "normal",  None),
+    (1, 17,  0, "poop", "loose",  "green",   "watery",  "Green one — might be foremilk"),
 ]
 
-for days_ago, hour, minute, ptype, color, consistency, notes in logs:
+for days_ago, hour, minute, category, ptype, color, consistency, notes in logs:
     d = now - timedelta(days=days_ago)
     logged_at = d.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    body = {"loggedAt": logged_at.isoformat(), "type": ptype, "color": color, "consistency": consistency}
+    body = {"loggedAt": logged_at.isoformat(), "category": category}
+    if category == "poop":
+        body["type"] = ptype
+        body["color"] = color
+        body["consistency"] = consistency
     if notes:
         body["notes"] = notes
-    req("POST", "/poop", body)
-    print(f"    {ptype} / {color} / {consistency}: {logged_at.strftime('%Y-%m-%d %H:%M')}")
+    req("POST", "/diaper", body)
+    if category == "poop":
+        print(f"    poop / {ptype} / {color} / {consistency}: {logged_at.strftime('%Y-%m-%d %H:%M')}")
+    else:
+        print(f"    pee: {logged_at.strftime('%Y-%m-%d %H:%M')}")
 
 PYEOF
 

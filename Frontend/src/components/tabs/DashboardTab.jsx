@@ -29,7 +29,7 @@ export default function DashboardTab({
   onSaveProfile, profileSaving, profileSaved,
   onToggleMilestone, appointments,
   feeding, sleep,
-  onManualAdd, onAddSleep, onAddPoop,
+  onManualAdd, onAddSleep, onAddDiaper,
   setActiveTab, setHealthView,
   onError,
 }) {
@@ -45,7 +45,7 @@ export default function DashboardTab({
     const time = nowTime();
     if (id === 'bottle') setQuickLogForm({ date, time, oz: '', feedType: 'bottle' });
     else if (id === 'nurse')  setQuickLogForm({ date, time, duration: '15', side: 'breast_left' });
-    else if (id === 'diaper') setQuickLogForm({ date, time, type: 'normal' });
+    else if (id === 'diaper') setQuickLogForm({ date, time, category: 'poop', type: 'normal', color: '', consistency: '', showDetails: false });
     else if (id === 'sleep')  setQuickLogForm({ date, startTime: '', endTime: time, sleepType: 'nap' });
   }
 
@@ -68,7 +68,13 @@ export default function DashboardTab({
         await onManualAdd({ type: quickLogForm.side || 'breast_left', startedAt: startDt.toISOString(), endedAt: endDt.toISOString() });
       } else if (quickLogOpen === 'diaper') {
         const loggedAt = new Date(`${d}T${quickLogForm.time}`).toISOString();
-        await onAddPoop({ loggedAt, type: quickLogForm.type || 'normal' });
+        const diaperPayload = { loggedAt, category: quickLogForm.category || 'poop' };
+        if (diaperPayload.category === 'poop') {
+          diaperPayload.type = quickLogForm.type || 'normal';
+          if (quickLogForm.color) diaperPayload.color = quickLogForm.color;
+          if (quickLogForm.consistency) diaperPayload.consistency = quickLogForm.consistency;
+        }
+        await onAddDiaper(diaperPayload);
       } else if (quickLogOpen === 'sleep') {
         const startedAt = new Date(`${d}T${quickLogForm.startTime}`);
         let endedAt     = new Date(`${d}T${quickLogForm.endTime}`);
@@ -207,27 +213,90 @@ export default function DashboardTab({
               )}
 
               {quickLogOpen === 'diaper' && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Type</Label>
-                    <select
-                      value={quickLogForm.type}
-                      onChange={e => setQuickLogForm(f => ({ ...f, type: e.target.value }))}
-                      className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="loose">Loose</option>
-                      <option value="hard">Hard</option>
-                    </select>
+                <div className="space-y-3">
+                  <div className="flex rounded-lg overflow-hidden border border-slate-200">
+                    {[{ value: 'poop', label: '💩 Poop' }, { value: 'pee', label: '💧 Pee' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setQuickLogForm(f => ({ ...f, category: opt.value, showDetails: false }))}
+                        className={`flex-1 py-2 text-sm font-medium transition-colors ${quickLogForm.category === opt.value ? 'bg-amber-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <Label className="text-xs">Time</Label>
-                    <Input type="time" value={quickLogForm.time} onChange={e => setQuickLogForm(f => ({ ...f, time: e.target.value }))} className="mt-1 bg-white" />
+                  <div className="grid grid-cols-3 gap-3">
+                    {quickLogForm.category === 'poop' && (
+                      <div>
+                        <Label className="text-xs">Type</Label>
+                        <select
+                          value={quickLogForm.type}
+                          onChange={e => setQuickLogForm(f => ({ ...f, type: e.target.value }))}
+                          className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        >
+                          <option value="normal">Normal</option>
+                          <option value="loose">Loose</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-xs">Time</Label>
+                      <Input type="time" value={quickLogForm.time} onChange={e => setQuickLogForm(f => ({ ...f, time: e.target.value }))} className="mt-1 bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Date</Label>
+                      <Input type="date" value={quickLogForm.date} onChange={e => setQuickLogForm(f => ({ ...f, date: e.target.value }))} className="mt-1 bg-white" />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-xs">Date</Label>
-                    <Input type="date" value={quickLogForm.date} onChange={e => setQuickLogForm(f => ({ ...f, date: e.target.value }))} className="mt-1 bg-white" />
-                  </div>
+                  {quickLogForm.category === 'poop' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setQuickLogForm(f => ({ ...f, showDetails: !f.showDetails }))}
+                        className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {quickLogForm.showDetails ? '▲ Hide details' : '▼ More details (color & consistency)'}
+                      </button>
+                      {quickLogForm.showDetails && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs">Color <span className="text-slate-400">(optional)</span></Label>
+                            <select
+                              value={quickLogForm.color}
+                              onChange={e => setQuickLogForm(f => ({ ...f, color: e.target.value }))}
+                              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            >
+                              <option value="">— select —</option>
+                              <option value="yellow">Yellow</option>
+                              <option value="brown">Brown</option>
+                              <option value="green">Green</option>
+                              <option value="black">Black</option>
+                              <option value="red">Red</option>
+                              <option value="white">White</option>
+                              <option value="orange">Orange</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Consistency <span className="text-slate-400">(optional)</span></Label>
+                            <select
+                              value={quickLogForm.consistency}
+                              onChange={e => setQuickLogForm(f => ({ ...f, consistency: e.target.value }))}
+                              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            >
+                              <option value="">— select —</option>
+                              <option value="normal">Normal</option>
+                              <option value="watery">Watery</option>
+                              <option value="seedy">Seedy</option>
+                              <option value="mucusy">Mucusy</option>
+                              <option value="hard">Hard</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

@@ -1,4 +1,4 @@
-package com.gotcherapp.api.poop;
+package com.gotcherapp.api.diaper;
 
 import com.gotcherapp.api.common.ApiError;
 import com.gotcherapp.api.security.AuthPrincipal;
@@ -9,30 +9,30 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/poop")
-public class PoopController {
+@RequestMapping("/diaper")
+public class DiaperController {
 
-    private final PoopService poopService;
+    private final DiaperService diaperService;
 
-    public PoopController(PoopService poopService) {
-        this.poopService = poopService;
+    public DiaperController(DiaperService diaperService) {
+        this.diaperService = diaperService;
     }
 
     @GetMapping
-    public ResponseEntity<List<PoopLog>> getLogs(
+    public ResponseEntity<List<DiaperLog>> getLogs(
         @AuthenticationPrincipal AuthPrincipal principal,
         @RequestParam(defaultValue = "14") int days
     ) {
-        return ResponseEntity.ok(poopService.getLogs(principal.userId(), days));
+        return ResponseEntity.ok(diaperService.getLogs(principal.userId(), days));
     }
 
     @PostMapping
     public ResponseEntity<?> addLog(
         @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody PoopRequest req
+        @RequestBody DiaperRequest req
     ) {
         try {
-            PoopLog log = poopService.addLog(principal.userId(), req);
+            DiaperLog log = diaperService.addLog(principal.userId(), req);
             return ResponseEntity.status(201).body(log);
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ApiError.badRequest(e.getMessage());
@@ -44,8 +44,8 @@ public class PoopController {
         @AuthenticationPrincipal AuthPrincipal principal,
         @PathVariable Long id
     ) {
-        boolean deleted = poopService.deleteLog(principal.userId(), id);
-        if (!deleted) return ApiError.notFound("Poop log not found");
+        boolean deleted = diaperService.deleteLog(principal.userId(), id);
+        if (!deleted) return ApiError.notFound("Diaper log not found");
         return ResponseEntity.noContent().build();
     }
 }

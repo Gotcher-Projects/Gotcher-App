@@ -32,7 +32,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   const [growth, setGrowth] = useState([]);
   const [feeding, setFeeding] = useState([]);
   const [sleep, setSleep] = useState([]);
-  const [poop, setPoop] = useState([]);
+  const [diaper, setDiaper] = useState([]);
   const [vaccines, setVaccines] = useState({});
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
@@ -139,8 +139,8 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
   }, []);
 
   useEffect(() => {
-    apiRequest('/poop?days=14')
-      .then(logs => setPoop(logs))
+    apiRequest('/diaper?days=14')
+      .then(logs => setDiaper(logs))
       .catch(() => {});
   }, []);
 
@@ -255,18 +255,18 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
     );
   }
 
-  async function addPoopLog(req) {
-    const log = await apiRequest('/poop', { method: 'POST', body: JSON.stringify(req) });
-    setPoop(p => [log, ...p]);
+  async function addDiaperLog(req) {
+    const log = await apiRequest('/diaper', { method: 'POST', body: JSON.stringify(req) });
+    setDiaper(p => [log, ...p]);
   }
 
-  async function deletePoopLog(id) {
+  async function deleteDiaperLog(id) {
     await deleteWithRecovery(
-      () => setPoop(p => p.filter(l => l.id !== id)),
-      `/poop/${id}`,
-      () => apiRequest('/poop?days=14').then(logs => setPoop(logs)),
-      "Failed to delete poop entry",
-      "Failed to restore poop log",
+      () => setDiaper(p => p.filter(l => l.id !== id)),
+      `/diaper/${id}`,
+      () => apiRequest('/diaper?days=14').then(logs => setDiaper(logs)),
+      "Failed to delete diaper entry",
+      "Failed to restore diaper log",
     );
   }
 
@@ -427,7 +427,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-600 via-sky-600 to-emerald-600">
                 Baby Steps
               </h1>
-              <p className="text-sm text-slate-600">Milestone tracker • Journal • Growth • Feeding • Sleep • Poop</p>
+              <p className="text-sm text-slate-600">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -466,7 +466,7 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
               sleep={sleep}
               onManualAdd={manualAddFeed}
               onAddSleep={addSleepLog}
-              onAddPoop={addPoopLog}
+              onAddDiaper={addDiaperLog}
               setActiveTab={setActiveTab}
               setHealthView={setHealthView}
               onError={onError}
@@ -495,15 +495,15 @@ export default function BabySteps({ user, onLogout, verifiedBanner, onDismissBan
             <TrackTab
               feeding={feeding}
               sleep={sleep}
-              poop={poop}
+              diaper={diaper}
               onStart={startFeed}
               onStop={stopFeed}
               onDeleteFeed={deleteFeed}
               onManualAdd={manualAddFeed}
               onAddSleep={addSleepLog}
               onDeleteSleep={deleteSleepLog}
-              onAddPoop={addPoopLog}
-              onDeletePoop={deletePoopLog}
+              onAddDiaper={addDiaperLog}
+              onDeleteDiaper={deleteDiaperLog}
               onError={onError}
             />
           </TabsContent>

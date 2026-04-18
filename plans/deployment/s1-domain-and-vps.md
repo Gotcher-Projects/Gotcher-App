@@ -1,5 +1,5 @@
 # S1 — Domain & VPS
-**Status:** Pending
+**Status:** Complete — 2026-04-17
 **Branch:** deployment/infra-setup
 **Depends on:** Domain purchased (manual step — not a code session)
 
@@ -40,10 +40,16 @@ Get the external infrastructure in place so S2 can write config files against re
    ```
 
 ## Outputs needed for S2
-- [ ] Domain name (e.g. `gotcherapp.com`)
-- [ ] VPS IP address
-- [ ] SSH access confirmed
-- [ ] Docker installed and running
+- [x] Domain name: `michaelgotcher.com` (placeholder — swap to real domain later via `APP_DOMAIN` env var)
+- [x] VPS IP: `87.99.153.7` (Hetzner CPX11, Ashburn VA)
+- [x] SSH access confirmed (`root` + `deploy` user created)
+- [x] Docker 29.4.0 installed and running
+- [x] DNS A records pointed at VPS (Cloudflare, proxy disabled)
+
+## Notes
+- Chose CPX11 ($8/mo) over CX22 — CX22 not available in Ashburn for standard type
+- Used ed25519 SSH key
+- Cloudflare proxy was initially enabled on DNS records — had to disable (grey cloud) for Caddy/Let's Encrypt to work correctly
 
 ## Out of Scope
 - No application code written this session

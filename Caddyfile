@@ -1,0 +1,16 @@
+{$APP_DOMAIN} {
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy api:3001
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
+
+www.{$APP_DOMAIN} {
+    redir https://{$APP_DOMAIN}{uri} permanent
+}

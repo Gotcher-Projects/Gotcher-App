@@ -1,8 +1,9 @@
-package com.gotcherapp.api.poop;
+package com.gotcherapp.api.diaper;
 
-public record PoopLog(
+public record DiaperLog(
     Long id,
     String loggedAt,
+    String category,
     String type,
     String color,
     String consistency,

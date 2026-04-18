@@ -248,6 +248,38 @@ in the review. Run ./run-all-tests.sh at the end — all suites must pass.
 
 ---
 
+## Session 12 — Diaper Tracking
+
+```
+Session 12 of quick-wins. Branch: quick-wins.
+Plan: plans/quick-wins/s12-diaper-tracking.md
+
+Full-stack rename + feature add. Latest migration is V17. Next is V18.
+
+Backend — rename package poop → diaper, all files:
+1. Backend/db/migration/V18__rename_poop_to_diaper.sql — rename table + add category column (SQL in plan)
+2. Backend/src/main/java/com/gotcherapp/api/diaper/ — new package
+   - DiaperLog.java (was PoopLog.java) — add category field
+   - DiaperRequest.java (was PoopRequest.java) — add category field (required)
+   - DiaperService.java (was PoopService.java) — rename table ref, add category validation, skip color/consistency for pee
+   - DiaperController.java (was PoopController.java) — change mapping /poop → /diaper
+3. Backend/src/test/java/com/gotcherapp/api/poop/PoopServiceTest.java → rename to DiaperServiceTest.java, update refs
+Delete old poop package files after creating new ones.
+
+Frontend — 2 files:
+4. Frontend/src/lib/api.js — update /poop → /diaper in all calls
+5. Frontend/src/components/tabs/TrackTab.jsx — rename PoopTab → DiaperTab, add pee/poop category selector,
+   conditionally hide color/consistency/type fields when category is pee
+
+Seed script:
+6. seed-demo-user.sh — add "category":"poop" to all existing poop POST bodies, add a few pee entries
+
+Read PoopService.java and PoopController.java before writing the diaper equivalents — they are the direct source.
+All decisions in the plan file.
+```
+
+---
+
 ## Session 9 — Photo Crop & Orientation ✓ COMPLETE
 
 ```
