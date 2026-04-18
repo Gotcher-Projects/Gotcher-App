@@ -16,6 +16,11 @@ services:
       - caddy_config:/config
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "6"
     depends_on:
       - api
 
@@ -24,6 +29,11 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "4"
     environment:
       PGHOST: postgres
       PGPORT: 5432

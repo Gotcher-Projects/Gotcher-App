@@ -8,7 +8,17 @@ Get the app live. Run through the deploy process end-to-end on the VPS, run Flyw
 
 ## Steps
 
-1. **Copy config to VPS**
+1. ✅ **SSH into VPS confirmed** — deploy@87.99.153.7 accessible
+
+2. ✅ **Clone repo on VPS** — cloned to ~/gotcherapp (note: repo cloned without -d flag, had to mv files into ~/gotcherapp manually)
+
+3. ✅ **.env file created** — APP_DOMAIN, JWT_SECRET, DB_PASSWORD, SECURE_COOKIES set + Cloudinary credentials added (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)
+   📝 GUIDE UPDATE NEEDED: Add Cloudinary as a required step in .env setup, not optional
+
+4. ✅ **Backend Dockerfile fixed** — swapped eclipse-temurin + gradlew wrapper for official gradle:8.11.1-jdk21-alpine image (gradle/wrapper/ dir was never committed to repo)
+   📝 GUIDE UPDATE NEEDED: Note that gradle wrapper dir is not in repo — Dockerfile uses official Gradle image instead
+
+5. **Copy config to VPS**
    ```bash
    scp docker-compose.prod.yml deploy@<VPS_IP>:~/gotcherapp/
    scp Caddyfile deploy@<VPS_IP>:~/gotcherapp/
