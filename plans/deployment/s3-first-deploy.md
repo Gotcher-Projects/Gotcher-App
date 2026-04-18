@@ -1,0 +1,70 @@
+# S3 — First Deploy & Smoke Test
+**Status:** Pending
+**Branch:** deployment/docker-compose (continue from S2)
+**Depends on:** S2 complete, DNS propagated, .env file on VPS
+
+## Goal
+Get the app live. Run through the deploy process end-to-end on the VPS, run Flyway migrations, and verify every major feature works over HTTPS.
+
+## Steps
+
+1. **Copy config to VPS**
+   ```bash
+   scp docker-compose.prod.yml deploy@<VPS_IP>:~/gotcherapp/
+   scp Caddyfile deploy@<VPS_IP>:~/gotcherapp/
+   # Create .env from .env.prod.example — fill in real secrets
+   ```
+
+2. **Clone repo on VPS**
+   ```bash
+   ssh deploy@<VPS_IP>
+   cd ~/gotcherapp
+   git clone <repo-url> .
+   ```
+
+3. **First boot**
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   docker compose logs -f  # watch for startup errors
+   ```
+
+4. **Verify Flyway migrations ran**
+   ```bash
+   docker compose exec postgres psql -U gotcherapp_app -d gotcherapp -c "\dt"
+   # Should list all tables: users, refresh_tokens, baby_profiles, milestones, etc.
+   ```
+
+5. **Smoke test checklist** (browser, over HTTPS)
+
+## Verification
+- [ ] HTTPS certificate issued (green padlock, no warnings)
+- [ ] `www` redirects to root domain (or vice versa)
+- [ ] Register a new account
+- [ ] Login / logout / token refresh works
+- [ ] Save a baby profile (Dashboard tab)
+- [ ] Log a feeding session
+- [ ] Log a sleep entry
+- [ ] Add a poop entry
+- [ ] Add a growth measurement — chart renders
+- [ ] Toggle a vaccine
+- [ ] Add an appointment
+- [ ] Check a milestone
+- [ ] Add a journal entry with photo
+- [ ] Add a first time with photo
+- [ ] PDF export works
+- [ ] Page reload preserves session (localStorage token refresh)
+- [ ] Session expiry logs user out cleanly
+
+## write a deploy.sh for future deploys
+```bash
+#!/bin/bash
+git pull origin main
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose logs --tail=50
+```
+
+## Out of Scope
+- No CI/CD pipeline (manual deploy for now)
+- No backups (add after first real users)
+- No monitoring / uptime alerts
+- No staging environment

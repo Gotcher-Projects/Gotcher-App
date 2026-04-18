@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GotcherApp — Code Review</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3148;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --accent: #6c84f7;
+    --p1: #ff5c5c;
+    --p1-bg: #2a1515;
+    --p1-border: #5c1a1a;
+    --p2: #f59e0b;
+    --p2-bg: #271d0a;
+    --p2-border: #4a3600;
+    --p3: #64748b;
+    --p3-bg: #141926;
+    --p3-border: #2e3148;
+    --good: #22c55e;
+    --partial: #f59e0b;
+    --none: #ff5c5c;
+    --doc-high: #a78bfa;
+    --doc-med: #67e8f9;
+    --doc-low: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 24px 0;
+  }
+  .sidebar h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 12px 20px 6px; }
+  .sidebar ul { list-style: none; }
+  .sidebar li a { display: block; padding: 6px 20px; color: var(--muted); font-size: 13px; transition: color .15s, background .15s; }
+  .sidebar li a:hover { color: var(--text); background: var(--surface2); text-decoration: none; }
+
+  /* Main */
+  .main { flex: 1; padding: 40px 48px; max-width: 1100px; }
+
+  /* Header */
+  .page-header { margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 28px; }
+  .page-header h1 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .page-header .meta { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .summary-counts { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+  .count-badge { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+  .count-badge.bugs   { background: var(--p1-bg); color: var(--p1); border: 1px solid var(--p1-border); }
+  .count-badge.gaps   { background: var(--p2-bg); color: var(--p2); border: 1px solid var(--p2-border); }
+  .count-badge.refact { background: var(--surface2); color: #a78bfa; border: 1px solid #3730a3; }
+  .count-badge.naming { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .count-badge.docs   { background: #1a1035; color: var(--doc-high); border: 1px solid #3730a3; }
+
+  /* Sections */
+  section { margin-bottom: 56px; }
+  section h2 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+  /* Executive summary */
+  .exec-summary { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; line-height: 1.75; color: #cbd5e1; }
+  .exec-summary p + p { margin-top: 10px; }
+
+  /* Finding cards */
+  .finding { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+  .finding-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px 10px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0; margin-top: 2px; }
+  .badge.p1 { background: var(--p1-bg); color: var(--p1); border: 1px solid var(--p1-border); }
+  .badge.p2 { background: var(--p2-bg); color: var(--p2); border: 1px solid var(--p2-border); }
+  .badge.p3 { background: var(--p3-bg); color: var(--p3); border: 1px solid var(--p3-border); }
+  .badge.doc-high { background: #1a1035; color: var(--doc-high); border: 1px solid #4c1d95; }
+  .badge.doc-med  { background: #0d2a33; color: var(--doc-med);  border: 1px solid #155e75; }
+  .badge.doc-low  { background: var(--p3-bg); color: var(--doc-low); border: 1px solid var(--p3-border); }
+  .finding-title { font-weight: 600; font-size: 15px; color: #e2e8f0; }
+  .finding-file  { font-size: 12px; color: var(--accent); font-family: 'Courier New', monospace; margin-top: 2px; }
+  .finding-body  { padding: 0 18px 14px 18px; }
+  .finding-desc  { color: #94a3b8; margin-bottom: 8px; font-size: 13px; }
+  .finding-fix   { background: var(--surface2); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #7dd3fc; border-left: 3px solid #1e40af; }
+  .finding-fix strong { color: #93c5fd; }
+
+  /* Implementation Plan */
+  .plan-section { margin-bottom: 24px; }
+  .plan-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .plan-section h3.p1-h { color: var(--p1); }
+  .plan-section h3.p2-h { color: var(--p2); }
+  .plan-section h3.p3-h { color: var(--p3); }
+  .plan-table { width: 100%; border-collapse: collapse; }
+  .plan-table th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .plan-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  .plan-table tr:last-child td { border-bottom: none; }
+  .plan-table .file-col { font-family: 'Courier New', monospace; color: var(--accent); font-size: 12px; }
+  .effort { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .effort.S { background: #14532d; color: #86efac; }
+  .effort.M { background: #1e3a5f; color: #93c5fd; }
+  .effort.L { background: #3b1f5e; color: #c4b5fd; }
+
+  /* Coverage Map */
+  .cov-table { width: 100%; border-collapse: collapse; }
+  .cov-table th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .cov-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  .cov-table tr:hover td { background: var(--surface2); }
+  .cov-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .cov-pill.good    { background: #14532d; color: #86efac; }
+  .cov-pill.partial { background: var(--p2-bg); color: var(--p2); }
+  .cov-pill.none    { background: var(--p1-bg); color: var(--p1); }
+  .file-mono { font-family: 'Courier New', monospace; font-size: 12px; color: var(--accent); }
+  .cov-note { font-size: 12px; color: var(--muted); }
+
+  h4.sub { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 28px 0 12px; font-weight: 600; }
+
+  .doc-table { width: 100%; border-collapse: collapse; }
+  .doc-table th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase; padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .doc-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  .doc-table tr:hover td { background: var(--surface2); }
+  .doc-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .doc-pill.high { background: #1a1035; color: var(--doc-high); }
+  .doc-pill.med  { background: #0d2a33; color: var(--doc-med); }
+  .doc-pill.low  { background: var(--p3-bg); color: var(--doc-low); }
+  .plan-section h3.doc-h { color: var(--doc-high); }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar">
+    <h2>GotcherApp Review</h2>
+    <ul>
+      <li><a href="#header">Overview</a></li>
+      <li><a href="#exec">Executive Summary</a></li>
+    </ul>
+    <h2>Findings</h2>
+    <ul>
+      <li><a href="#bugs">Bugs</a></li>
+      <li><a href="#coverage">Test Coverage Gaps</a></li>
+      <li><a href="#refactor">Refactoring</a></li>
+      <li><a href="#naming">Naming Issues</a></li>
+      <li><a href="#docs">Documentation Gaps</a></li>
+    </ul>
+    <h2>Planning</h2>
+    <ul>
+      <li><a href="#plan">Implementation Plan</a></li>
+      <li><a href="#covmap">Coverage Map</a></li>
+      <li><a href="#docmap">Documentation Map</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- ── Header ── -->
+    <div class="page-header" id="header">
+      <h1>GotcherApp — Code Review</h1>
+      <div class="meta">Date: 2026-04-16 &nbsp;·&nbsp; Branch: Inital-Commit-and-base-planning &nbsp;·&nbsp; Reviewer: Claude Sonnet 4.6</div>
+      <div class="summary-counts">
+        <div class="count-badge bugs">12 Bugs</div>
+        <div class="count-badge gaps">8 Coverage Gaps</div>
+        <div class="count-badge refact">8 Refactor Opportunities</div>
+        <div class="count-badge naming">6 Naming Issues</div>
+        <div class="count-badge docs">10 Doc Gaps</div>
+      </div>
+    </div>
+
+    <!-- ── Executive Summary ── -->
+    <section id="exec">
+      <h2>Executive Summary</h2>
+      <div class="exec-summary">
+        <p>The GotcherApp codebase is well-structured and demonstrates thoughtful engineering in its core patterns: ownership is checked via baby_profile_id in every backend service, JdbcTemplate queries use parameterized placeholders throughout (no SQL injection risk), JWT rotation is correctly implemented, and CORS is locked to a single configured origin. The frontend–backend split is clean, and the component decomposition in the React layer is reasonable for the current feature set.</p>
+        <p>The most urgent concerns are a handful of logic bugs in the frontend: sleep entries logged across midnight silently produce negative durations, the quick-log "Sleep" panel on the Dashboard fails when start and end times straddle midnight, and the months approximation formula (week / 4.345) drifts from the accurate calendar-month calculation that <code>formatBabyAge</code> already performs. On the backend, the seed script registers users with the key <code>displayName</code> instead of the correct <code>display_name</code>, so all seed-generated display names are silently dropped.</p>
+        <p>Test coverage is healthy for auth, feeding, milestone, and journal domains. Session 10 added tests for <code>babyAge.js</code>, <code>utils.js</code>, and extracted dashboard stat helpers to <code>dashboardStats.js</code> with full test coverage. Several newer modules still lack coverage — appointments, poop, sleep, first times, and the frontend PDF/image utilities. The highest-risk untested path is the token refresh race-condition de-duplication logic in <code>api.js</code> and the PDF generation pipeline in <code>pdf.js</code>.</p>
+        <p>Refactoring opportunities are mostly cosmetic: repeated ownership-resolution boilerplate across seven service classes could be unified, and several inline utility functions (date formatting, duration formatting) are copy-pasted across components. Overall the codebase is deployable and the foundations are solid; the P1 fixes are small and self-contained.</p>
+      </div>
+    </section>
+
+    <!-- ── Bugs ── -->
+    <section id="bugs">
+      <h2>Bugs</h2>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — Seed script sends wrong field name for display name</div>
+            <div class="finding-file">seed-demo-user.sh · line 25</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Changed <code>"displayName"</code> to <code>"display_name"</code> in the register curl body.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — Sleep quick-log negative duration on midnight crossing</div>
+            <div class="finding-file">DashboardTab.jsx + TrackTab.jsx (SleepTab)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Added midnight-crossing correction in both DashboardTab <code>submitQuickLog</code> and TrackTab <code>SleepTab.handleAdd</code>: if <code>endedAt &lt;= startedAt</code>, <code>endedAt</code> is advanced by one day.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — months approximation (week / 4.345)</div>
+            <div class="finding-file">Frontend/src/lib/babyAge.js + BabySteps.jsx</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Extracted <code>getMonths(birthdate)</code> helper to <code>babyAge.js</code> using the same calendar logic as <code>formatBabyAge</code>. <code>BabySteps.jsx</code> now calls <code>getMonths(data.profile.birthdate)</code> instead of the approximation.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — AuthService.refresh() returns null display_name</div>
+            <div class="finding-file">Backend/.../auth/AuthService.java</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Added <code>display_name</code> to the SELECT query in <code>refresh()</code> and passed it through to <code>UserDto</code> constructor.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — All optimistic-delete handlers missing onError feedback</div>
+            <div class="finding-file">Frontend/src/components/BabySteps.jsx (all 6 delete handlers)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Added <code>onError()</code> calls in every catch block across all 6 delete handlers (journal, feed, sleep, poop, growth, appointment, firstTime). Re-fetch error path also propagates to <code>onError</code>.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">✓ FIXED — CookieUtil SECURE flag bypassed Spring env</div>
+            <div class="finding-file">Backend/.../auth/CookieUtil.java + application.properties</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Made <code>CookieUtil</code> a <code>@Component</code> with constructor injection of <code>@Value("${app.cookies.secure:false}")</code>. Added <code>app.cookies.secure=${SECURE_COOKIES:false}</code> to <code>application.properties</code>. <code>AuthController</code> now injects <code>CookieUtil</code> and calls instance methods.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ FIXED — FeedingTab displayLogs sync guard removed</div>
+            <div class="finding-file">Frontend/src/components/tabs/TrackTab.jsx · line 78</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Removed the <code>days === 7</code> guard so <code>displayLogs</code> always syncs from parent on every prop change.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">openCropModal leaks a React root if the parent unmounts before the user interacts</div>
+            <div class="finding-file">Frontend/src/lib/imageUtils.jsx · lines 135–152</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>openCropModal</code> imperatively creates a new <code>ReactDOM.createRoot</code> outside the main React tree and appends it to <code>document.body</code>. If the page navigates or the parent component unmounts while the crop modal is open, the <code>container</code> div and root remain attached to the DOM. There is no cleanup hook connected to the calling component's lifecycle — only the modal's own Cancel/Confirm buttons call <code>close()</code>.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Return a <code>cancel</code> function from <code>openCropModal</code> so callers can unmount it in a <code>useEffect</code> cleanup, or convert <code>CropModal</code> to a controlled React component rendered inline (within the component tree) via a state flag.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">avgGapStr formula divides by sorted.length - 1 but only runs when todayFeeds.length >= 2</div>
+            <div class="finding-file">Frontend/src/lib/dashboardStats.js · computeFeedingStats() (extracted from DashboardTab in S10)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">When exactly 2 feeds exist today, the loop calculates one gap and divides by <code>sorted.length - 1 = 1</code> — correct. But the calculation groups feeds where <code>endedAt</code> is set, while the loop iterates by <code>startedAt</code> time. If the same feed spans midnight, both <code>startedAt</code> grouping and <code>midnight</code> cut-off could exclude feeds from the gap calculation incorrectly, displaying a misleading average gap.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Also filter <code>todayFeeds</code> so any feed whose <code>startedAt</code> is before midnight but <code>endedAt</code> is after midnight is excluded from the average gap stat, or document the expected behavior clearly so it is not confusing in edge cases.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ FIXED — SleepTab history now groups by ISO YYYY-MM-DD key</div>
+            <div class="finding-file">Frontend/src/components/tabs/TrackTab.jsx</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Changed byDay grouping to use <code>.toISOString().slice(0, 10)</code>. Display label now formatted separately from the grouping key, fixing the year-collision risk.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ FIXED — limitDays capped at 3650 in all three services</div>
+            <div class="finding-file">FeedingService.java, SleepService.java, PoopService.java</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Added <code>limitDays = Math.min(limitDays, 3650)</code> at the top of each <code>getLogs()</code> method.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">formatBabyAge can show "0 months and 0 days old" for a baby born today</div>
+            <div class="finding-file">Frontend/src/lib/babyAge.js · lines 22–32</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">When a baby is born today (totalDays = 0, weeks = 0), the code falls through to the weeks branch returning "0 weeks old". This is handled. However, the month branch sets <code>months = 0</code> and <code>days = 0</code> for babies 0–12 weeks and would return "0 months and 0 days old" if the weeks branch were removed or the condition changed. More practically, a baby exactly N months old with the anniversary calculation returns "N months old" — which is correct but misses that it only activates at 13+ weeks; the transition could be jarring (from "12 weeks old" to "3 months old" mid-day).</div>
+          <div class="finding-fix"><strong>Fix (cosmetic):</strong> Add a unit test covering the exact 13-week boundary to lock in the expected display string. Consider adding "and 0 days" suppression in the month path as well (currently it returns "N months old" when days = 0, which is correct).</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Coverage Gaps ── -->
+    <section id="coverage">
+      <h2>Missing Test Coverage</h2>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">No backend tests for appointments, sleep, poop, first-times, vaccines, or growth domains</div>
+            <div class="finding-file">Backend/src/test/java/com/gotcherapp/api/ — missing directories</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Seven backend service/controller pairs (AppointmentService, SleepService, PoopService, FirstTimeService, VaccineService, GrowthService, BabyProfileService) have zero test coverage. These handle the bulk of the app's data mutations. The highest risk untested paths are ownership verification (baby_profile_id check preventing cross-user data access) and input validation (type allow-lists in PoopService and SleepService).</div>
+          <div class="finding-fix"><strong>Fix:</strong> Write service unit tests (Mockito, like the existing FeedingServiceTest pattern) for each domain. Prioritize AppointmentService (has date validation), PoopService (type/color/consistency allow-lists), and FirstTimeService (label/date required fields).</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">Token refresh race-condition deduplication in api.js has no test for concurrent 401s</div>
+            <div class="finding-file">Frontend/src/test/api.test.js — missing concurrent refresh test</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The <code>refreshing</code> module-level Promise in <code>api.js</code> is meant to deduplicate simultaneous refresh calls from concurrent 401 responses. The existing tests only exercise single sequential refresh flows. There is no test that fires two simultaneous <code>apiRequest</code> calls, both receiving 401, and verifies that <code>/auth/refresh</code> is called exactly once.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add a test that fires two <code>apiRequest</code> calls with <code>Promise.all</code>, sets fetch to return 401 for both, mocks one successful refresh response, and asserts <code>fetch</code> was called exactly 3 times (2 initial + 1 refresh + 2 retries = 5 total) — or confirms the deduplication behaviour directly.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p1">P1</span>
+          <div>
+            <div class="finding-title">No tests for PDF generation (pdf.js) — complex logic with no coverage</div>
+            <div class="finding-file">Frontend/src/lib/pdf.js — no test file exists</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>generatePdf</code> contains complex page-packing logic (<code>countPages</code>, <code>entryBlockH</code>, multi-image layout) that is entirely untested. Regressions in the PDF layout are invisible until a user actually exports a book. The <code>loadImageDataUrl</code> canvas conversion and <code>resolveImgLayout</code> portrait vs landscape branching are also untested.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Write unit tests for the pure helper functions (<code>entryBlockH</code>, <code>resolveImgLayout</code>, <code>buildChartData</code> in HealthTab, <code>toImperial</code> in growthPercentiles). For <code>generatePdf</code>, use a lightweight integration test with a JSDOM mock for <code>canvas</code> and jsPDF spies.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ RESOLVED (S10) — Tests added for babyAge.js utility functions</div>
+            <div class="finding-file">Frontend/src/test/babyAge.test.js — added in Session 10</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">S10 added <code>babyAge.test.js</code> covering <code>getWeek</code> (null/empty → 0, future → 0, today → 0, known dates) and <code>formatBabyAge</code> (null, under-13-weeks, exact weeks, months, months+days). All dates hardcoded to avoid timezone drift.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">No tests for validateSession in auth.js (silent refresh path)</div>
+            <div class="finding-file">Frontend/src/test/auth.test.js — missing validateSession tests</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>validateSession</code> has three branches: /auth/me succeeds, /auth/me returns non-401 error, and /auth/me returns 401 followed by a refresh attempt. The refresh sub-path (clears localStorage on failure, returns false) is entirely untested. This is the code that runs on every app boot.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add three tests to auth.test.js covering: (1) me returns 200 → returns true; (2) me returns 401, refresh succeeds → returns true; (3) me returns 401, refresh fails → clears localStorage and returns false.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">EmailVerificationService.verify() has no tests — token replay, expiry, and success paths untested</div>
+            <div class="finding-file">Backend/src/test/java/com/gotcherapp/api/auth/ — missing EmailVerificationServiceTest</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The email verification flow (token lookup, expiry check, user update, token deletion) is entirely untested. An expired-token path that fails to delete the token, or a race condition where two verify calls hit concurrently, would be invisible.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add <code>EmailVerificationServiceTest</code> with Mockito mocks for the three paths: token not found → false; token expired → deletes token, returns false; valid token → updates user, deletes token, returns true.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">JournalService.update() dynamic SET clause builder has no tests</div>
+            <div class="finding-file">Backend/src/test/java/com/gotcherapp/api/journal/ — JournalServiceTest exists but may not cover partial update</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The dynamic query builder in <code>JournalService.update()</code> (and mirrored in <code>FirstTimeService.update()</code> and <code>AppointmentService.update()</code>) produces different SQL depending on which fields are non-null. The case where <code>setClauses.isEmpty()</code> (no fields to update) returns the current row is a subtle path that should be explicitly tested.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add test cases for the empty-patch path (all fields null → returns current row unchanged) and a partial-patch path (only title non-null → only title SET clause emitted). Similar tests are needed for FirstTimeService and AppointmentService.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">growthPercentiles.js toImperial() conversion is untested</div>
+            <div class="finding-file">Frontend/src/lib/growthPercentiles.js — no test file</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The WHO percentile tables and <code>toImperial</code> conversion function are pure and straightforward to test, but have no coverage. A rounding error in the conversion would show incorrect percentile bands on the growth chart.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add a simple test asserting that <code>toImperial([[0, 3.3, null, null]], 'kg')</code> returns the expected lbs value within 0.01 lbs. Also test that <code>getPercentileData</code> returns female tables when <code>sex === 'female'</code>.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">shareFirstTime() has no test — navigator.share and clipboard.writeText paths untested</div>
+            <div class="finding-file">Frontend/src/lib/share.js — no test file</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The two-branch logic (Web Share API vs clipboard fallback) is easy to test with mocks but currently has zero coverage. The function is called from <code>FirstTimeCard.handleShare</code> and errors there are silently swallowed.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add a share.test.js with two tests: (1) navigator.share available and succeeds — verify share is called with correct args; (2) navigator.share not available — verify clipboard.writeText is called and 'copied' is returned.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Refactoring ── -->
+    <section id="refactor">
+      <h2>Refactoring Opportunities</h2>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">Ownership resolution boilerplate (findProfileIdByUserId + empty check) duplicated across 7 service classes</div>
+            <div class="finding-file">Backend — FeedingService, SleepService, PoopService, GrowthService, JournalService, AppointmentService, FirstTimeService, VaccineService, MilestoneService</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Every service method starts with the same two lines: <code>Optional&lt;Long&gt; profileId = babyProfileRepository.findProfileIdByUserId(userId); if (profileId.isEmpty()) return List.of() / false / Optional.empty() / throw …</code>. This pattern is copy-pasted ~30 times across the codebase with minor variations in the "missing" return value. Adding a new service requires remembering to add both lines in every method.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Add two helper methods to <code>BabyProfileRepository</code>: <code>getProfileIdOrEmpty(userId)</code> (returns Optional) and <code>requireProfileId(userId)</code> (throws if empty). Service methods can then use a one-liner. Alternatively, extract a <code>ProfileContext</code> base class or utility.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">formatDuration duplicated across TrackTab and HealthTab (DashboardTab version resolved in S10)</div>
+            <div class="finding-file">Frontend/src/components/tabs/TrackTab.jsx · lines 52–59, 380–386; HealthTab.jsx (inline)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">S10 extracted <code>fmtDuration</code> and <code>timeAgo</code> from DashboardTab into <code>dashboardStats.js</code>. However, <code>formatDuration</code> / duration formatting still appears as separate inline definitions in TrackTab and HealthTab. If the formatting style needs to change, each remaining copy must be updated independently.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Move the remaining duration helpers into <code>Frontend/src/lib/formatting.js</code> (which currently only has <code>formatEntryDate</code>). Export <code>formatDuration(seconds)</code> from there and import in TrackTab and HealthTab. Consider also re-exporting <code>fmtDuration</code>/<code>timeAgo</code> from formatting.js for a single source of truth.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">Optimistic-delete + re-fetch-on-error pattern copy-pasted across 8 handlers in BabySteps.jsx</div>
+            <div class="finding-file">Frontend/src/components/BabySteps.jsx · lines 183–188, 210–215, 237–242, 250–255, 268–273, 299–304, 319–324</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Every delete handler follows the same pattern: optimistic removal from state → API call → on catch, re-fetch from API to restore. This is 7 nearly identical blocks. When the bug fix for user-visible error feedback is applied (P1 finding above), it must be applied to all 7 places.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Extract a generic <code>optimisticDelete(setState, id, apiCall, refetch)</code> helper, or at minimum a shared <code>deleteWithRecovery</code> pattern. This also makes the P1 fix above a single change.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">MilestoneService and VaccineService are structural duplicates of each other</div>
+            <div class="finding-file">Backend — MilestoneService.java vs VaccineService.java (identical structure)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The two files differ only in table name (<code>milestones</code> vs <code>vaccine_records</code>), column name (<code>milestone_key</code> vs <code>vaccine_key</code>), and the error messages. Everything else — constructor, <code>getKeys</code>, <code>achieve</code>, <code>unachieve</code> — is structurally identical. Adding a new "checkbox-style" resource would require a third copy.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Extract a generic <code>KeyedRecordService(tableName, keyColumn)</code> base class or utility method that both services delegate to. Both service classes become thin wrappers configuring the table/column names.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">BabySteps.jsx local save/load helpers duplicate auth.js saveSession/getStoredSession pattern</div>
+            <div class="finding-file">Frontend/src/components/BabySteps.jsx · lines 14–23</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The <code>save(key, data)</code> and <code>load(key)</code> functions in <code>BabySteps.jsx</code> are a generic localStorage wrapper, but <code>auth.js</code> already has <code>saveSession</code> / <code>getStoredSession</code> doing the same with a fixed key. These could be consolidated into a shared <code>localStore.js</code> utility.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Extract <code>localStore.get(key)</code> / <code>localStore.set(key, data)</code> into <code>Frontend/src/lib/localStore.js</code> and use it in both places.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">HealthTab.jsx is 669 lines — five logically separate components in one file</div>
+            <div class="finding-file">Frontend/src/components/tabs/HealthTab.jsx</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>HealthTab.jsx</code> contains <code>GrowthTab</code>, <code>VaccineTab</code>, <code>MilestonesTab</code>, <code>AppointmentTab</code>, <code>AppointmentRow</code>, <code>MetricChart</code>, and several helper functions. This makes it difficult to navigate and test individual sub-components. <code>TrackTab.jsx</code> (762 lines) has the same issue with three sub-trackers.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Split into <code>tabs/health/GrowthTab.jsx</code>, <code>VaccineTab.jsx</code>, <code>AppointmentTab.jsx</code>, <code>MilestonesTab.jsx</code>, keeping <code>HealthTab.jsx</code> as the thin orchestrator. Similarly split <code>TrackTab.jsx</code>.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">mapRow() helper duplicated across every Service class with minor variations</div>
+            <div class="finding-file">Backend — JournalService, FeedingService, SleepService, PoopService, GrowthService, AppointmentService, FirstTimeService</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Each service has a private <code>mapRow(Map&lt;String, Object&gt; row)</code> that casts database column values to Java types. The <code>((Number) row.get("id")).longValue()</code> and <code>toBigDecimal</code> patterns repeat verbatim. If the DB driver changes or a new column type is introduced, each copy must be updated.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Extract a <code>RowMapper</code> utility class with static helpers like <code>getLong(row, col)</code>, <code>getString(row, col)</code>, <code>getDecimal(row, col)</code>, and <code>getTimestamp(row, col)</code>. Each service <code>mapRow</code> becomes much more readable.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">Confirm-delete UI pattern (Yes/No buttons appearing inline) is copy-pasted 5+ times</div>
+            <div class="finding-file">Frontend — MemoriesTab.jsx, TrackTab.jsx (feeding, sleep, poop), HealthTab.jsx (growth records)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The "Delete? Yes / No" confirmation pattern — with <code>confirmDeleteId</code> state, conditional rendering — appears in at least 5 places with nearly identical JSX. Any design change to the confirmation UI requires 5 edits.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Create a <code>&lt;ConfirmDelete onConfirm={fn} onCancel={fn} /&gt;</code> component and replace all instances. The state management can stay in the parent.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Naming Issues ── -->
+    <section id="naming">
+      <h2>Naming Issues</h2>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">VaccineService.achieve() / unachieve() — medical domain verbs for a boolean toggle</div>
+            <div class="finding-file">Backend/src/main/java/com/gotcherapp/api/baby/VaccineService.java · MilestoneService.java</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>achieve</code> and <code>unachieve</code> are meaningful for milestones (developmental achievements) but semantically wrong for vaccines (you "administer" or "record" a vaccine, you don't "achieve" it). Both services were clearly copied from <code>MilestoneService</code> and the names not updated for the vaccine context.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Rename <code>VaccineService.achieve → markAdministered</code> and <code>unachieve → markNotAdministered</code> (or <code>record/unrecord</code). Update the controller accordingly.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ FIXED — ql* renamed to quickLog*</div>
+            <div class="finding-file">Frontend/src/components/tabs/DashboardTab.jsx</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Renamed all <code>ql*</code> state variables and setters to <code>quickLog*</code> throughout DashboardTab.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p2">P2</span>
+          <div>
+            <div class="finding-title">✓ FIXED — save()/load() renamed to saveLocal()/loadLocal()</div>
+            <div class="finding-file">Frontend/src/components/BabySteps.jsx</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Renamed to <code>saveLocal</code> and <code>loadLocal</code> throughout BabySteps.jsx.</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding" style="opacity:0.55;">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">✓ FIXED — AuthService exception classes now have default messages</div>
+            <div class="finding-file">Backend/.../auth/AuthService.java</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">Added default messages to all four inner exception classes: "Email already registered", "Invalid credentials", "Account is disabled", "Invalid or expired token".</div>
+          <div class="finding-fix"><strong>Status:</strong> Closed.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">DiscoverTab receives products/activities data but only uses activities — props parameter list misleading</div>
+            <div class="finding-file">Frontend/src/components/BabySteps.jsx · lines 516–523; DiscoverTab.jsx · line 7</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>BabySteps.jsx</code> computes <code>activities</code> via <code>getActivities(week)</code> and passes it as a prop, but the <code>PRODUCTS</code> data from <code>babyData.js</code> is never fetched or passed — despite being exported. <code>DiscoverTab</code>'s Marketplace card says "Coming Soon" and uses no product data. The existing <code>getProducts</code> helper in <code>babyAge.js</code> is dead code.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Either remove <code>getProducts</code> from <code>babyAge.js</code> with a TODO comment noting it will be wired when the marketplace launches, or add it to the DiscoverTab data flow now. Clarify intent with a comment.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge p3">P3</span>
+          <div>
+            <div class="finding-title">BabyProfileResponse field named "babyName" inconsistently with snake_case DB and other DTO fields</div>
+            <div class="finding-file">Backend/src/main/java/com/gotcherapp/api/baby/ — BabyProfileResponse.java, BabyProfileRequest.java</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The baby profile DTO uses <code>babyName</code> (camelCase) which Jackson serializes to <code>babyName</code> in JSON. The frontend then uses <code>profile.babyName</code>. All other DTOs use snake_case field names that Jackson serializes directly (e.g. <code>display_name</code>, <code>email_verified</code>). The inconsistency means the frontend must use camelCase for profile fields and snake_case for auth fields — a potential source of future bugs when new developers add fields.</div>
+          <div class="finding-fix"><strong>Fix:</strong> Decide on one convention. Either add <code>@JsonNaming(SnakeCaseStrategy.class)</code> globally, or keep camelCase and document it. The frontend already handles both; the important thing is consistency going forward.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Documentation Gaps ── -->
+    <section id="docs">
+      <h2>Documentation Gaps</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px;">Places where adding documentation would most help a future engineer or AI assistant understand the codebase. High = will cause confusion or incorrect behavior without it; Med = slows understanding; Low = nice to have.</p>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-high">High</span>
+          <div>
+            <div class="finding-title">api.js — 401 retry and session-expired dispatch are invisible to callers</div>
+            <div class="finding-file">Frontend/src/lib/api.js</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The module-level <code>refreshing</code> Promise that deduplicates concurrent 401s, the <code>session-expired</code> custom event dispatch, and the fact that <code>apiRequest</code> will retry once after a token refresh are all non-obvious side effects with no JSDoc. A future developer adding a new API call has no way to know that 401 responses are transparently retried, or that a failed refresh fires a global event that boots the user.</div>
+          <div class="finding-fix"><strong>Add:</strong> JSDoc on <code>apiRequest</code> documenting: parameters, return value, 401-retry behaviour, and the <code>session-expired</code> event. Add a one-line comment above <code>let refreshing = null</code> explaining it deduplicates concurrent refreshes.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-high">High</span>
+          <div>
+            <div class="finding-title">pdf.js — generatePdf entry shape is undocumented</div>
+            <div class="finding-file">Frontend/src/lib/pdf.js</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>generatePdf(entries, babyName)</code> requires each entry to have specific fields: <code>week</code>, <code>title</code>, <code>story</code>, <code>image_url</code>, <code>image_orientation</code>, and <code>entry_date</code> (or <code>date</code>). None of this is documented. The <code>entry_date || entry.date</code> fallback pattern (lines 202, 235) hints at a legacy field rename that could silently break if a caller uses the wrong field name.</div>
+          <div class="finding-fix"><strong>Add:</strong> JSDoc on <code>generatePdf</code> listing the expected shape of each entry object. Also clarify the <code>generatePdf</code> vs <code>downloadPdf</code> paywall seam — the current comment ("paywall seam between the two") is minimal.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">babyAge.js — getMilestones key format undocumented</div>
+            <div class="finding-file">Frontend/src/lib/babyAge.js · getMilestones()</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The milestone key format <code>${groupWeek}-${index}</code> (where <code>groupWeek = Math.floor(week/4)*4</code>) is the most non-obvious invariant in the frontend — using the wrong format was an actual regression in a prior session. It is only documented in <code>seed-demo-user.sh</code> comments, not in <code>getMilestones</code>, <code>DashboardTab</code>, or <code>HealthTab</code> where keys are constructed.</div>
+          <div class="finding-fix"><strong>Add:</strong> A one-line comment above <code>getMilestones</code> explaining the key format and the 4-week bucket grouping. Same comment at each call site that constructs a key.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">AuthService.java — token rotation strategy undocumented</div>
+            <div class="finding-file">Backend/src/main/java/com/gotcherapp/api/auth/AuthService.java · refresh()</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The <code>refresh()</code> method revokes the old refresh token and issues a new pair — a security pattern that prevents replay attacks. There is no comment explaining why the old token is revoked or what threat model this defends against. The <code>is_revoked</code> column in <code>refresh_tokens</code> exists solely because of this rotation pattern, which is also not documented in the migration.</div>
+          <div class="finding-fix"><strong>Add:</strong> A one-line comment above the <code>UPDATE ... SET is_revoked = TRUE</code> line: "// Rotate: revoke old token to prevent replay — each refresh token is single-use."</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">README — missing test and seed commands</div>
+            <div class="finding-file">README.md (root)</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The README has no "How to run tests" section. A developer joining the project cannot discover that <code>cd Frontend && npm test</code> runs Vitest or that <code>cd Backend && ./gradlew test</code> runs JUnit without reading source files. There is also no mention of <code>./seed-demo-user.sh</code> for test data or how to add a new Flyway migration.</div>
+          <div class="finding-fix"><strong>Add:</strong> A "Development" section to README.md covering: run frontend tests (<code>cd Frontend && npm test</code>), run backend tests (<code>cd Backend && ./gradlew test</code>), seed demo data (<code>./seed-demo-user.sh</code>), and add a migration (<code>db/migration/V{N}__description.sql</code>).</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">share.js — return value contract undocumented</div>
+            <div class="finding-file">Frontend/src/lib/share.js</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>shareFirstTime()</code> returns <code>'copied'</code> when the clipboard fallback is used, and <code>undefined</code> (implicitly) when Web Share is used. Callers in <code>FirstTimeCard.handleShare</code> check for this return value to show a "Copied!" toast. This asymmetric return contract is invisible without reading both files.</div>
+          <div class="finding-fix"><strong>Add:</strong> A JSDoc comment: <code>/** @returns {'copied' | undefined} 'copied' if clipboard fallback was used, undefined if Web Share API handled it */</code></div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">application.properties — SECURE_COOKIES env var undocumented</div>
+            <div class="finding-file">Backend/src/main/resources/application.properties</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The <code>SECURE_COOKIES</code> environment variable is consumed by <code>CookieUtil.java</code> via <code>System.getenv</code>, bypassing Spring's property system. It does not appear in <code>application.properties</code> or <code>.env.example</code>. A deployer setting up production will miss it entirely unless they read the source.</div>
+          <div class="finding-fix"><strong>Add:</strong> <code>app.cookies.secure=${SECURE_COOKIES:false}</code> to <code>application.properties</code> with a comment: "# Set SECURE_COOKIES=true in production (requires HTTPS)". Also add <code>SECURE_COOKIES=true</code> to <code>.env.example</code>.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-low">Low</span>
+          <div>
+            <div class="finding-title">dashboardStats.js — input shape and return contract undocumented</div>
+            <div class="finding-file">Frontend/src/lib/dashboardStats.js</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>computeFeedingStats(feeding)</code> and <code>computeSleepStats(sleep)</code> accept arrays of log objects but have no doc on what fields are expected (<code>startedAt</code>, <code>endedAt</code>) or what each returned stat means (<code>mostRecentFeed</code>, <code>avgGapStr</code>, <code>completedSleep</code>, etc.).</div>
+          <div class="finding-fix"><strong>Add:</strong> Brief JSDoc on both exported functions listing input shape and return fields. These are tested, so the doc can reference the test file for examples.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-low">Low</span>
+          <div>
+            <div class="finding-title">formatting.js — entry_date vs date field duality undocumented</div>
+            <div class="finding-file">Frontend/src/lib/formatting.js · formatEntryDate()</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc"><code>formatEntryDate(date)</code> accepts either a Date object or a string but callers in <code>pdf.js</code> pass <code>entry.entry_date || entry.date</code>, relying on both field names being tried. The function itself is fine but the dual-field pattern is a hidden contract that callers must know about.</div>
+          <div class="finding-fix"><strong>Add:</strong> A one-line comment in <code>pdf.js</code> noting why <code>entry_date || entry.date</code> is used — legacy field rename from when journal entries switched field names.</div>
+        </div>
+      </div>
+
+      <div class="finding">
+        <div class="finding-header">
+          <span class="badge doc-med">Med</span>
+          <div>
+            <div class="finding-title">Backend db/migration — V7 out-of-order flag context is buried</div>
+            <div class="finding-file">Backend/src/main/resources/application.properties · line 16</div>
+          </div>
+        </div>
+        <div class="finding-body">
+          <div class="finding-desc">The comment "<code>V7 was added as a placeholder after V8 was already applied</code>" in <code>application.properties</code> explains the <code>out-of-order=true</code> flag. But the context for WHY V7 is a placeholder is not in the migration file itself, making it hard to understand when reviewing <code>db/migration/</code> in isolation. A new dev might delete the flag thinking it's no longer needed.</div>
+          <div class="finding-fix"><strong>Add:</strong> A comment at the top of <code>V7__*.sql</code> explaining it was inserted after V8 and requires <code>spring.flyway.out-of-order=true</code>. This makes the migration directory self-documenting.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Implementation Plan ── -->
+    <section id="plan">
+      <h2>Implementation Plan</h2>
+
+      <div class="plan-section">
+        <h3 class="p1-h">P1 — Must Fix (before next deployment)</h3>
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Change</th>
+              <th>Effort</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="file-col">seed-demo-user.sh · line 25</td>
+              <td>Change <code>"displayName"</code> to <code>"display_name"</code> in the register curl body</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">DashboardTab.jsx · lines 86–88<br>TrackTab.jsx · lines 351–352</td>
+              <td>Add midnight-crossing correction: if <code>endedAt &lt;= startedAt</code>, add one day to <code>endedAt</code></td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">BabySteps.jsx · line 373</td>
+              <td>Replace <code>Math.floor(week / 4.345)</code> with a calendar-accurate months helper extracted from <code>formatBabyAge</code></td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">AuthService.java · lines 135–145</td>
+              <td>Add <code>display_name</code> to the SELECT in refresh(); pass it through to <code>UserDto</code></td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">BabySteps.jsx · lines 183–188 (and all delete handlers)</td>
+              <td>Add <code>onError()</code> call in the catch block of all optimistic-delete handlers; propagate re-fetch error too</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">CookieUtil.java · line 9</td>
+              <td>Move <code>SECURE</code> flag to <code>application.properties</code> (<code>app.cookies.secure</code>); inject via <code>@Value</code> into a Spring bean</td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Backend — 7 service classes</td>
+              <td>Write Mockito unit tests for AppointmentService, SleepService, PoopService, FirstTimeService, VaccineService, GrowthService. Focus on ownership verification and input validation paths.</td>
+              <td><span class="effort L">L</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend/src/test/api.test.js</td>
+              <td>Add concurrent-401 test to verify refresh deduplication fires only once</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="plan-section">
+        <h3 class="p2-h">P2 — Should Fix (before public launch)</h3>
+        <table class="plan-table">
+          <thead>
+            <tr><th>File</th><th>Change</th><th>Effort</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="file-col">TrackTab.jsx · line 78</td>
+              <td>Remove the <code>days === 7</code> guard in the <code>displayLogs</code> sync effect, or always re-fetch on prop change</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">imageUtils.jsx · lines 135–152</td>
+              <td>Return a cancel function from <code>openCropModal</code> so callers can clean up on unmount</td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">FeedingService.java · line 37; PoopService; SleepService</td>
+              <td>Add a server-side cap on <code>limitDays</code> (max 3650); consider replacing INTERVAL pattern</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">TrackTab.jsx (SleepTab &amp; FeedingTab grouping)</td>
+              <td>Group history by <code>ISO date string slice(0,10)</code> instead of locale-formatted label</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Backend/src/main/java/…/baby/</td>
+              <td>Add <code>requireProfileId(userId)</code> and <code>getProfileIdOrEmpty(userId)</code> helpers to BabyProfileRepository; refactor all services to use them</td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend/src/lib/formatting.js</td>
+              <td>Extract <code>fmtDuration</code>, <code>formatDuration</code>, <code>timeAgo</code> from the three tab files into formatting.js and import them</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend/src/test/auth.test.js</td>
+              <td>Add tests for all three <code>validateSession</code> branches</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Backend — EmailVerificationServiceTest (new file)</td>
+              <td>Write tests for token-not-found, expired-token, and valid-token verification paths</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">VaccineService.java</td>
+              <td>Rename <code>achieve → markAdministered</code>, <code>unachieve → markNotAdministered</code> (and VaccineController)</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">DashboardTab.jsx · lines 49–52</td>
+              <td>Rename <code>ql*</code> state variables to <code>quickLog*</code> for clarity</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="plan-section">
+        <h3 class="p3-h">P3 — Nice to Have</h3>
+        <table class="plan-table">
+          <thead>
+            <tr><th>File</th><th>Change</th><th>Effort</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="file-col">Frontend/src/lib/pdf.js (new test file)</td>
+              <td>Add unit tests for <code>entryBlockH</code>, <code>resolveImgLayout</code> pure functions; integration test for <code>generatePdf</code></td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr style="opacity:0.5;">
+              <td class="file-col">Frontend/src/lib/babyAge.js</td>
+              <td>✓ Done (S10) — babyAge.test.js added covering all edge cases</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend/src/lib/growthPercentiles.js (new test file)</td>
+              <td>Add tests for <code>toImperial</code> rounding and <code>getPercentileData</code> sex selection</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend/src/lib/share.js (new test file)</td>
+              <td>Add tests for Web Share and clipboard fallback paths</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">HealthTab.jsx, TrackTab.jsx</td>
+              <td>Split into per-sub-tab files under <code>tabs/health/</code> and <code>tabs/track/</code></td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">BabySteps.jsx · lines 14–23; auth.js</td>
+              <td>Extract <code>localStore.js</code> with <code>get/set</code> helpers; remove duplicate localStorage code</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Backend — MilestoneService, VaccineService</td>
+              <td>Extract generic <code>KeyedRecordService</code> base / utility class; both services become thin wrappers</td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Backend — all Service mapRow() methods</td>
+              <td>Extract <code>RowMapper</code> utility with typed accessors (<code>getLong</code>, <code>getString</code>, <code>getDecimal</code>)</td>
+              <td><span class="effort M">M</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">Frontend — MemoriesTab, TrackTab, HealthTab</td>
+              <td>Extract <code>&lt;ConfirmDelete&gt;</code> component for the Yes/No inline pattern</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">AuthService.java · lines 164–167</td>
+              <td>Pass default messages to RuntimeException super() in inner exception classes</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td class="file-col">babyAge.js — <code>getProducts</code></td>
+              <td>Either wire product data to DiscoverTab or remove dead <code>getProducts</code> export with a TODO</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+      <div class="plan-section">
+        <h3 class="doc-h">Documentation — Add in any order</h3>
+        <table class="plan-table">
+          <thead>
+            <tr><th>What to add</th><th>File(s)</th><th>Effort</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>JSDoc on <code>apiRequest</code> — 401 retry, session-expired event, refreshing deduplication</td>
+              <td class="file-col">Frontend/src/lib/api.js</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>JSDoc on <code>generatePdf</code> — entry shape fields, paywall seam clarification</td>
+              <td class="file-col">Frontend/src/lib/pdf.js</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>Comment on getMilestones key format <code>${groupWeek}-${index}</code></td>
+              <td class="file-col">Frontend/src/lib/babyAge.js</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>Comment on token rotation in <code>refresh()</code></td>
+              <td class="file-col">Backend/.../auth/AuthService.java</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>README Development section — run tests, seed data, add migration</td>
+              <td class="file-col">README.md</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>JSDoc on <code>shareFirstTime()</code> — document 'copied' return value</td>
+              <td class="file-col">Frontend/src/lib/share.js</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>Add <code>SECURE_COOKIES</code> to <code>.env.example</code> with production note</td>
+              <td class="file-col">Backend/.env.example</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+            <tr>
+              <td>Comment on V7 out-of-order Flyway situation at top of migration file</td>
+              <td class="file-col">Backend/db/migration/V7__*.sql</td>
+              <td><span class="effort S">S</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Coverage Map ── -->
+    <section id="covmap">
+      <h2>Coverage Map</h2>
+
+      <h4 class="sub">Frontend Source</h4>
+      <table class="cov-table">
+        <thead>
+          <tr><th>File</th><th>Coverage</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="file-mono">src/lib/api.js</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">Happy paths + 401 retry tested; concurrent refresh deduplication not tested</td></tr>
+          <tr><td class="file-mono">src/lib/auth.js</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">loginUser, registerUser, logoutUser, saveSession/getStoredSession tested; validateSession not tested</td></tr>
+          <tr><td class="file-mono">src/lib/babyAge.js</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">getWeek, formatBabyAge fully tested in babyAge.test.js (added S10); edge cases including null, future, today, month boundary covered</td></tr>
+          <tr><td class="file-mono">src/lib/dashboardStats.js</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">New file (S10): fmtDuration, timeAgo, computeFeedingStats, computeSleepStats — all tested in dashboardStats.test.js</td></tr>
+          <tr><td class="file-mono">src/lib/babyData.js</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">Static data file; correctness is content, not logic</td></tr>
+          <tr><td class="file-mono">src/lib/formatting.js</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Single function — trivial but untested</td></tr>
+          <tr><td class="file-mono">src/lib/growthPercentiles.js</td><td><span class="cov-pill none">None</span></td><td class="cov-note">toImperial conversion and table selection untested</td></tr>
+          <tr><td class="file-mono">src/lib/imageUtils.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">CropModal, openCropModal — no tests (requires DOM/canvas mocks)</td></tr>
+          <tr><td class="file-mono">src/lib/pdf.js</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Complex layout logic — no tests; highest risk untested file</td></tr>
+          <tr><td class="file-mono">src/lib/share.js</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Two-branch Web Share / clipboard logic untested</td></tr>
+          <tr><td class="file-mono">src/lib/utils.js</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">cn() tested in utils.test.js (added S10): merging, Tailwind conflict resolution, falsy exclusion, object and array syntax</td></tr>
+          <tr><td class="file-mono">src/App.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Boot logic, session restore, email banner — no component tests</td></tr>
+          <tr><td class="file-mono">src/components/BabySteps.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Main shell; prop threading and handler logic untested</td></tr>
+          <tr><td class="file-mono">src/components/LoginPage.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Form submission paths untested</td></tr>
+          <tr><td class="file-mono">src/components/tabs/DashboardTab.jsx</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">Stat helpers extracted to dashboardStats.js and fully tested (S10); component rendering, quick-log form logic, and deep-link still untested</td></tr>
+          <tr><td class="file-mono">src/components/tabs/HealthTab.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">buildChartData, ageInMonths, inchesToDisplay — untested</td></tr>
+          <tr><td class="file-mono">src/components/tabs/MemoriesTab.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No component tests</td></tr>
+          <tr><td class="file-mono">src/components/tabs/TrackTab.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No component tests; formatDuration, durationSeconds untested</td></tr>
+          <tr><td class="file-mono">src/components/tabs/DiscoverTab.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Stub/placeholder components; low risk</td></tr>
+          <tr><td class="file-mono">src/components/ui/PillNav.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Simple rendering component; low risk</td></tr>
+          <tr><td class="file-mono">src/components/ui/LoadingButton.jsx</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Thin wrapper; low risk</td></tr>
+          <tr><td class="file-mono">src/components/ui/EmptyState.jsx</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">Trivial presentational component</td></tr>
+        </tbody>
+      </table>
+
+      <h4 class="sub">Backend Source</h4>
+      <table class="cov-table">
+        <thead>
+          <tr><th>File</th><th>Coverage</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="file-mono">auth/AuthService.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">Register, login, refresh, logout — all major paths tested including edge cases</td></tr>
+          <tr><td class="file-mono">auth/AuthController.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">AuthControllerTest exists; resend-verification and email banner flows may be partial</td></tr>
+          <tr><td class="file-mono">auth/EmailVerificationService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No dedicated test; verify(), sendVerificationEmail() untested</td></tr>
+          <tr><td class="file-mono">auth/EmailService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">SMTP-not-configured path untested; integration only</td></tr>
+          <tr><td class="file-mono">auth/CookieUtil.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">Static utility, no tests; SECURE flag bug here</td></tr>
+          <tr><td class="file-mono">security/JwtUtil.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">Exercised indirectly through AuthServiceTest mocks; no dedicated JwtUtil tests</td></tr>
+          <tr><td class="file-mono">security/JwtAuthFilter.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">Exercised via controller integration tests; cookie vs Authorization header paths may not both be tested</td></tr>
+          <tr><td class="file-mono">config/SecurityConfig.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">CORS config tested implicitly; no explicit CORS misconfiguration tests</td></tr>
+          <tr><td class="file-mono">common/ApiError.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">Record with static factory methods; exercised throughout controller tests</td></tr>
+          <tr><td class="file-mono">baby/BabyProfileService.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">BabyProfileServiceTest exists; upsert conflict path may not be fully covered</td></tr>
+          <tr><td class="file-mono">baby/BabyProfileController.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">BabyProfileControllerTest exists</td></tr>
+          <tr><td class="file-mono">baby/BabyProfileRepository.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">Exercised indirectly through all service tests</td></tr>
+          <tr><td class="file-mono">baby/MilestoneService.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">MilestoneServiceTest exists; getKeys, achieve, unachieve covered</td></tr>
+          <tr><td class="file-mono">baby/MilestoneController.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">MilestoneControllerTest exists</td></tr>
+          <tr><td class="file-mono">baby/VaccineService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No tests — structurally identical to MilestoneService but untested</td></tr>
+          <tr><td class="file-mono">baby/VaccineController.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No tests</td></tr>
+          <tr><td class="file-mono">journal/JournalService.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">JournalServiceTest exists; dynamic update() partial-patch path coverage unclear</td></tr>
+          <tr><td class="file-mono">journal/JournalController.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">JournalControllerTest exists</td></tr>
+          <tr><td class="file-mono">feeding/FeedingService.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">getLogs, startFeed, stopFeed, deleteFeed — all covered including error paths</td></tr>
+          <tr><td class="file-mono">feeding/FeedingController.java</td><td><span class="cov-pill good">Good</span></td><td class="cov-note">FeedingControllerTest exists</td></tr>
+          <tr><td class="file-mono">growth/GrowthService.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">GrowthServiceTest exists</td></tr>
+          <tr><td class="file-mono">growth/GrowthController.java</td><td><span class="cov-pill partial">Partial</span></td><td class="cov-note">GrowthControllerTest exists</td></tr>
+          <tr><td class="file-mono">appointments/AppointmentService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found; dynamic update builder untested</td></tr>
+          <tr><td class="file-mono">appointments/AppointmentController.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found</td></tr>
+          <tr><td class="file-mono">sleep/SleepService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found; type validation and midnight-crossing bug untested</td></tr>
+          <tr><td class="file-mono">sleep/SleepController.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found</td></tr>
+          <tr><td class="file-mono">poop/PoopService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found; type/color/consistency allow-lists untested</td></tr>
+          <tr><td class="file-mono">poop/PoopController.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found</td></tr>
+          <tr><td class="file-mono">firsttimes/FirstTimeService.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found; label/date required-field validation untested</td></tr>
+          <tr><td class="file-mono">firsttimes/FirstTimeController.java</td><td><span class="cov-pill none">None</span></td><td class="cov-note">No test file found</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── Documentation Map ── -->
+    <section id="docmap">
+      <h2>Documentation Map</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">Current state of documentation across the codebase.</p>
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th style="width:30%">Location</th>
+            <th style="width:20%">Doc Type</th>
+            <th style="width:15%">Impact</th>
+            <th>What's Missing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="file-mono">src/lib/api.js</td>
+            <td>JSDoc</td>
+            <td><span class="doc-pill high">High</span></td>
+            <td class="cov-note"><code>apiRequest</code> and <code>apiUpload</code> — 401-retry behavior, <code>refreshing</code> deduplication, and <code>session-expired</code> event are all undocumented</td>
+          </tr>
+          <tr>
+            <td class="file-mono">src/lib/pdf.js</td>
+            <td>JSDoc</td>
+            <td><span class="doc-pill high">High</span></td>
+            <td class="cov-note"><code>generatePdf(entries, babyName)</code> — entry shape (required fields) and the paywall seam between <code>generatePdf</code> / <code>downloadPdf</code> undocumented</td>
+          </tr>
+          <tr>
+            <td class="file-mono">src/lib/babyAge.js</td>
+            <td>Inline comment</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note">Milestone key format <code>${groupWeek}-${index}</code> (where groupWeek = floor(week/4)*4) not documented at definition or call sites</td>
+          </tr>
+          <tr>
+            <td class="file-mono">src/lib/share.js</td>
+            <td>JSDoc</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note">Return value contract (<code>'copied'</code> vs <code>undefined</code>) not documented; callers must read source to know which value means clipboard was used</td>
+          </tr>
+          <tr>
+            <td class="file-mono">src/lib/dashboardStats.js</td>
+            <td>JSDoc</td>
+            <td><span class="doc-pill low">Low</span></td>
+            <td class="cov-note">Input shape and all return fields undocumented on both exported functions</td>
+          </tr>
+          <tr>
+            <td class="file-mono">src/lib/formatting.js</td>
+            <td>Inline comment</td>
+            <td><span class="doc-pill low">Low</span></td>
+            <td class="cov-note">The <code>entry_date || date</code> dual-field pattern in callers should be explained at point of use in pdf.js</td>
+          </tr>
+          <tr>
+            <td class="file-mono">auth/AuthService.java</td>
+            <td>Javadoc / inline</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note">Token rotation strategy in <code>refresh()</code> undocumented; the <code>is_revoked</code> column purpose not explained</td>
+          </tr>
+          <tr>
+            <td class="file-mono">application.properties</td>
+            <td>Env var contract</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note"><code>SECURE_COOKIES</code> env var consumed by CookieUtil via <code>System.getenv</code> — not listed in application.properties or .env.example</td>
+          </tr>
+          <tr>
+            <td class="file-mono">README.md</td>
+            <td>README</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note">No "How to run tests", no "How to seed demo data", no "How to add a migration" section</td>
+          </tr>
+          <tr>
+            <td class="file-mono">db/migration/V7__*.sql</td>
+            <td>Inline comment</td>
+            <td><span class="doc-pill med">Med</span></td>
+            <td class="cov-note">The V7 out-of-order Flyway situation explained in application.properties but not in the migration file itself — could be deleted by mistake</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
