@@ -39,9 +39,9 @@ public class EmailVerificationService {
         String link = backendUrl + "/auth/verify-email?token=" + token;
         emailService.send(
             email,
-            "Verify your Baby Steps email",
+            "Verify your CradleHQ email",
             "Hi! Please verify your email address by clicking the link below:\n\n" +
-            link + "\n\nThis link expires in 24 hours.\n\n— Baby Steps"
+            link + "\n\nThis link expires in 24 hours.\n\n— The CradleHQ Team"
         );
     }
 
