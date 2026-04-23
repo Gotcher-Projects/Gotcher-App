@@ -1,0 +1,101 @@
+CradleHQ Rebrand — Change Map
+==============================
+App name:   Baby Steps  →  CradleHQ
+Domain:     michaelgotcher.com  →  cradlehq.app
+Email:      (new) privacy@cradlehq.app
+Production: already updated — this aligns the codebase
+
+Use this file as a checklist. Tick each item off as it's done.
+
+
+── 1. PAGE TITLE ────────────────────────────────────────────────────
+File: Frontend/index.html
+  - <title> tag: change "Baby Steps" → "CradleHQ"
+
+
+── 2. LOGIN PAGE ────────────────────────────────────────────────────
+File: Frontend/src/components/LoginPage.jsx
+  - App name in the header / logo area: "Baby Steps" → "CradleHQ"
+  - Any tagline or subtitle that references the old name
+  - ADD at the bottom of the page (inside the outermost container,
+    below the login/register card):
+      <footer> with two links:
+        "Privacy Policy"  →  /privacy.html
+        "Terms of Service" →  /terms.html
+      Small muted text, separated by a ·
+
+
+── 3. MAIN APP SHELL ────────────────────────────────────────────────
+File: Frontend/src/components/BabySteps.jsx
+  - Any visible "Baby Steps" text in headers, nav, or empty states
+  - Do NOT rename the file or the component function
+
+
+── 4. DOMAIN REFERENCES ─────────────────────────────────────────────
+Search the entire Frontend/src/ tree for "michaelgotcher.com"
+  - Replace each occurrence with "cradlehq.app"
+  - Common places: LoginPage.jsx footer area (if already there),
+    any About/help text, hardcoded API URL strings (though those
+    should be VITE_API_URL, not hardcoded)
+
+Also check:
+  - Frontend/index.html  (meta tags, og:url, canonical)
+  - Frontend/public/     (any existing HTML files)
+
+
+── 5. NEW FILES (create from scratch) ───────────────────────────────
+File: Frontend/public/privacy.html
+  - Standalone HTML, no React
+  - Small BRAND block near the top:
+      const BRAND = {
+        name: "CradleHQ",
+        url:  "https://cradlehq.app",
+        email:"privacy@cradlehq.app"
+      };
+  - Sections: What we collect, How we use it, Data storage,
+    Children's privacy (COPPA note — app handles child data),
+    Contact / deletion requests → privacy@cradlehq.app
+  - Link back to the app: "← Back to CradleHQ"
+
+File: Frontend/public/terms.html
+  - Same BRAND block at top
+  - Sections: Acceptance, Description of service, User accounts,
+    Acceptable use, Disclaimer of warranties, Limitation of liability,
+    Changes to terms, Contact → privacy@cradlehq.app
+  - Link back to the app: "← Back to CradleHQ"
+
+
+── 6. VERIFICATION EMAIL TEXT ───────────────────────────────────────
+File: Backend/src/main/java/com/gotcherapp/api/auth/EmailVerificationService.java
+  - Subject string: "Verify your Baby Steps email" → "Verify your CradleHQ email"
+  - Body sign-off: "— Baby Steps" → "— The CradleHQ Team"
+  - Any other "Baby Steps" references in the body
+
+
+── 7. SMTP SETUP (S2 prerequisite — not part of S1) ─────────────────
+  Done before S2, not S1. Full steps in plans/rebrand/s2-password-reset.md.
+  Short version: Resend account → verify cradlehq.app domain → add DNS records →
+  add SMTP_* env vars to VPS → restart API container → smoke test verification email.
+
+
+── 8. TECH DEBT NOTE ────────────────────────────────────────────────
+File: plans/tech-debt/ai-memory-books.md  (create)
+  - Note that AI book generation was removed from scope
+  - Privacy policy already covers it under "AI features"
+  - If re-added later, revisit the privacy policy AI section
+
+
+── 9. EMAIL TO-DO (NOT a code change) ───────────────────────────────
+  privacy@cradlehq.app does not exist yet.
+  Create it before going live with the legal pages.
+  Options: Google Workspace, Zoho Mail (free tier), or a
+  catch-all forwarder on cradlehq.app domain.
+
+
+── 10. FILES THAT DO NOT NEED CHANGING ──────────────────────────────
+  - Internal component/file names (BabySteps.jsx, etc.)
+  - Backend package names (com.gotcherapp.api)
+  - Database table names
+  - plans/mobile/ capacitor appId (com.gotcherapp.babysteps) —
+    that's a separate mobile rebrand decision
+  - .env files / VITE_API_URL — already points to prod correctly
