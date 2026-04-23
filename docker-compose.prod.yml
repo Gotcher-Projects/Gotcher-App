@@ -50,6 +50,9 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@cradlehq.app}
+      BACKEND_URL: https://${APP_DOMAIN}/api
+      ADMIN_SECRET: ${ADMIN_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
