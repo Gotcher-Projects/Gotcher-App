@@ -1,55 +1,37 @@
 # S2 — Password Reset
-**Status:** Not started
+**Status:** Needs Verification — implementation complete, not yet tested end-to-end
 **Branch:** rebrand/cradlehq (continue from S1)
 **Depends on:** S1 complete, SMTP prerequisites below completed
 
-## Prerequisites (manual — complete before this session)
+## Prerequisites ✓ All complete (2026-04-22)
 
 ### 1. ~~Choose and configure an SMTP provider~~ ✓ Done
-Recommended: **Resend** (resend.com) — free tier covers 3,000 emails/month, simplest domain verification.
+- Resend account created, `cradlehq.app` domain verified, API key generated
+- From address: `noreply@cradlehq.app`
 
-Steps:
-1. ✓ Create an account at resend.com
-2. ✓ Go to **Domains** → Add domain → enter `cradlehq.app` — domain verified
-3. Resend will give you DNS records to add — add all of them to your domain registrar:
-   - SPF record (`TXT` on `@` or `send`) — authorises Resend to send from your domain
-   - DKIM record (`TXT` on `resend._domainkey`) — signs outgoing mail
-   - (Optional but recommended) DMARC record (`TXT` on `_dmarc`)
-4. Wait for DNS propagation — usually 5–30 minutes, up to 24h
-5. Click **Verify** in the Resend dashboard once DNS shows as verified
-6. Go to **API Keys** → create a key → note the key down
-7. In Resend, go to **SMTP** settings and note the credentials:
-   - Host: `smtp.resend.com`
-   - Port: `465` (SSL) or `587` (TLS)
-   - Username: `resend`
-   - Password: your API key
-
-### 2. Set env vars on the VPS
-SSH into the VPS and add to `~/gotcherapp/.env`:
+### 2. ~~Set env vars on the VPS~~ ✓ Done
+Added to `~/gotcherapp/.env`:
 ```
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
 SMTP_USERNAME=resend
-SMTP_PASSWORD=<your-resend-api-key>
-
-# Required for DELETE /admin/account (account deletion script)
-ADMIN_SECRET=<long-random-string>
+SMTP_PASSWORD=<resend-api-key>
+SMTP_FROM=noreply@cradlehq.app
+BACKEND_URL=https://cradlehq.app/api
+FRONTEND_URL=https://cradlehq.app
+ADMIN_SECRET=<generated>
 ```
-Also confirm `BACKEND_URL=https://cradlehq.app` is present (used to build the verify-email link).
+Note: `BACKEND_URL` must include `/api` suffix — Caddy strips it before forwarding to the backend.
 
-To generate a strong `ADMIN_SECRET`:
-```bash
-openssl rand -hex 32
-```
+### 3. ~~Bugs fixed and deployed~~ ✓ Done
+Three fix branches created and pushed (merge all into main before next session):
+- `fix/smtp-from-address` — From address was `resend` (invalid), now reads from `app.smtp.from`
+- `fix/email-branding` — Subject/body said "Baby Steps", now says "CradleHQ"
+- `fix/docker-env-vars` — `BACKEND_URL`, `SMTP_FROM`, `ADMIN_SECRET` were missing from prod compose env whitelist
 
-### 3. Restart the API container to pick up the new env vars
-```bash
-cd ~/gotcherapp
-docker compose -f docker-compose.prod.yml up -d --build api
-```
-
-### 4. Smoke test email verification
-Register a new test account on the live site. Confirm the verification email arrives before writing any password reset code.
+### 4. ~~Smoke test email verification~~ ✓ Done
+- Verification email arrived from `noreply@cradlehq.app` with correct domain link
+- Clicking the link successfully verified the account
 
 ---
 

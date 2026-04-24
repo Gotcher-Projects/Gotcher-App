@@ -7,17 +7,26 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [checked, setChecked] = useState(false);
   const [verifiedBanner, setVerifiedBanner] = useState(null); // 'success' | 'error' | null
+  const [resetToken, setResetToken] = useState(null);
 
   useEffect(() => {
     async function boot() {
-      // Handle email verification redirect (?email_verified=true/error)
       const params = new URLSearchParams(window.location.search);
+
+      // Handle email verification redirect (?email_verified=true/error)
       const ev = params.get('email_verified');
       if (ev === 'true') {
         setVerifiedBanner('success');
         window.history.replaceState({}, '', '/');
       } else if (ev === 'error') {
         setVerifiedBanner('error');
+        window.history.replaceState({}, '', '/');
+      }
+
+      // Handle password reset redirect (?reset_token=<token>)
+      const rt = params.get('reset_token');
+      if (rt) {
+        setResetToken(rt);
         window.history.replaceState({}, '', '/');
       }
 
@@ -53,7 +62,15 @@ export default function App() {
   if (!checked) return null;
 
   if (!user) {
-    return <LoginPage onLogin={setUser} verifiedBanner={verifiedBanner} onDismissBanner={() => setVerifiedBanner(null)} />;
+    return (
+      <LoginPage
+        onLogin={setUser}
+        verifiedBanner={verifiedBanner}
+        onDismissBanner={() => setVerifiedBanner(null)}
+        resetToken={resetToken}
+        onResetConsumed={() => setResetToken(null)}
+      />
+    );
   }
 
   return (

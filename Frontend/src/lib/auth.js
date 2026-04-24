@@ -47,6 +47,27 @@ export function getStoredSession() {
   return { user: JSON.parse(userRaw) };
 }
 
+export async function forgotPassword(email) {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  return data.message;
+}
+
+export async function resetPassword(token, newPassword) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Password reset failed');
+  return data;
+}
+
 // Validates the current session against the server.
 // Tries /auth/me; if the access token is expired (401) attempts a silent refresh.
 // Returns true if the session is (or becomes) valid, false if the user must log in again.
