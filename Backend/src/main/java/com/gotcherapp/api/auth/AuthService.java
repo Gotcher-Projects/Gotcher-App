@@ -58,7 +58,7 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateAccessToken(userId, email);
         String refreshToken = jwtUtil.generateRefreshToken(userId);
-        storeRefreshToken(userId, refreshToken);
+        storeRefreshToken(userId, refreshToken, 7);
 
         try {
             emailVerificationService.sendVerificationEmail(userId, email);
@@ -97,7 +97,7 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateAccessToken(userId, email);
         String refreshToken = jwtUtil.generateRefreshToken(userId);
-        storeRefreshToken(userId, refreshToken);
+        storeRefreshToken(userId, refreshToken, req.rememberMe() ? 30 : 7);
 
         return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified));
     }
@@ -141,7 +141,7 @@ public class AuthService {
         boolean emailVerified = Boolean.TRUE.equals(userRows.get(0).get("email_verified"));
         String newAccessToken = jwtUtil.generateAccessToken(userId, email);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId);
-        storeRefreshToken(userId, newRefreshToken);
+        storeRefreshToken(userId, newRefreshToken, 7);
 
         return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified));
     }
@@ -153,8 +153,8 @@ public class AuthService {
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE token = ?", refreshToken);
     }
 
-    private void storeRefreshToken(Long userId, String token) {
-        Instant expiresAt = Instant.now().plus(7, ChronoUnit.DAYS);
+    private void storeRefreshToken(Long userId, String token, int days) {
+        Instant expiresAt = Instant.now().plus(days, ChronoUnit.DAYS);
         jdbc.update(
             "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
             userId, token, Timestamp.from(expiresAt)

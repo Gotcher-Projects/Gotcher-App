@@ -36,8 +36,8 @@ public class UploadController {
         try {
             String url = imageUploadService.upload(file, folder, principal.userId());
             return ResponseEntity.ok(Map.of("url", url));
-        } catch (IOException e) {
-            return ApiError.serverError("Upload failed");
+        } catch (Exception e) {
+            return ApiError.serverError("Upload failed: " + e.getMessage());
         }
     }
 }

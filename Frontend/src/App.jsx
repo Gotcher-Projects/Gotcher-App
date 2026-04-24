@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import BabySteps from "./components/BabySteps";
+import CradleHq from "./components/CradleHq";
 import LoginPage from "./components/LoginPage";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
 
@@ -74,7 +74,7 @@ export default function App() {
   }
 
   return (
-    <BabySteps
+    <CradleHq
       user={user}
       onLogout={handleLogout}
       verifiedBanner={verifiedBanner}

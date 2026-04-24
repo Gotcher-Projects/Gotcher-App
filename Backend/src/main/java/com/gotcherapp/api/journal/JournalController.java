@@ -67,8 +67,8 @@ public class JournalController {
             return journalService.updateImage(principal.userId(), id, url)
                     .map(entry -> ResponseEntity.ok((Object) entry))
                     .orElse(ResponseEntity.notFound().build());
-        } catch (IOException e) {
-            return ApiError.serverError("Upload failed");
+        } catch (Exception e) {
+            return ApiError.serverError("Upload failed: " + e.getMessage());
         }
     }
 

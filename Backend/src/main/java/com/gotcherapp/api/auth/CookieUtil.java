@@ -28,8 +28,10 @@ public class CookieUtil {
         Cookie c = new Cookie("refresh_token", token);
         c.setHttpOnly(true);
         c.setPath("/auth");
-        c.setMaxAge(maxAgeSeconds);
         c.setSecure(secure);
+        if (maxAgeSeconds >= 0) {
+            c.setMaxAge(maxAgeSeconds);
+        }
         response.addCookie(c);
     }
 

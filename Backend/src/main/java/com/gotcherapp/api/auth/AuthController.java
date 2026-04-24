@@ -59,7 +59,8 @@ public class AuthController {
         try {
             AuthResponse data = authService.login(req);
             cookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
-            cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
+            int refreshMaxAge = req.rememberMe() ? (30 * 24 * 60 * 60) : -1;
+            cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), refreshMaxAge);
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
             return ApiError.badRequest(e.getMessage());

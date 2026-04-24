@@ -1,11 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export async function loginUser(email, password) {
+export async function loginUser(email, password, rememberMe = false) {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, rememberMe }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Login failed');

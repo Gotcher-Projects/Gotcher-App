@@ -418,18 +418,21 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
             </div>
             <div>
               <Label className="text-xs text-slate-500">Photo (optional)</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={e => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  e.target.value = '';
-                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
-                }}
-                className="text-xs"
-              />
-              {croppedImage && <p className="text-xs text-slate-500 mt-0.5">Photo ready ({croppedImage.orientation})</p>}
+              <label className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-slate-500 hover:text-pink-500 transition-colors">
+                <Camera className="w-4 h-4" />
+                {croppedImage ? `Photo ready (${croppedImage.orientation})` : 'Add a photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    e.target.value = '';
+                    cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
+                  }}
+                />
+              </label>
             </div>
           </div>
 
@@ -481,6 +484,8 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const cancelCropRef = useRef(null);
+  useEffect(() => () => cancelCropRef.current?.(), []);
 
   const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
 
@@ -537,31 +542,32 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
     }
   }
 
-  const viewContent = (
-    <>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold text-slate-800 text-lg leading-tight">{ft.label}</p>
-          <p className="text-sm text-slate-500">{fmtDate(ft.occurredDate)}</p>
-          {ft.notes && <p className="text-sm text-slate-600 mt-1">{ft.notes}</p>}
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
-          <button onClick={handleShare} title="Share" className="text-slate-400 hover:text-pink-500">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-          </button>
-          <button onClick={handleStartEdit} title="Edit" className="text-slate-400 hover:text-blue-500">
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button onClick={handleDelete} disabled={deleting} title="Delete" className="text-slate-400 hover:text-red-500 disabled:opacity-50">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+  const textContent = (
+    <div>
+      <p className="font-semibold text-slate-800 text-lg leading-tight">{ft.label}</p>
+      <p className="text-sm text-slate-500">{fmtDate(ft.occurredDate)}</p>
+      {ft.notes && <p className="text-sm text-slate-600 mt-1">{ft.notes}</p>}
+    </div>
+  );
+
+  const actionBar = (
+    <div className="flex items-center gap-3 px-4 py-2 border-t border-slate-100">
+      <button onClick={handleShare} title="Share" className="text-slate-400 hover:text-pink-500 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      </button>
+      {copied && <span className="text-xs text-emerald-600 font-medium">Copied!</span>}
+      <div className="flex items-center gap-2 ml-auto">
+        <button onClick={handleStartEdit} className="flex items-center gap-1 text-xs text-slate-500 hover:text-sky-600 transition-colors px-2 py-1 rounded hover:bg-sky-50">
+          <Pencil className="w-3 h-3" /> Edit
+        </button>
+        <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 transition-colors disabled:opacity-50 px-2 py-1 rounded hover:bg-red-50">
+          <Trash2 className="w-3 h-3" /> Delete
+        </button>
       </div>
-      {copied && <p className="text-xs text-emerald-600 font-medium">Copied to clipboard!</p>}
-    </>
+    </div>
   );
 
   const editContent = (
@@ -571,18 +577,21 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
       <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={2} placeholder="Notes" />
       <div>
         <Label className="text-xs text-slate-500">{ft.imageUrl ? 'Replace photo (optional)' : 'Add photo (optional)'}</Label>
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            e.target.value = '';
-            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
-          }}
-          className="text-xs"
-        />
-        {editCroppedImage && <p className="text-xs text-slate-500 mt-0.5">Photo ready ({editCroppedImage.orientation})</p>}
+        <label className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-slate-500 hover:text-pink-500 transition-colors">
+          <Camera className="w-4 h-4" />
+          {editCroppedImage ? `Photo ready (${editCroppedImage.orientation})` : ft.imageUrl ? 'Replace photo' : 'Add a photo'}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files[0];
+              if (!file) return;
+              e.target.value = '';
+              cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
+            }}
+          />
+        </label>
       </div>
       <div className="flex gap-2">
         <button
@@ -614,22 +623,31 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
           <div className="w-2/5 flex-shrink-0 overflow-hidden">
             <img src={ft.imageUrl} alt={ft.label} className="w-full h-full object-cover" />
           </div>
-          <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
-            {viewContent}
+          <div className="flex-1 p-3 min-w-0">
+            {textContent}
           </div>
         </div>
+        {actionBar}
+      </Card>
+    );
+  }
+
+  if (ft.imageUrl) {
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="pt-3 pb-2">{textContent}</CardContent>
+        <div className="w-full aspect-[4/3] overflow-hidden">
+          <img src={ft.imageUrl} alt={ft.label} className="w-full h-full object-cover" />
+        </div>
+        {actionBar}
       </Card>
     );
   }
 
   return (
     <Card className="overflow-hidden">
-      <CardContent className="pt-3 space-y-2">{viewContent}</CardContent>
-      {ft.imageUrl && (
-        <div className="w-full aspect-[4/3] overflow-hidden">
-          <img src={ft.imageUrl} alt={ft.label} className="w-full h-full object-cover" />
-        </div>
-      )}
+      <CardContent className="pt-3 pb-2">{textContent}</CardContent>
+      {actionBar}
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 # S3 — First Deploy & Smoke Test
-**Status:** Pending
+**Status:** Complete
 **Branch:** deployment/docker-compose (continue from S2)
 **Depends on:** S2 complete, DNS propagated, .env file on VPS
 

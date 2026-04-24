@@ -4,11 +4,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingButton } from "@/components/ui/LoadingButton";
-import { CalendarDays, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+
+const fmtTime = t => new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
 function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+
+  function openEdit() {
+    setEditForm({
+      appointmentDate: appt.appointmentDate || '',
+      appointmentTime: appt.appointmentTime || '',
+      doctorName: appt.doctorName || '',
+      appointmentType: appt.appointmentType || '',
+      notes: appt.notes || '',
+    });
+    setEditOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    setEditSaving(true);
+    try {
+      await onUpdate(appt.id, editForm);
+      setEditOpen(false);
+    } catch {
+      onError('Failed to update appointment');
+    }
+    setEditSaving(false);
+  }
 
   async function handleMarkDone() {
     setMarking(true);
@@ -31,40 +59,121 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
   }
 
   return (
-    <div className={`flex items-start gap-3 p-3 rounded-lg border-2 ${appt.isCompleted ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-emerald-50 border-emerald-200'}`}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-emerald-700 text-sm">{fmtDate(appt.appointmentDate)}</span>
-          {appt.appointmentType && <span className="text-slate-700 text-sm">{appt.appointmentType}</span>}
-          {appt.doctorName && <span className="text-slate-500 text-xs">· {appt.doctorName}</span>}
-          {appt.isCompleted && <span className="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">Done</span>}
+    <>
+      <div className={`flex items-start gap-3 p-3 rounded-lg border-2 ${appt.isCompleted ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-emerald-50 border-emerald-200'}`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-emerald-700 text-sm">
+              {fmtDate(appt.appointmentDate)}
+              {appt.appointmentTime && ` · ${fmtTime(appt.appointmentTime)}`}
+            </span>
+            {appt.appointmentType && <span className="text-slate-700 text-sm">{appt.appointmentType}</span>}
+            {appt.doctorName && <span className="text-slate-500 text-xs">· {appt.doctorName}</span>}
+            {appt.isCompleted && <span className="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">Done</span>}
+          </div>
+          {appt.notes && <p className="text-xs text-slate-500 mt-0.5 truncate">{appt.notes}</p>}
         </div>
-        {appt.notes && <p className="text-xs text-slate-500 mt-0.5 truncate">{appt.notes}</p>}
-      </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {!appt.isCompleted && (
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {!appt.isCompleted && (
+            <button
+              onClick={handleMarkDone}
+              disabled={marking}
+              className="text-xs text-emerald-700 border border-emerald-300 rounded px-2 py-1 hover:bg-emerald-100 disabled:opacity-50"
+            >
+              {marking ? '…' : 'Mark Done'}
+            </button>
+          )}
           <button
-            onClick={handleMarkDone}
-            disabled={marking}
-            className="text-xs text-emerald-700 border border-emerald-300 rounded px-2 py-1 hover:bg-emerald-100 disabled:opacity-50"
+            onClick={openEdit}
+            className="text-slate-400 hover:text-emerald-600 disabled:opacity-50"
+            title="Edit appointment"
           >
-            {marking ? '…' : 'Mark Done'}
+            <Pencil className="w-4 h-4" />
           </button>
-        )}
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="text-slate-400 hover:text-red-500 disabled:opacity-50"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-slate-400 hover:text-red-500 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
-    </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-emerald-600" />
+              Edit Appointment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label>Date <span className="text-red-500">*</span></Label>
+              <Input
+                type="date"
+                value={editForm.appointmentDate}
+                onChange={e => setEditForm(f => ({ ...f, appointmentDate: e.target.value }))}
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>Time <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Input
+                type="time"
+                value={editForm.appointmentTime}
+                onChange={e => setEditForm(f => ({ ...f, appointmentTime: e.target.value }))}
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>Doctor / Provider</Label>
+              <Input
+                value={editForm.doctorName}
+                onChange={e => setEditForm(f => ({ ...f, doctorName: e.target.value }))}
+                placeholder="e.g., Dr. Smith"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>Appointment Type</Label>
+              <Input
+                value={editForm.appointmentType}
+                onChange={e => setEditForm(f => ({ ...f, appointmentType: e.target.value }))}
+                placeholder="e.g., 2-Month Checkup"
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Textarea
+                value={editForm.notes}
+                onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Any notes..."
+                rows={3}
+                className="bg-white"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <LoadingButton
+                loading={editSaving}
+                onClick={handleSaveEdit}
+                disabled={!editForm.appointmentDate}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                Save Changes
+              </LoadingButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete, onError }) {
-  const [form, setForm] = useState({ appointmentDate: '', doctorName: '', appointmentType: '', notes: '' });
+  const [form, setForm] = useState({ appointmentDate: '', appointmentTime: '', doctorName: '', appointmentType: '', notes: '' });
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
@@ -73,7 +182,7 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
     setSaving(true);
     try {
       await onAdd({ ...form, isCompleted: false });
-      setForm({ appointmentDate: '', doctorName: '', appointmentType: '', notes: '' });
+      setForm({ appointmentDate: '', appointmentTime: '', doctorName: '', appointmentType: '', notes: '' });
     } catch {
       onError('Failed to save appointment');
     }
@@ -105,6 +214,15 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
                 onChange={e => setForm(f => ({ ...f, appointmentDate: e.target.value }))}
                 className="bg-white"
                 required
+              />
+            </div>
+            <div>
+              <Label>Time <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Input
+                type="time"
+                value={form.appointmentTime}
+                onChange={e => setForm(f => ({ ...f, appointmentTime: e.target.value }))}
+                className="bg-white"
               />
             </div>
             <div>

@@ -46,7 +46,8 @@ public class SecurityConfig {
                     "/auth/logout",
                     "/auth/verify-email",
                     "/auth/forgot-password",
-                    "/auth/reset-password"
+                    "/auth/reset-password",
+                    "/admin/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

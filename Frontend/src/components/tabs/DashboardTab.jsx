@@ -566,6 +566,7 @@ export default function DashboardTab({
                       <div key={a.id} className="flex items-center gap-2 text-sm text-slate-700">
                         <span className="font-medium text-emerald-700 min-w-[52px]">
                           {new Date(a.appointmentDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {a.appointmentTime && ` · ${new Date(`1970-01-01T${a.appointmentTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
                         </span>
                         <span className="truncate">{a.appointmentType || '—'}</span>
                         {a.doctorName && <span className="text-slate-500 truncate">· {a.doctorName}</span>}

@@ -4,18 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { loginUser, registerUser, saveSession, forgotPassword, resetPassword } from "@/lib/auth";
 
 export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, resetToken, onResetConsumed }) {
-  const [view, setView]           = useState("login");
-  const [email, setEmail]         = useState("");
-  const [password, setPass]       = useState("");
-  const [confirmPass, setConfirm] = useState("");
-  const [name, setName]           = useState("");
-  const [error, setError]         = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [infoMsg, setInfoMsg]     = useState(""); // inline message in forgot form
-  const [resetMsg, setResetMsg]   = useState(""); // success banner after password reset
+  const [view, setView]             = useState("login");
+  const [email, setEmail]           = useState("");
+  const [password, setPass]         = useState("");
+  const [confirmPass, setConfirm]   = useState("");
+  const [name, setName]             = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError]           = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [infoMsg, setInfoMsg]       = useState("");
+  const [resetMsg, setResetMsg]     = useState("");
 
   useEffect(() => {
     if (resetToken) setView('reset');
@@ -28,7 +30,9 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
     setPass("");
     setConfirm("");
     setName("");
+    setRememberMe(false);
   }
+
 
   function switchView(v) {
     clearForm();
@@ -42,7 +46,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
     try {
       let data;
       if (view === "login") {
-        data = await loginUser(email, password);
+        data = await loginUser(email, password, rememberMe);
       } else {
         data = await registerUser(email, password, name);
       }
@@ -126,8 +130,8 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
 
         {/* Logo / header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">👶</div>
-          <h1 className="text-3xl font-bold text-fuchsia-700">Baby Steps</h1>
+          <div className="text-5xl mb-3">🌿</div>
+          <h1 className="text-3xl font-bold text-fuchsia-700">CradleHQ</h1>
           <p className="text-slate-500 mt-1">Track every milestone, cherish every moment.</p>
         </div>
 
@@ -178,6 +182,10 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                         onChange={(e) => setPass(e.target.value)}
                         required
                       />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="rememberMe" checked={rememberMe} onCheckedChange={setRememberMe} />
+                      <label htmlFor="rememberMe" className="text-sm text-muted-foreground">Remember me</label>
                     </div>
                     {error && (
                       <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
@@ -327,6 +335,11 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
             )}
           </CardContent>
         </Card>
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          <a href="/privacy.html" className="hover:underline">Privacy Policy</a>
+          {" · "}
+          <a href="/terms.html" className="hover:underline">Terms of Service</a>
+        </p>
       </div>
     </div>
   );

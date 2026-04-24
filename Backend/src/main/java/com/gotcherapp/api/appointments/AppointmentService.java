@@ -26,7 +26,7 @@ public class AppointmentService {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList(
-            "SELECT id, appointment_date, doctor_name, appointment_type, notes, is_completed, created_at " +
+            "SELECT id, appointment_date, appointment_time, doctor_name, appointment_type, notes, is_completed, created_at " +
             "FROM appointments WHERE baby_profile_id = ? ORDER BY appointment_date ASC",
             profileId.get()
         ).stream().map(this::mapRow).toList();
@@ -38,12 +38,13 @@ public class AppointmentService {
             throw new IllegalArgumentException("appointmentDate is required");
         }
         Map<String, Object> row = jdbc.queryForMap("""
-            INSERT INTO appointments (baby_profile_id, appointment_date, doctor_name, appointment_type, notes, is_completed)
-            VALUES (?, ?::date, ?, ?, ?, ?)
-            RETURNING id, appointment_date, doctor_name, appointment_type, notes, is_completed, created_at
+            INSERT INTO appointments (baby_profile_id, appointment_date, appointment_time, doctor_name, appointment_type, notes, is_completed)
+            VALUES (?, ?::date, ?::time, ?, ?, ?, ?)
+            RETURNING id, appointment_date, appointment_time, doctor_name, appointment_type, notes, is_completed, created_at
             """,
             profileId,
             req.appointmentDate(),
+            req.appointmentTime(),
             req.doctorName(),
             req.appointmentType(),
             req.notes(),
@@ -60,6 +61,7 @@ public class AppointmentService {
         List<Object> params = new ArrayList<>();
 
         if (req.appointmentDate() != null) { setClauses.add("appointment_date = ?::date"); params.add(req.appointmentDate()); }
+        if (req.appointmentTime() != null) { setClauses.add("appointment_time = ?::time"); params.add(req.appointmentTime()); }
         if (req.doctorName() != null)      { setClauses.add("doctor_name = ?");            params.add(req.doctorName()); }
         if (req.appointmentType() != null) { setClauses.add("appointment_type = ?");       params.add(req.appointmentType()); }
         if (req.notes() != null)           { setClauses.add("notes = ?");                  params.add(req.notes()); }
@@ -68,7 +70,7 @@ public class AppointmentService {
         if (setClauses.isEmpty()) {
             // Nothing to update — return the current row
             List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT id, appointment_date, doctor_name, appointment_type, notes, is_completed, created_at " +
+                "SELECT id, appointment_date, appointment_time, doctor_name, appointment_type, notes, is_completed, created_at " +
                 "FROM appointments WHERE id = ? AND baby_profile_id = ?",
                 id, profileId.get()
             );
@@ -81,7 +83,7 @@ public class AppointmentService {
         List<Map<String, Object>> rows = jdbc.queryForList(
             "UPDATE appointments SET " + String.join(", ", setClauses) +
             " WHERE id = ? AND baby_profile_id = ?" +
-            " RETURNING id, appointment_date, doctor_name, appointment_type, notes, is_completed, created_at",
+            " RETURNING id, appointment_date, appointment_time, doctor_name, appointment_type, notes, is_completed, created_at",
             params.toArray()
         );
         return rows.isEmpty() ? Optional.empty() : Optional.of(mapRow(rows.get(0)));
@@ -99,10 +101,12 @@ public class AppointmentService {
 
     private AppointmentResponse mapRow(Map<String, Object> row) {
         Object ad = row.get("appointment_date");
+        Object at = row.get("appointment_time");
         Object ca = row.get("created_at");
         return new AppointmentResponse(
             ((Number) row.get("id")).longValue(),
             ad != null ? ad.toString() : null,
+            at != null ? at.toString() : null,
             (String) row.get("doctor_name"),
             (String) row.get("appointment_type"),
             (String) row.get("notes"),

@@ -441,6 +441,13 @@ cd ~/gotcherapp
 
 <span class="comment"># Replace with the actual repo URL</span>
 git clone https://github.com/YOUR_USER/YOUR_REPO.git .</code></pre>
+    <div class="callout callout-warn">
+      <strong>Clone with the trailing dot.</strong> Cloning without it creates a subdirectory named after the repo. If you accidentally cloned into the wrong directory, move the files:
+      <pre style="margin-top:8px;"><code>mv ~/Gotcher-App/* ~/Gotcher-App/.* ~/gotcherapp/ 2>/dev/null; rmdir ~/Gotcher-App</code></pre>
+    </div>
+    <div class="callout callout-tip">
+      <strong>Gradle wrapper not committed.</strong> The repo does not include <code>gradle/wrapper/</code>. The backend Dockerfile uses the official <code>gradle:8.11.1-jdk21-alpine</code> image which has Gradle built in — no wrapper needed.
+    </div>
   </div>
 
   <!-- Step 3 -->
@@ -469,7 +476,8 @@ JWT_SECRET=&lt;your generated value&gt;
 DB_PASSWORD=&lt;your generated value&gt;
 SECURE_COOKIES=true
 
-<span class="comment"># Optional — leave blank to disable photo uploads</span>
+<span class="comment"># Required for photo uploads (journal, first times)</span>
+<span class="comment"># Get these from cloudinary.com → Dashboard → API Keys</span>
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -525,6 +533,13 @@ docker compose -f docker-compose.prod.yml up -d --build</code></pre>
     <div class="callout callout-tip">
       The first build takes several minutes — Gradle downloads dependencies and compiles Java.
       Subsequent builds are much faster due to Docker layer caching.
+    </div>
+    <div class="callout callout-warn">
+      <strong>If the build fails with <code>org.gradle.java.home is invalid</code>:</strong> Your local
+      <code>Backend/gradle.properties</code> must not contain <code>org.gradle.java.home</code> — that Windows path
+      breaks the Linux Docker build. Move it to your user-level Gradle config instead:
+      <pre style="margin-top:8px;"><code><span class="comment"># Run this on your Windows machine (not the VPS)</span>
+printf 'org.gradle.java.home=C:/Program Files/Java/jdk-21\n' >> ~/.gradle/gradle.properties</code></pre>
     </div>
   </div>
 

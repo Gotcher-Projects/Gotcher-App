@@ -26,9 +26,13 @@ const DAYS_OPTIONS = [
 
 const ACTIVE_FEED_KEY = 'gotcher_active_feed';
 
+const OZ_TYPES = new Set(['bottle', 'formula', 'solids']);
+
 function durationSeconds(startedAt, endedAt) {
   return Math.floor((new Date(endedAt) - new Date(startedAt)) / 1000);
 }
+
+const mlToOz = ml => ml ? (ml / 29.5735).toFixed(1) + ' oz' : null;
 
 export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAdd, onError }) {
   const [selectedType, setSelectedType] = useState('breast_left');
@@ -42,8 +46,11 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
   const [days, setDays] = useState(7);
   const [displayLogs, setDisplayLogs] = useState(logs);
   const [showManual, setShowManual] = useState(false);
-  const [manualForm, setManualForm] = useState({ type: 'breast_left', date: '', startTime: '', endTime: '' });
+  const [manualForm, setManualForm] = useState({ type: 'breast_left', date: '', startTime: '', endTime: '', oz: '' });
   const [manualSaving, setManualSaving] = useState(false);
+  const [quickOz, setQuickOz] = useState('');
+  const [quickTime, setQuickTime] = useState(() => new Date().toTimeString().slice(0, 5));
+  const [quickLogging, setQuickLogging] = useState(false);
 
   useEffect(() => { setDisplayLogs(logs); }, [logs]);
 
@@ -68,9 +75,9 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
     try {
       const startedAt = new Date(`${manualForm.date}T${manualForm.startTime}`).toISOString();
       const endedAt   = new Date(`${manualForm.date}T${manualForm.endTime}`).toISOString();
-      await onManualAdd({ type: manualForm.type, startedAt, endedAt });
+      await onManualAdd({ type: manualForm.type, startedAt, endedAt, oz: parseFloat(manualForm.oz) || null });
       setShowManual(false);
-      setManualForm({ type: 'breast_left', date: '', startTime: '', endTime: '' });
+      setManualForm({ type: 'breast_left', date: '', startTime: '', endTime: '', oz: '' });
       const url = days === 0 ? '/feeding?days=3650' : `/feeding?days=${days}`;
       const fetched = await apiRequest(url).catch(() => null);
       if (fetched) setDisplayLogs(fetched);
@@ -107,6 +114,23 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
     setStopping(false);
   }
 
+  async function handleQuickLog() {
+    setQuickLogging(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const startedAt = new Date(`${today}T${quickTime}`).toISOString();
+      await onManualAdd({ type: selectedType, startedAt, endedAt: startedAt, oz: parseFloat(quickOz) || null });
+      setQuickOz('');
+      setQuickTime(new Date().toTimeString().slice(0, 5));
+      const url = days === 0 ? '/feeding?days=3650' : `/feeding?days=${days}`;
+      const fetched = await apiRequest(url).catch(() => null);
+      if (fetched) setDisplayLogs(fetched);
+    } catch (err) {
+      onError(err.message || 'Failed to log feeding');
+    }
+    setQuickLogging(false);
+  }
+
   const today = new Date().toDateString();
   const todayLogs = displayLogs.filter(l => l.endedAt && new Date(l.startedAt).toDateString() === today);
   const totalTodaySeconds = todayLogs.reduce((s, l) => s + durationSeconds(l.startedAt, l.endedAt), 0);
@@ -126,27 +150,53 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
       <Card className="shadow-xl rounded-2xl lg:col-span-1">
         <CardContent className="p-6 space-y-5">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Utensils className="w-5 h-5 text-sky-500" /> Feeding Timer
+            <Utensils className="w-5 h-5 text-sky-500" /> {OZ_TYPES.has(selectedType) ? 'Log Feeding' : 'Feeding Timer'}
           </h2>
 
-          {!activeFeed ? (
+          <div>
+            <Label>Feed type</Label>
+            <select
+              value={selectedType}
+              onChange={e => { setSelectedType(e.target.value); if (activeFeed) { localStorage.removeItem(ACTIVE_FEED_KEY); setActiveFeed(null); } }}
+              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            >
+              {FEED_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {OZ_TYPES.has(selectedType) ? (
             <>
               <div>
-                <Label>Feed type</Label>
-                <select
-                  value={selectedType}
-                  onChange={e => setSelectedType(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                >
-                  {FEED_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+                <Label>Amount (oz)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="e.g. 4"
+                  value={quickOz}
+                  onChange={e => setQuickOz(e.target.value)}
+                  className="mt-1"
+                />
               </div>
-              <LoadingButton onClick={handleStart} loading={starting} loadingText="Starting..." className="w-full bg-sky-600">
-                <Timer className="w-4 h-4 mr-2" /> Start Feed
+              <div>
+                <Label>Time</Label>
+                <Input
+                  type="time"
+                  value={quickTime}
+                  onChange={e => setQuickTime(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <LoadingButton onClick={handleQuickLog} loading={quickLogging} loadingText="Logging..." className="w-full bg-sky-600">
+                <Plus className="w-4 h-4 mr-2" /> Log Feeding
               </LoadingButton>
             </>
+          ) : !activeFeed ? (
+            <LoadingButton onClick={handleStart} loading={starting} loadingText="Starting..." className="w-full bg-sky-600">
+              <Timer className="w-4 h-4 mr-2" /> Start Feed
+            </LoadingButton>
           ) : (
             <div className="text-center space-y-4">
               <p className="text-sm text-slate-500">{typeLabel(activeFeed.type)}</p>
@@ -173,7 +223,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                 {todayLogs.map(l => (
                   <div key={l.id} className="flex justify-between items-center text-xs text-slate-600">
                     <span>{typeLabel(l.type)}</span>
-                    <span>{formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
+                    <span>{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
                   </div>
                 ))}
               </div>
@@ -212,6 +262,20 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                 <Input type="time" value={manualForm.endTime} onChange={e => setManualForm(f => ({ ...f, endTime: e.target.value }))} className="mt-1" />
               </div>
             </div>
+            {OZ_TYPES.has(manualForm.type) && (
+              <div>
+                <Label>Amount (oz)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="e.g. 4"
+                  value={manualForm.oz}
+                  onChange={e => setManualForm(f => ({ ...f, oz: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+            )}
             <LoadingButton
               onClick={handleManualAdd}
               loading={manualSaving}
@@ -274,7 +338,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                       <span className="flex-1 text-center text-slate-500 text-xs">
                         {new Date(l.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                       </span>
-                      <span className="text-slate-600 w-16 text-right">{formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
+                      <span className="text-slate-600 w-16 text-right">{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
                       <div className="w-16 text-right">
                         {confirmDeleteId === l.id ? (
                           <span className="flex items-center gap-1 justify-end">
