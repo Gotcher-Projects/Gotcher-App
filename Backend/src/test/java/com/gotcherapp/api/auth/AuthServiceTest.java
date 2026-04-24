@@ -122,7 +122,7 @@ class AuthServiceTest {
         when(jwtUtil.generateAccessToken(USER_ID, EMAIL)).thenReturn(ACCESS_TOKEN);
         when(jwtUtil.generateRefreshToken(USER_ID)).thenReturn(REFRESH_TOKEN);
 
-        AuthResponse result = authService.login(new LoginRequest(EMAIL, PASSWORD));
+        AuthResponse result = authService.login(new LoginRequest(EMAIL, PASSWORD, false));
 
         assertEquals(ACCESS_TOKEN, result.accessToken());
         assertEquals(EMAIL, result.user().email());
@@ -134,7 +134,7 @@ class AuthServiceTest {
                 .thenReturn(List.of());
 
         assertThrows(InvalidCredentialsException.class,
-                () -> authService.login(new LoginRequest(EMAIL, PASSWORD)));
+                () -> authService.login(new LoginRequest(EMAIL, PASSWORD, false)));
     }
 
     @Test
@@ -144,7 +144,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches(eq(PASSWORD), any())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class,
-                () -> authService.login(new LoginRequest(EMAIL, PASSWORD)));
+                () -> authService.login(new LoginRequest(EMAIL, PASSWORD, false)));
     }
 
     @Test
@@ -154,13 +154,13 @@ class AuthServiceTest {
         when(passwordEncoder.matches(PASSWORD, HASH)).thenReturn(true);
 
         assertThrows(AccountDisabledException.class,
-                () -> authService.login(new LoginRequest(EMAIL, PASSWORD)));
+                () -> authService.login(new LoginRequest(EMAIL, PASSWORD, false)));
     }
 
     @Test
     void login_throwsIllegalArgument_whenEmailNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> authService.login(new LoginRequest(null, PASSWORD)));
+                () -> authService.login(new LoginRequest(null, PASSWORD, false)));
     }
 
     // ── refresh ───────────────────────────────────────────────────────────────

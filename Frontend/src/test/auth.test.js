@@ -20,7 +20,7 @@ describe('loginUser', () => {
     const [url, options] = fetch.mock.calls[0];
     expect(url).toContain('/auth/login');
     expect(options.method).toBe('POST');
-    expect(JSON.parse(options.body)).toEqual({ email: 'test@test.com', password: 'password123' });
+    expect(JSON.parse(options.body)).toEqual({ email: 'test@test.com', password: 'password123', rememberMe: false });
   });
 
   it('returns user data on success', async () => {

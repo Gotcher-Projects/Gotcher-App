@@ -94,7 +94,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenReturn(AUTH_RESPONSE);
         var response = new MockHttpServletResponse();
 
-        var result = authController.login(new LoginRequest(EMAIL, "password123"), response);
+        var result = authController.login(new LoginRequest(EMAIL, "password123", false), response);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals(AUTH_RESPONSE, result.getBody());
@@ -105,7 +105,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenReturn(AUTH_RESPONSE);
         var response = new MockHttpServletResponse();
 
-        authController.login(new LoginRequest(EMAIL, "password123"), response);
+        authController.login(new LoginRequest(EMAIL, "password123", false), response);
 
         verify(cookieUtil).setAccessTokenCookie(same(response), eq("access.token"), anyInt());
         verify(cookieUtil).setRefreshTokenCookie(same(response), eq(REFRESH_TOKEN), anyInt());
@@ -116,7 +116,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenThrow(new IllegalArgumentException("Required"));
         var response = new MockHttpServletResponse();
 
-        var result = authController.login(new LoginRequest(null, null), response);
+        var result = authController.login(new LoginRequest(null, null, false), response);
 
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
     }
@@ -126,7 +126,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenThrow(new InvalidCredentialsException());
         var response = new MockHttpServletResponse();
 
-        var result = authController.login(new LoginRequest(EMAIL, "wrongpass"), response);
+        var result = authController.login(new LoginRequest(EMAIL, "wrongpass", false), response);
 
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     }
@@ -136,7 +136,7 @@ class AuthControllerTest {
         when(authService.login(any())).thenThrow(new AccountDisabledException());
         var response = new MockHttpServletResponse();
 
-        var result = authController.login(new LoginRequest(EMAIL, "password123"), response);
+        var result = authController.login(new LoginRequest(EMAIL, "password123", false), response);
 
         assertEquals(HttpStatus.FORBIDDEN, result.getStatusCode());
     }

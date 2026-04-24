@@ -68,21 +68,21 @@ class AppointmentServiceTest {
     @Test
     void create_throwsIllegalState_whenNoProfile() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenThrow(IllegalStateException.class);
-        var req = new AppointmentRequest("2026-05-10", "Dr. Smith", "Well visit", null, false);
+        var req = new AppointmentRequest("2026-05-10", null, "Dr. Smith", "Well visit", null, false);
         assertThrows(IllegalStateException.class, () -> appointmentService.create(USER_ID, req));
     }
 
     @Test
     void create_throwsIllegalArgument_whenDateIsBlank() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
-        var req = new AppointmentRequest("", "Dr. Smith", "Well visit", null, false);
+        var req = new AppointmentRequest("", null, "Dr. Smith", "Well visit", null, false);
         assertThrows(IllegalArgumentException.class, () -> appointmentService.create(USER_ID, req));
     }
 
     @Test
     void create_throwsIllegalArgument_whenDateIsNull() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
-        var req = new AppointmentRequest(null, "Dr. Smith", "Well visit", null, false);
+        var req = new AppointmentRequest(null, null, "Dr. Smith", "Well visit", null, false);
         assertThrows(IllegalArgumentException.class, () -> appointmentService.create(USER_ID, req));
     }
 
@@ -90,10 +90,10 @@ class AppointmentServiceTest {
     void create_returnsAppointment_forValidRequest() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         when(jdbc.queryForMap(anyString(), eq(PROFILE_ID), eq("2026-05-10"),
-                eq("Dr. Smith"), eq("Well visit"), isNull(), eq(false)))
+                isNull(), eq("Dr. Smith"), eq("Well visit"), isNull(), eq(false)))
             .thenReturn(sampleRow());
 
-        var req = new AppointmentRequest("2026-05-10", "Dr. Smith", "Well visit", null, false);
+        var req = new AppointmentRequest("2026-05-10", null, "Dr. Smith", "Well visit", null, false);
         AppointmentResponse result = appointmentService.create(USER_ID, req);
 
         assertEquals("Well visit", result.appointmentType());
@@ -104,10 +104,10 @@ class AppointmentServiceTest {
     void create_defaultsIsCompleted_toFalse_whenNull() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
         when(jdbc.queryForMap(anyString(), eq(PROFILE_ID), eq("2026-05-10"),
-                isNull(), isNull(), isNull(), eq(false)))
+                isNull(), isNull(), isNull(), isNull(), eq(false)))
             .thenReturn(sampleRow());
 
-        var req = new AppointmentRequest("2026-05-10", null, null, null, null);
+        var req = new AppointmentRequest("2026-05-10", null, null, null, null, null);
         assertDoesNotThrow(() -> appointmentService.create(USER_ID, req));
     }
 
@@ -116,7 +116,7 @@ class AppointmentServiceTest {
     @Test
     void update_returnsEmpty_whenNoProfile() {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
-        var req = new AppointmentRequest(null, "Dr. Jones", null, null, null);
+        var req = new AppointmentRequest(null, null, "Dr. Jones", null, null, null);
         assertEquals(Optional.empty(), appointmentService.update(USER_ID, APPT_ID, req));
     }
 
@@ -126,7 +126,7 @@ class AppointmentServiceTest {
         when(jdbc.queryForList(contains("SELECT"), eq(APPT_ID), eq(PROFILE_ID)))
             .thenReturn(List.of(sampleRow()));
 
-        var req = new AppointmentRequest(null, null, null, null, null);
+        var req = new AppointmentRequest(null, null, null, null, null, null);
         Optional<AppointmentResponse> result = appointmentService.update(USER_ID, APPT_ID, req);
 
         assertTrue(result.isPresent());
@@ -140,7 +140,7 @@ class AppointmentServiceTest {
         when(jdbc.queryForList(contains("UPDATE appointments SET is_completed"), eq(true), eq(APPT_ID), eq(PROFILE_ID)))
             .thenReturn(List.of(updated));
 
-        var req = new AppointmentRequest(null, null, null, null, true);
+        var req = new AppointmentRequest(null, null, null, null, null, true);
         Optional<AppointmentResponse> result = appointmentService.update(USER_ID, APPT_ID, req);
 
         assertTrue(result.isPresent());
@@ -152,7 +152,7 @@ class AppointmentServiceTest {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
         when(jdbc.queryForList(contains("UPDATE appointments"), eq("Dr. Jones"), eq(APPT_ID), eq(PROFILE_ID))).thenReturn(List.of());
 
-        var req = new AppointmentRequest(null, "Dr. Jones", null, null, null);
+        var req = new AppointmentRequest(null, null, "Dr. Jones", null, null, null);
         assertEquals(Optional.empty(), appointmentService.update(USER_ID, APPT_ID, req));
     }
 
