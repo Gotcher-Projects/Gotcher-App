@@ -26,15 +26,17 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
     private final CookieUtil cookieUtil;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
     public AuthController(AuthService authService, EmailVerificationService emailVerificationService,
-                          CookieUtil cookieUtil) {
+                          PasswordResetService passwordResetService, CookieUtil cookieUtil) {
         this.authService = authService;
         this.emailVerificationService = emailVerificationService;
+        this.passwordResetService = passwordResetService;
         this.cookieUtil = cookieUtil;
     }
 
@@ -108,6 +110,23 @@ public class AuthController {
         boolean success = emailVerificationService.verify(token);
         String redirect = frontendUrl + (success ? "?email_verified=true" : "?email_verified=error");
         response.sendRedirect(redirect);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        try {
+            passwordResetService.sendResetEmail(body.get("email"));
+        } catch (Exception e) {
+            // logged but swallowed — never reveal whether email exists
+        }
+        return ResponseEntity.ok(Map.of("message", "If that email is registered, a reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        boolean ok = passwordResetService.resetPassword(body.get("token"), body.get("newPassword"));
+        if (!ok) return ResponseEntity.status(400).body(Map.of("error", "Invalid or expired reset link."));
+        return ResponseEntity.ok(Map.of("message", "Password updated."));
     }
 
     @PostMapping("/resend-verification")
