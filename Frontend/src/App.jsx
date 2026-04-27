@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import CradleHq from "./components/CradleHq";
 import LoginPage from "./components/LoginPage";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -63,26 +64,30 @@ export default function App() {
 
   if (!user) {
     return (
-      <LoginPage
-        onLogin={setUser}
-        verifiedBanner={verifiedBanner}
-        onDismissBanner={() => setVerifiedBanner(null)}
-        resetToken={resetToken}
-        onResetConsumed={() => setResetToken(null)}
-      />
+      <ThemeProvider>
+        <LoginPage
+          onLogin={setUser}
+          verifiedBanner={verifiedBanner}
+          onDismissBanner={() => setVerifiedBanner(null)}
+          resetToken={resetToken}
+          onResetConsumed={() => setResetToken(null)}
+        />
+      </ThemeProvider>
     );
   }
 
   return (
-    <CradleHq
-      user={user}
-      onLogout={handleLogout}
-      verifiedBanner={verifiedBanner}
-      onDismissBanner={() => setVerifiedBanner(null)}
-      onUserUpdate={(updated) => {
-        saveSession(updated);
-        setUser(updated);
-      }}
-    />
+    <ThemeProvider>
+      <CradleHq
+        user={user}
+        onLogout={handleLogout}
+        verifiedBanner={verifiedBanner}
+        onDismissBanner={() => setVerifiedBanner(null)}
+        onUserUpdate={(updated) => {
+          saveSession(updated);
+          setUser(updated);
+        }}
+      />
+    </ThemeProvider>
   );
 }

@@ -3,49 +3,79 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="base"] {
+    /* Brand palette */
+    --brand-purple: 239 84% 67%;
+    --brand-navy: 244 44% 20%;
+    --brand-pink: 335 74% 47%;
+    --brand-peach: 48 96% 89%;
+    --brand-lavender: 238 100% 95%;
+    --brand-mint: 152 55% 38%;
+
+    /* Semantic color roles — point these at new values when adding a theme */
+    --color-success:   152 55% 38%;   /* brand-mint */
+    --color-highlight: 335 74% 47%;   /* brand-pink */
+    --color-warm:       48 96% 89%;   /* brand-peach */
+
+    /* shadcn tokens */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 244 44% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 244 44% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 244 44% 20%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 238 100% 95%;
+    --secondary-foreground: 244 44% 20%;
+    --muted: 238 100% 97%;
+    --muted-foreground: 244 20% 50%;
+    --accent: 238 100% 95%;
+    --accent-foreground: 244 44% 20%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --ring: 239 84% 67%;
+    --radius: 0.75rem;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+  [data-theme="dark"] {
+    /* Brand palette — lightened for dark backgrounds */
+    --brand-purple:   250 70% 73%;
+    --brand-navy:     245 15% 85%;
+    --brand-pink:     340 65% 68%;
+    --brand-peach:     38 75% 68%;
+    --brand-lavender: 245 20% 25%;
+    --brand-mint:     160 50% 55%;
+
+    /* Semantic color roles */
+    --color-success:   160 50% 55%;
+    --color-highlight: 340 65% 68%;
+    --color-warm:      265 30% 65%;
+
+    /* shadcn tokens */
+    --background: 245 15% 12%;
+    --foreground: 40 20% 94%;
+    --card: 245 12% 17%;
+    --card-foreground: 40 20% 94%;
+    --popover: 245 12% 17%;
+    --popover-foreground: 40 20% 94%;
+    --primary: 250 70% 73%;
+    --primary-foreground: 245 15% 10%;
+    --secondary: 245 12% 22%;
+    --secondary-foreground: 40 20% 94%;
+    --muted: 245 12% 20%;
+    --muted-foreground: 245 10% 58%;
+    --accent: 245 12% 22%;
+    --accent-foreground: 40 20% 94%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 40 20% 94%;
+    --border: 245 12% 25%;
+    --input: 245 12% 22%;
+    --ring: 250 70% 73%;
+    --radius: 0.75rem;
   }
 }
 

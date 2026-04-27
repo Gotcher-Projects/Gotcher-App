@@ -26,21 +26,21 @@ export default function VaccineTab({ vaccines, onToggle }) {
           <Card key={ageGroup} className="shadow-md rounded-2xl">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-slate-800">{VACCINE_AGE_LABELS[ageGroup]}</h3>
+                <h3 className="font-semibold text-foreground">{VACCINE_AGE_LABELS[ageGroup]}</h3>
                 <span className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${
                   isComplete
-                    ? 'bg-emerald-100 text-emerald-700'
+                    ? 'bg-color-warm/60 text-color-highlight'
                     : givenInGroup > 0
-                      ? 'bg-sky-100 text-sky-700'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'bg-color-warm/40 text-color-highlight'
+                      : 'bg-secondary text-muted-foreground'
                 }`}>
                   {givenInGroup}/{items.length} given{isComplete ? ' ✓' : ''}
                 </span>
               </div>
 
-              <div className="w-full bg-slate-100 rounded-full h-1.5 mb-3">
+              <div className="w-full bg-secondary rounded-full h-1.5 mb-3">
                 <div
-                  className="bg-sky-500 h-1.5 rounded-full transition-all"
+                  className="bg-gradient-to-r from-color-warm to-color-highlight h-1.5 rounded-full transition-all"
                   style={{ width: `${(givenInGroup / items.length) * 100}%` }}
                 />
               </div>
@@ -51,17 +51,18 @@ export default function VaccineTab({ vaccines, onToggle }) {
                   const checked = !!vaccines[key];
                   return (
                     <div key={key} className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
-                      checked ? 'bg-sky-50 border-sky-300' : 'bg-white border-slate-200'
+                      checked ? 'bg-color-warm/40 border-color-warm' : 'bg-background border-border'
                     }`}>
                       <Checkbox
                         id={key}
                         checked={checked}
                         onCheckedChange={val => onToggle(key, !!val)}
+                        className="border-color-highlight/50 data-[state=checked]:bg-color-highlight data-[state=checked]:border-color-highlight"
                       />
-                      <Label htmlFor={key} className="cursor-pointer flex-1 text-slate-700">
+                      <Label htmlFor={key} className="cursor-pointer flex-1 text-foreground">
                         {vaccine}
                       </Label>
-                      {checked && <CheckCircle2 className="w-5 h-5 text-sky-600" />}
+                      {checked && <CheckCircle2 className="w-5 h-5 text-color-highlight" />}
                     </div>
                   );
                 })}

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { apiRequest, apiUpload } from "../lib/api";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Baby } from "lucide-react";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
@@ -24,6 +26,7 @@ function loadLocal(key) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner }) {
+  const { theme } = useTheme();
   const [data, setData] = useState({
     profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "" },
     milestones: {},
@@ -36,6 +39,8 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [vaccines, setVaccines] = useState({});
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
+
+  const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -90,8 +95,15 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             sex: profile.sex || d.profile.sex,
           }
         }));
+        setNeedsOnboarding(false);
       })
-      .catch(() => {});
+      .catch(err => {
+        if (err.status === 404) {
+          setNeedsOnboarding(true);
+        } else {
+          setNeedsOnboarding(false); // network/auth error — fail open
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -359,6 +371,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
   async function saveProfile() {
     setProfileSaving(true);
+    let success = false;
     try {
       const savedProfile = await apiRequest('/baby-profile', {
         method: 'PUT',
@@ -383,10 +396,17 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
       }));
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);
+      success = true;
     } catch {
       onError("Failed to save profile");
     }
     setProfileSaving(false);
+    return success;
+  }
+
+  async function handleOnboardingSubmit() {
+    const ok = await saveProfile();
+    if (ok) setNeedsOnboarding(false);
   }
 
   const week = getWeek(data.profile.birthdate);
@@ -394,7 +414,11 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const activities = getActivities(week);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-sky-50 to-emerald-50 p-4">
+    <div className={`min-h-screen p-4 ${
+      theme === 'dark'
+        ? 'bg-gradient-to-br from-brand-lavender/10 via-brand-lavender/20 to-color-success/8'
+        : 'bg-gradient-to-br from-color-warm/10 via-brand-lavender/20 to-color-success/8'
+    }`}>
 
       {appError && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-red-50 border-b border-red-200 text-red-800 text-sm px-4 py-2.5 flex items-center justify-between shadow-sm">
@@ -404,9 +428,9 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
       )}
 
       {verifiedBanner === 'success' && (
-        <div className="max-w-6xl mx-auto mb-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex justify-between items-center">
+        <div className="max-w-6xl mx-auto mb-3 p-3 rounded-lg bg-color-success/10 border border-color-success/30 text-color-success text-sm flex justify-between items-center">
           <span>Your email has been verified. Thanks!</span>
-          <button onClick={onDismissBanner} className="ml-3 text-emerald-600 hover:text-emerald-800">✕</button>
+          <button onClick={onDismissBanner} className="ml-3 text-color-success hover:text-color-success/70">✕</button>
         </div>
       )}
       {!user?.email_verified && (
@@ -425,12 +449,10 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
       <header className="max-w-6xl mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Baby className="w-12 h-12 text-fuchsia-600" />
+            <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-10" />
             <div>
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-600 via-sky-600 to-emerald-600">
-                CradleHQ
-              </h1>
-              <p className="text-sm text-slate-600">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
+              <h1 className="font-display font-bold text-2xl text-brand-navy">Cradle<span className="text-primary">HQ</span></h1>
+              <p className="text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -445,13 +467,76 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
       </header>
 
       <main className="max-w-6xl mx-auto">
+        {needsOnboarding === null && (
+          <div className="flex justify-center py-16">
+            <p className="text-muted-foreground text-sm">Loading…</p>
+          </div>
+        )}
+
+        {needsOnboarding === true && (
+          <div className="flex justify-center py-10">
+            <div className="bg-card border rounded-2xl shadow-sm p-8 w-full max-w-md">
+              <div className="flex flex-col items-center mb-6">
+                <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-14 mb-3" />
+                <h2 className="font-display font-bold text-2xl text-brand-navy">Welcome to CradleHQ!</h2>
+                <p className="text-muted-foreground text-sm mt-1 text-center">
+                  Tell us a little about your baby to get started.
+                </p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ob-name">Baby's Name</Label>
+                  <Input
+                    id="ob-name"
+                    placeholder="e.g. Emma"
+                    value={data.profile.name}
+                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ob-birthdate">Birth Date</Label>
+                  <Input
+                    id="ob-birthdate"
+                    type="date"
+                    value={data.profile.birthdate}
+                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ob-sex">
+                    Sex <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <select
+                    id="ob-sex"
+                    value={data.profile.sex}
+                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">Prefer not to say</option>
+                    <option value="boy">Boy</option>
+                    <option value="girl">Girl</option>
+                  </select>
+                </div>
+              </div>
+              <Button
+                className="w-full mt-6"
+                onClick={handleOnboardingSubmit}
+                disabled={!data.profile.name.trim() || !data.profile.birthdate || profileSaving}
+              >
+                {profileSaving ? "Saving…" : "Get Started →"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {needsOnboarding === false && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-auto flex-wrap justify-start gap-2 bg-white/70 p-2">
-            <TabsTrigger value="dashboard" className="flex-1 min-w-[100px]">Dashboard</TabsTrigger>
-            <TabsTrigger value="memories"  className="flex-1 min-w-[100px]">Memories</TabsTrigger>
-            <TabsTrigger value="track"     className="flex-1 min-w-[100px]">Track</TabsTrigger>
-            <TabsTrigger value="health"    className="flex-1 min-w-[100px]">Health</TabsTrigger>
-            <TabsTrigger value="discover"  className="flex-1 min-w-[100px]">Discover</TabsTrigger>
+          <TabsList className="w-full h-auto flex-wrap justify-start gap-2 bg-card/80 p-2">
+            <TabsTrigger value="dashboard" className="flex-1 min-w-[100px] font-medium">Dashboard</TabsTrigger>
+            <TabsTrigger value="memories"  className="flex-1 min-w-[100px] font-medium">Memories</TabsTrigger>
+            <TabsTrigger value="track"     className="flex-1 min-w-[100px] font-medium">Track</TabsTrigger>
+            <TabsTrigger value="health"    className="flex-1 min-w-[100px] font-medium">Health</TabsTrigger>
+            <TabsTrigger value="discover"  className="flex-1 min-w-[100px] font-medium">Discover</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
@@ -542,6 +627,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             />
           </TabsContent>
         </Tabs>
+        )}
       </main>
 
       <footer className="max-w-6xl mx-auto mt-8 text-center text-sm text-slate-600">

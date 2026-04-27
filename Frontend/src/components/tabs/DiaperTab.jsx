@@ -108,10 +108,10 @@ export default function DiaperTab({ logs, onAdd, onDelete, onError }) {
         </DialogContent>
       </Dialog>
 
-      <Card className="shadow-xl rounded-2xl lg:col-span-1">
+      <Card className="shadow-xl rounded-2xl lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <h2 className="font-display text-xl font-bold text-slate-800 flex items-center gap-2">
               <Droplets className="w-5 h-5 text-amber-500" /> Log Diaper
             </h2>
             {!isPee && (
@@ -218,7 +218,7 @@ export default function DiaperTab({ logs, onAdd, onDelete, onError }) {
       </Card>
 
       <div className="lg:col-span-2 space-y-4">
-        <h3 className="text-lg font-bold text-slate-800">Diaper History</h3>
+        <h3 className="font-display text-lg font-bold text-slate-800">Diaper History</h3>
 
         {!logs.length ? (
           <Card><CardContent className="p-0"><EmptyState label="No diaper logs yet. Log the first one!" /></CardContent></Card>

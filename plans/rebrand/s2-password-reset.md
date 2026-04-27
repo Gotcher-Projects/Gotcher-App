@@ -1,5 +1,5 @@
 # S2 — Password Reset
-**Status:** Needs Verification — implementation complete, not yet tested end-to-end
+**Status:** Complete
 **Branch:** rebrand/cradlehq (continue from S1)
 **Depends on:** S1 complete, SMTP prerequisites below completed
 

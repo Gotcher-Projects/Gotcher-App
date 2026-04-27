@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loginUser, registerUser, saveSession, forgotPassword, resetPassword } from "@/lib/auth";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, resetToken, onResetConsumed }) {
+  const { theme } = useTheme();
   const [view, setView]             = useState("login");
   const [email, setEmail]           = useState("");
   const [password, setPass]         = useState("");
@@ -105,13 +107,17 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
     : "Create a free account";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-sky-50 to-emerald-50 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${
+      theme === 'dark'
+        ? 'bg-gradient-to-br from-brand-lavender/10 via-brand-lavender/20 to-color-success/8'
+        : 'bg-gradient-to-br from-color-warm/10 via-brand-lavender/20 to-color-success/8'
+    }`}>
       <div className="w-full max-w-md">
         {/* Email verified banner */}
         {verifiedBanner === 'success' && (
-          <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex justify-between items-center">
+          <div className="mb-4 p-3 rounded-lg bg-color-success/10 border border-color-success/30 text-color-success text-sm flex justify-between items-center">
             <span>Your email has been verified!</span>
-            <button onClick={onDismissBanner} className="ml-3 text-emerald-600 hover:text-emerald-800">✕</button>
+            <button onClick={onDismissBanner} className="ml-3 text-color-success hover:text-color-success/70">✕</button>
           </div>
         )}
         {verifiedBanner === 'error' && (
@@ -122,22 +128,24 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
         )}
         {/* Password reset success banner */}
         {resetMsg && (
-          <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex justify-between items-center">
+          <div className="mb-4 p-3 rounded-lg bg-color-success/10 border border-color-success/30 text-color-success text-sm flex justify-between items-center">
             <span>{resetMsg}</span>
-            <button onClick={() => setResetMsg("")} className="ml-3 text-emerald-600 hover:text-emerald-800">✕</button>
+            <button onClick={() => setResetMsg("")} className="ml-3 text-color-success hover:text-color-success/70">✕</button>
           </div>
         )}
 
         {/* Logo / header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🌿</div>
-          <h1 className="text-3xl font-bold text-fuchsia-700">CradleHQ</h1>
-          <p className="text-slate-500 mt-1">Track every milestone, cherish every moment.</p>
+          <div className="flex items-center justify-center">
+            <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-28 block" />
+          </div>
+          <h1 className="font-display font-bold text-3xl text-brand-navy">Cradle<span className="text-primary">HQ</span></h1>
+          <p className="font-display text-sm text-muted-foreground mt-1">Track every milestone, cherish every moment.</p>
         </div>
 
-        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur">
+        <Card className="shadow-lg border-0 bg-card/90 backdrop-blur">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xl text-center text-slate-700">{cardTitle}</CardTitle>
+            <CardTitle className="text-xl text-center text-foreground">{cardTitle}</CardTitle>
             <CardDescription className="text-center">{cardDesc}</CardDescription>
           </CardHeader>
 
@@ -169,7 +177,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                         <button
                           type="button"
                           onClick={() => switchView('forgot')}
-                          className="text-xs text-muted-foreground hover:underline"
+                          className="text-xs text-primary hover:underline"
                         >
                           Forgot password?
                         </button>
@@ -194,7 +202,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                     )}
                     <Button
                       type="submit"
-                      className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                      className="w-full"
                       disabled={loading}
                     >
                       {loading ? "Signing in…" : "Sign In"}
@@ -243,7 +251,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                     )}
                     <Button
                       type="submit"
-                      className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                      className="w-full"
                       disabled={loading}
                     >
                       {loading ? "Creating account…" : "Create Account"}
@@ -268,7 +276,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                   />
                 </div>
                 {infoMsg && (
-                  <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+                  <p className="text-sm text-color-success bg-color-success/10 border border-color-success/30 rounded px-3 py-2">
                     {infoMsg}
                   </p>
                 )}
@@ -279,7 +287,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                 )}
                 <Button
                   type="submit"
-                  className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                  className="w-full"
                   disabled={loading}
                 >
                   {loading ? "Sending…" : "Send reset link"}
@@ -287,7 +295,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                 <button
                   type="button"
                   onClick={() => switchView('login')}
-                  className="w-full text-sm text-muted-foreground hover:underline text-center"
+                  className="w-full text-sm text-primary hover:underline text-center"
                 >
                   ← Back to sign in
                 </button>
@@ -326,7 +334,7 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
                 )}
                 <Button
                   type="submit"
-                  className="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white"
+                  className="w-full"
                   disabled={loading}
                 >
                   {loading ? "Updating…" : "Update Password"}

@@ -60,32 +60,32 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
 
   return (
     <>
-      <div className={`flex items-start gap-3 p-3 rounded-lg border-2 ${appt.isCompleted ? 'bg-slate-50 border-slate-200 opacity-70' : 'bg-emerald-50 border-emerald-200'}`}>
+      <div className={`flex items-start gap-3 p-3 rounded-lg border-2 ${appt.isCompleted ? 'bg-muted/30 border-border opacity-70' : 'bg-color-success/10 border-color-success/30'}`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-emerald-700 text-sm">
+            <span className="font-medium text-color-success text-sm">
               {fmtDate(appt.appointmentDate)}
               {appt.appointmentTime && ` · ${fmtTime(appt.appointmentTime)}`}
             </span>
-            {appt.appointmentType && <span className="text-slate-700 text-sm">{appt.appointmentType}</span>}
-            {appt.doctorName && <span className="text-slate-500 text-xs">· {appt.doctorName}</span>}
-            {appt.isCompleted && <span className="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">Done</span>}
+            {appt.appointmentType && <span className="text-foreground text-sm">{appt.appointmentType}</span>}
+            {appt.doctorName && <span className="text-muted-foreground text-xs">· {appt.doctorName}</span>}
+            {appt.isCompleted && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Done</span>}
           </div>
-          {appt.notes && <p className="text-xs text-slate-500 mt-0.5 truncate">{appt.notes}</p>}
+          {appt.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{appt.notes}</p>}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {!appt.isCompleted && (
             <button
               onClick={handleMarkDone}
               disabled={marking}
-              className="text-xs text-emerald-700 border border-emerald-300 rounded px-2 py-1 hover:bg-emerald-100 disabled:opacity-50"
+              className="text-xs text-color-success border border-color-success/40 rounded px-2 py-1 hover:bg-color-success/10 disabled:opacity-50"
             >
               {marking ? '…' : 'Mark Done'}
             </button>
           )}
           <button
             onClick={openEdit}
-            className="text-slate-400 hover:text-emerald-600 disabled:opacity-50"
+            className="text-muted-foreground hover:text-primary disabled:opacity-50"
             title="Edit appointment"
           >
             <Pencil className="w-4 h-4" />
@@ -93,7 +93,7 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="text-slate-400 hover:text-red-500 disabled:opacity-50"
+            className="text-muted-foreground hover:text-destructive disabled:opacity-50"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -104,7 +104,7 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-emerald-600" />
+              <Pencil className="w-4 h-4 text-primary" />
               Edit Appointment
             </DialogTitle>
           </DialogHeader>
@@ -119,7 +119,7 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
               />
             </div>
             <div>
-              <Label>Time <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Label>Time <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input
                 type="time"
                 value={editForm.appointmentTime}
@@ -160,7 +160,7 @@ function AppointmentRow({ appt, fmtDate, onUpdate, onDelete, onError }) {
                 loading={editSaving}
                 onClick={handleSaveEdit}
                 disabled={!editForm.appointmentDate}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                className="flex-1"
               >
                 Save Changes
               </LoadingButton>
@@ -199,10 +199,10 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
 
   return (
     <div className="grid md:grid-cols-3 gap-6">
-      <Card className="shadow-xl rounded-2xl md:col-span-1">
+      <Card className="shadow-xl rounded-2xl md:col-span-1 md:sticky md:top-6 md:self-start">
         <CardContent className="p-5">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-emerald-600" />
+          <h2 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-color-success" />
             Add Appointment
           </h2>
           <form onSubmit={handleSubmit} className="space-y-3">
@@ -217,7 +217,7 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
               />
             </div>
             <div>
-              <Label>Time <span className="text-slate-400 font-normal">(optional)</span></Label>
+              <Label>Time <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input
                 type="time"
                 value={form.appointmentTime}
@@ -253,7 +253,7 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
                 className="bg-white"
               />
             </div>
-            <LoadingButton loading={saving} className="w-full bg-emerald-600 hover:bg-emerald-700">
+            <LoadingButton loading={saving} className="w-full">
               Save Appointment
             </LoadingButton>
           </form>
@@ -263,12 +263,12 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
       <div className="md:col-span-2 space-y-5">
         <Card className="shadow-xl rounded-2xl">
           <CardContent className="p-5">
-            <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-emerald-600" />
+            <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-1.5">
+              <CalendarDays className="w-4 h-4 text-color-success" />
               Upcoming ({upcoming.length})
             </h3>
             {upcoming.length === 0 ? (
-              <p className="text-sm text-slate-500">No upcoming appointments</p>
+              <p className="text-sm text-muted-foreground">No upcoming appointments</p>
             ) : (
               <div className="space-y-2">
                 {upcoming.map(a => (
@@ -281,11 +281,11 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
 
         <Card className="shadow-xl rounded-2xl">
           <CardContent className="p-5">
-            <h3 className="font-semibold text-slate-500 mb-3">
+            <h3 className="font-display font-semibold text-muted-foreground mb-3">
               Past / Completed ({past.length})
             </h3>
             {past.length === 0 ? (
-              <p className="text-sm text-slate-400">None yet</p>
+              <p className="text-sm text-muted-foreground">None yet</p>
             ) : (
               <div className="space-y-2">
                 {[...past].reverse().map(a => (
