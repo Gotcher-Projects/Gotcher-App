@@ -25,12 +25,12 @@ This keystore is permanent — back it up. If lost, you cannot update the app.
 
 ```bash
 keytool -genkey -v \
-  -keystore babysteps-release.jks \
-  -alias babysteps \
+  -keystore cradlehq-release.jks \
+  -alias cradlehq \
   -keyalg RSA -keysize 2048 \
   -validity 10000
 ```
-Fill in the prompts (name, org, etc.). Store the resulting `babysteps-release.jks` somewhere safe outside the repo (e.g., a password manager or encrypted drive).
+Fill in the prompts (name, org, etc.). Store the resulting `cradlehq-release.jks` somewhere safe outside the repo (e.g., a password manager or encrypted drive).
 
 **Do NOT commit the keystore or passwords to git.**
 
@@ -41,9 +41,9 @@ In `Frontend/android/app/build.gradle`, add a `signingConfigs` block and update 
 android {
     signingConfigs {
         release {
-            storeFile file(System.getenv("KEYSTORE_PATH") ?: "../../../babysteps-release.jks")
+            storeFile file(System.getenv("KEYSTORE_PATH") ?: "../../../cradlehq-release.jks")
             storePassword System.getenv("KEYSTORE_PASS")
-            keyAlias System.getenv("KEY_ALIAS") ?: "babysteps"
+            keyAlias System.getenv("KEY_ALIAS") ?: "cradlehq"
             keyPassword System.getenv("KEY_PASS")
         }
     }
@@ -58,9 +58,9 @@ android {
 
 Using env vars keeps secrets out of the file. Set them in your shell before building:
 ```bash
-export KEYSTORE_PATH=/path/to/babysteps-release.jks
+export KEYSTORE_PATH=/path/to/cradlehq-release.jks
 export KEYSTORE_PASS=your_store_password
-export KEY_ALIAS=babysteps
+export KEY_ALIAS=cradlehq
 export KEY_PASS=your_key_password
 ```
 
@@ -82,13 +82,13 @@ Install `bundletool` and test the AAB on your emulator before uploading:
 java -jar bundletool.jar build-apks \
   --bundle=app-release.aab \
   --output=app.apks \
-  --ks=babysteps-release.jks --ks-key-alias=babysteps
+  --ks=cradlehq-release.jks --ks-key-alias=cradlehq
 java -jar bundletool.jar install-apks --apks=app.apks
 ```
 
 ### 5. Create the Play Store listing
 In Google Play Console → Create app:
-- App name: **Baby Steps**
+- App name: **CradleHQ**
 - Default language: English (US)
 - App or game: App
 - Free or paid: Free
@@ -109,7 +109,7 @@ Upload your keystore — Google re-signs APKs for distribution. This means even 
 
 ### 7. Create a release
 Play Console → Production → Create new release → Upload `app-release.aab`
-- Add release notes: "Initial release of Baby Steps baby tracking app."
+- Add release notes: "Initial release of CradleHQ baby tracking app."
 - Review and roll out
 
 ### 8. Wait for review
@@ -122,6 +122,7 @@ Initial reviews take 3–7 days for new accounts. Google may request additional 
 ## Notes
 - The `android/` directory is gitignored from S1 — the Gradle signing config change lives there. Document the signing config block in this plan so it can be reapplied after a fresh `npx cap add android`.
 - Consider adding the signing config to a committed `android-signing-config.gradle` snippet stored in the repo (without actual secrets) so it's not lost.
+- Keystore file: `cradlehq-release.jks`, alias: `cradlehq`
 
 ## Outputs needed for S4
 - [ ] AAB built and signed successfully

@@ -17,9 +17,9 @@ Add the iOS Capacitor platform, set up a Codemagic CI/CD pipeline that builds an
    - Free tier: 500 build minutes/month (enough for initial setup)
 
 3. **App Store Connect app record** — https://appstoreconnect.apple.com
-   - New App → iOS → Bundle ID: `com.gotcherapp.babysteps`
-   - SKU: `babysteps-ios-1`
-   - Name: Baby Steps
+   - New App → iOS → Bundle ID: `com.gotcherapp.cradlehq`
+   - SKU: `cradlehq-ios-1`
+   - Name: CradleHQ
 
 ## Steps
 
@@ -37,7 +37,7 @@ Remove the `ios/` line from `.gitignore` if it was added there.
 ### 2. Create Apple signing certificates
 In Apple Developer portal:
 - Create an **iOS Distribution certificate** (App Store)
-- Create an **App ID** with bundle ID `com.gotcherapp.babysteps`
+- Create an **App ID** with bundle ID `com.gotcherapp.cradlehq`
 - Create an **App Store provisioning profile** for that App ID
 
 Download the `.p12` certificate and provisioning profile — you'll upload these to Codemagic.
@@ -56,7 +56,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.gotcherapp.babysteps
+        bundle_identifier: com.gotcherapp.cradlehq
       node: 20
       xcode: latest
       cocoapods: default
