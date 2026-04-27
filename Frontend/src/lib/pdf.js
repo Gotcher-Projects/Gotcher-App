@@ -31,7 +31,7 @@ async function loadImageDataUrl(url) {
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         canvas.getContext('2d').drawImage(img, 0, 0);
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85), naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight });
       };
       img.onerror = () => resolve(null);
       img.src = url;
@@ -46,7 +46,8 @@ function resolveImgLayout(raw, orientation) {
   if (!raw) return null;
   if (orientation === 'portrait') {
     const drawW = IMG_COL_W;
-    const drawH = drawW * (4 / 3);
+    const ratio = (raw.naturalWidth > 0) ? raw.naturalHeight / raw.naturalWidth : (4 / 3);
+    const drawH = Math.min(drawW * ratio, 130); // cap at 130mm to prevent page overflow
     return { dataUrl: raw.dataUrl, drawW, drawH, portrait: true };
   }
   // landscape — full width, capped at 90mm tall

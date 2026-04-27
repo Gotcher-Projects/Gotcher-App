@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Camera, BookOpen, Loader2, Trash2, Pencil } from "lucide-react";
 import { LoadingButton } from "@/components/ui/LoadingButton";
-import { formatEntryDate } from "@/lib/formatting";
 import { apiUpload } from "@/lib/api";
 import { shareFirstTime } from "@/lib/share";
 import { openCropModal } from "@/lib/imageUtils.jsx";
@@ -33,6 +32,33 @@ export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpd
 }
 
 // ── Journal ────────────────────────────────────────────────────────────────────
+
+function shortDate(raw) {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function groupByMonth(entries) {
+  const sorted = [...entries].sort((a, b) => {
+    const da = a.entry_date || a.date || '';
+    const db = b.entry_date || b.date || '';
+    return da > db ? -1 : da < db ? 1 : 0;
+  });
+  const groups = [];
+  for (const entry of sorted) {
+    const raw = entry.entry_date || entry.date;
+    const d = raw ? new Date(raw) : null;
+    const label = d && !isNaN(d.getTime())
+      ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : 'Unknown';
+    const last = groups[groups.length - 1];
+    if (last && last.month === label) last.entries.push(entry);
+    else groups.push({ month: label, entries: [entry] });
+  }
+  return groups;
+}
 
 function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
   const cancelCropRef = useRef(null);
@@ -183,7 +209,7 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
         </CardContent>
       </Card>
 
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-6">
         <h3 className="text-lg font-bold">Journal Entries</h3>
 
         {!data.journal.length ? (
@@ -193,106 +219,14 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
             <p className="text-sm text-muted-foreground/70 mt-1">Add your first entry above.</p>
           </div>
         ) : (
-          data.journal.map(e => (
-            <Card key={e.id} className="bg-color-warm/20 shadow-md shadow-color-highlight/20 rounded-2xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-color-highlight/30">
-              {editingId === e.id ? (
-                <CardContent className="p-5">
-                  <div className="space-y-3">
-                    <Input value={editTitle} onChange={ev => setEditTitle(ev.target.value)} placeholder="Title" className="font-semibold text-base focus-visible:ring-color-highlight" />
-                    <Textarea rows={5} value={editStory} onChange={ev => setEditStory(ev.target.value)} placeholder="Story" className="focus-visible:ring-color-highlight" />
-                    <div>
-                      {e.image_url && !editCroppedPhoto && (
-                        <img src={e.image_url} alt={e.title} className="w-full max-w-xs rounded-lg object-cover mb-2" />
-                      )}
-                      {editCroppedPhoto && (
-                        <img src={URL.createObjectURL(editCroppedPhoto.blob)} alt="new photo preview" className="w-full max-w-xs rounded-lg object-cover mb-2" />
-                      )}
-                      <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors">
-                        <Camera className="w-4 h-4" />
-                        {editCroppedPhoto ? `Photo ready (${editCroppedPhoto.orientation})` : e.image_url ? "Replace photo" : "Add a photo"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={ev => {
-                            const file = ev.target.files[0];
-                            if (!file) return;
-                            ev.target.value = '';
-                            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
-                          }}
-                        />
-                      </label>
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <LoadingButton
-                        size="sm"
-                        loading={editSaving || editUploadingImage}
-                        onClick={() => saveEdit(e)}
-                      >
-                        Save
-                      </LoadingButton>
-                      <Button size="sm" variant="outline" onClick={cancelEdit} disabled={editSaving}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              ) : e.image_url && e.image_orientation === 'portrait' ? (
-                // Portrait: image left, text right
-                <div className="flex min-h-[220px]">
-                  <div className="w-2/5 flex-shrink-0 overflow-hidden">
-                    <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
-                    <div>
-                      <span className="text-xs font-medium bg-color-highlight/15 text-color-highlight px-2 py-0.5 rounded-full border border-color-highlight/20">
-                        Week {e.week}
-                      </span>
-                      <h4 className="font-display text-lg font-bold text-foreground mt-2 mb-1 leading-snug">{e.title}</h4>
-                      <p className="text-xs text-muted-foreground mb-2">{formatEntryDate(e.entry_date || e.date)}</p>
-                      {e.story && (
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap line-clamp-5">{e.story}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 pt-3 border-t border-border mt-3">
-                      {confirmDeleteId === e.id ? (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-muted-foreground">Delete?</span>
-                          <button onClick={() => { onDelete(e.id); setConfirmDeleteId(null); }} className="text-xs text-red-500 font-semibold hover:text-red-700 px-1">Yes</button>
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-muted-foreground hover:text-foreground px-1">No</button>
-                        </div>
-                      ) : (
-                        <>
-                          <button onClick={() => startEdit(e)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors" title="Edit entry">
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </button>
-                          <button onClick={() => setConfirmDeleteId(e.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors" title="Delete entry">
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // Landscape or no image: standard stacked layout
-                <>
-                <CardContent className="p-5 pb-3">
-                  <span className="text-sm font-medium bg-color-highlight/15 text-color-highlight px-2.5 py-0.5 rounded-full border border-color-highlight/20">
-                    Week {e.week}
-                  </span>
-                  <h4 className="font-display text-2xl font-bold text-foreground mt-2 mb-1 leading-snug">{e.title}</h4>
-                  <p className="text-xs text-muted-foreground">{formatEntryDate(e.entry_date || e.date)}</p>
-                </CardContent>
-                {e.image_url && (
-                  <div className="w-full aspect-[4/3] overflow-hidden">
-                    <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <CardContent className="p-5 pt-3">
-                  {e.story && (
-                    <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap mb-4">{e.story}</p>
-                  )}
+          groupByMonth(data.journal).map(({ month, entries }) => (
+            <div key={month} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{month}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              {entries.map(e => {
+                const actionBar = (
                   <div className="flex items-center gap-4 pt-3 border-t border-border">
                     {confirmDeleteId === e.id ? (
                       <div className="flex items-center gap-1">
@@ -311,10 +245,114 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                       </>
                     )}
                   </div>
-                </CardContent>
-                </>
-              )}
-            </Card>
+                );
+                return (
+                  <Card key={e.id} className="bg-color-warm/20 shadow-md shadow-color-highlight/20 rounded-2xl overflow-hidden transition-shadow hover:shadow-lg hover:shadow-color-highlight/30">
+                    {editingId === e.id ? (
+                      <CardContent className="p-5">
+                        <div className="space-y-3">
+                          <Input value={editTitle} onChange={ev => setEditTitle(ev.target.value)} placeholder="Title" className="font-semibold text-base focus-visible:ring-color-highlight" />
+                          <Textarea rows={5} value={editStory} onChange={ev => setEditStory(ev.target.value)} placeholder="Story" className="focus-visible:ring-color-highlight" />
+                          <div>
+                            {e.image_url && !editCroppedPhoto && (
+                              <img src={e.image_url} alt={e.title} className="w-full max-w-xs rounded-lg object-cover mb-2" />
+                            )}
+                            {editCroppedPhoto && (
+                              <img src={URL.createObjectURL(editCroppedPhoto.blob)} alt="new photo preview" className="w-full max-w-xs rounded-lg object-cover mb-2" />
+                            )}
+                            <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors">
+                              <Camera className="w-4 h-4" />
+                              {editCroppedPhoto ? `Photo ready (${editCroppedPhoto.orientation})` : e.image_url ? "Replace photo" : "Add a photo"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={ev => {
+                                  const file = ev.target.files[0];
+                                  if (!file) return;
+                                  ev.target.value = '';
+                                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <LoadingButton
+                              size="sm"
+                              loading={editSaving || editUploadingImage}
+                              onClick={() => saveEdit(e)}
+                            >
+                              Save
+                            </LoadingButton>
+                            <Button size="sm" variant="outline" onClick={cancelEdit} disabled={editSaving}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    ) : e.image_url && e.image_orientation === 'portrait' ? (
+                      // Portrait: image left, text right
+                      <div className="flex min-h-[220px]">
+                        <div className="w-2/5 flex-shrink-0 overflow-hidden">
+                          <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+                          <div>
+                            <span className="text-xs font-medium bg-color-highlight/15 text-color-highlight px-2 py-0.5 rounded-full border border-color-highlight/20">
+                              {shortDate(e.entry_date || e.date) || `Week ${e.week}`}
+                            </span>
+                            <h4 className="font-display text-lg font-bold text-foreground mt-2 mb-1 leading-snug">{e.title}</h4>
+                            {e.story && (
+                              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap line-clamp-5">{e.story}</p>
+                            )}
+                          </div>
+                          <div className="mt-3">{actionBar}</div>
+                        </div>
+                      </div>
+                    ) : e.image_url ? (
+                      // Landscape with image: hero overlay
+                      <>
+                        <div className="relative w-full aspect-[3/2] overflow-hidden">
+                          <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <h4 className="font-display text-xl font-bold text-white leading-snug">{e.title}</h4>
+                            <p className="text-xs text-white/60 mt-0.5">{shortDate(e.entry_date || e.date)}</p>
+                          </div>
+                          <span className="absolute top-3 right-3 text-xs font-medium bg-black/40 text-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                            Week {e.week}
+                          </span>
+                        </div>
+                        {e.story && (
+                          <CardContent className="p-5 pb-3">
+                            <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">{e.story}</p>
+                          </CardContent>
+                        )}
+                        <CardContent className={e.story ? "px-5 pb-3 pt-0" : "p-5 pb-3"}>
+                          {actionBar}
+                        </CardContent>
+                      </>
+                    ) : (
+                      // No image: left accent border
+                      <div className="border-l-2 border-color-highlight/40">
+                        <CardContent className="p-6 pb-3">
+                          <span className="text-xs font-medium bg-color-highlight/15 text-color-highlight px-2 py-0.5 rounded-full border border-color-highlight/20">
+                            {shortDate(e.entry_date || e.date) || `Week ${e.week}`}
+                          </span>
+                          <h4 className="font-display text-2xl font-bold text-foreground mt-3 mb-1 leading-snug">{e.title}</h4>
+                          {e.story && (
+                            <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap mt-2">{e.story}</p>
+                          )}
+                        </CardContent>
+                        <CardContent className="px-6 pb-3 pt-0">
+                          {actionBar}
+                        </CardContent>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
           ))
         )}
       </div>
