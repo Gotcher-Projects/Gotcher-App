@@ -147,10 +147,10 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      <Card className="shadow-xl rounded-2xl lg:col-span-1">
+      <Card className="shadow-xl rounded-2xl lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
         <CardContent className="p-6 space-y-5">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Utensils className="w-5 h-5 text-sky-500" /> {OZ_TYPES.has(selectedType) ? 'Log Feeding' : 'Feeding Timer'}
+          <h2 className="font-display text-xl font-bold text-foreground flex items-center gap-2">
+            <Utensils className="w-5 h-5 text-primary" /> {OZ_TYPES.has(selectedType) ? 'Log Feeding' : 'Feeding Timer'}
           </h2>
 
           <div>
@@ -158,7 +158,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
             <select
               value={selectedType}
               onChange={e => { setSelectedType(e.target.value); if (activeFeed) { localStorage.removeItem(ACTIVE_FEED_KEY); setActiveFeed(null); } }}
-              className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {FEED_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -189,18 +189,18 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                   className="mt-1"
                 />
               </div>
-              <LoadingButton onClick={handleQuickLog} loading={quickLogging} loadingText="Logging..." className="w-full bg-sky-600">
+              <LoadingButton onClick={handleQuickLog} loading={quickLogging} loadingText="Logging..." className="w-full">
                 <Plus className="w-4 h-4 mr-2" /> Log Feeding
               </LoadingButton>
             </>
           ) : !activeFeed ? (
-            <LoadingButton onClick={handleStart} loading={starting} loadingText="Starting..." className="w-full bg-sky-600">
+            <LoadingButton onClick={handleStart} loading={starting} loadingText="Starting..." className="w-full">
               <Timer className="w-4 h-4 mr-2" /> Start Feed
             </LoadingButton>
           ) : (
             <div className="text-center space-y-4">
-              <p className="text-sm text-slate-500">{typeLabel(activeFeed.type)}</p>
-              <div className="text-5xl font-mono font-bold text-sky-600 tracking-widest">
+              <p className="text-sm text-muted-foreground">{typeLabel(activeFeed.type)}</p>
+              <div className="text-5xl font-mono font-bold text-primary tracking-widest">
                 {formatDuration(elapsed)}
               </div>
               <LoadingButton onClick={handleStop} loading={stopping} loadingText="Stopping..." className="w-full bg-rose-500 hover:bg-rose-600">
@@ -212,16 +212,16 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
           {todayLogs.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-slate-700">Today's Feeds</h3>
-                <span className="text-xs text-slate-400">{todayLogs.length} feed{todayLogs.length !== 1 ? 's' : ''} · {formatDuration(totalTodaySeconds)} total</span>
+                <h3 className="text-sm font-semibold text-foreground">Today's Feeds</h3>
+                <span className="text-xs text-muted-foreground">{todayLogs.length} feed{todayLogs.length !== 1 ? 's' : ''} · {formatDuration(totalTodaySeconds)} total</span>
               </div>
-              <div className="flex justify-between text-xs text-slate-400 font-medium mb-1 px-0.5">
+              <div className="flex justify-between text-xs text-muted-foreground font-medium mb-1 px-0.5">
                 <span>Type</span>
                 <span>Duration</span>
               </div>
               <div className="space-y-1">
                 {todayLogs.map(l => (
-                  <div key={l.id} className="flex justify-between items-center text-xs text-slate-600">
+                  <div key={l.id} className="flex justify-between items-center text-xs text-foreground">
                     <span>{typeLabel(l.type)}</span>
                     <span>{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
                   </div>
@@ -243,7 +243,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
               <select
                 value={manualForm.type}
                 onChange={e => setManualForm(f => ({ ...f, type: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 {FEED_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
@@ -281,7 +281,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
               loading={manualSaving}
               loadingText="Saving..."
               disabled={!manualForm.date || !manualForm.startTime || !manualForm.endTime}
-              className="w-full bg-sky-600"
+              className="w-full"
             >
               Save Entry
             </LoadingButton>
@@ -291,14 +291,14 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
 
       <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-800">History</h3>
+          <h3 className="font-display text-lg font-bold text-foreground">History</h3>
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg overflow-hidden border border-slate-200">
+            <div className="flex rounded-lg overflow-hidden border border-border">
               {DAYS_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => handleDaysChange(opt.value)}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${days === opt.value ? 'bg-sky-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  className={`px-3 py-1 text-xs font-medium transition-colors ${days === opt.value ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-secondary'}`}
                 >
                   {opt.label}
                 </button>
@@ -306,7 +306,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
             </div>
             <button
               onClick={() => setShowManual(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Manual Log
             </button>
@@ -320,12 +320,12 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
             <Card key={date} className="shadow-md rounded-2xl">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-slate-700">{date}</h4>
-                  <span className="text-xs text-slate-400">
+                  <h4 className="font-semibold text-foreground">{date}</h4>
+                  <span className="text-xs text-muted-foreground">
                     {dayLogs.length} feed{dayLogs.length !== 1 ? 's' : ''} · {formatDuration(dayLogs.reduce((s, l) => s + durationSeconds(l.startedAt, l.endedAt), 0))} total
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-2 border-b pb-1.5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground font-medium mb-2 border-b border-border pb-1.5">
                   <span className="w-28">Type</span>
                   <span className="flex-1 text-center">Time</span>
                   <span className="w-16 text-right">Duration</span>
@@ -334,19 +334,19 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                 <div className="space-y-2">
                   {dayLogs.map(l => (
                     <div key={l.id} className="flex items-center justify-between text-sm">
-                      <span className="text-slate-700 font-medium w-28">{typeLabel(l.type)}</span>
-                      <span className="flex-1 text-center text-slate-500 text-xs">
+                      <span className="text-foreground font-medium w-28">{typeLabel(l.type)}</span>
+                      <span className="flex-1 text-center text-muted-foreground text-xs">
                         {new Date(l.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                       </span>
-                      <span className="text-slate-600 w-16 text-right">{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
+                      <span className="text-muted-foreground w-16 text-right">{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>
                       <div className="w-16 text-right">
                         {confirmDeleteId === l.id ? (
                           <span className="flex items-center gap-1 justify-end">
                             <button onClick={() => { onDelete(l.id); setConfirmDeleteId(null); }} className="text-xs text-red-500 font-semibold hover:text-red-700">Yes</button>
-                            <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-slate-400 hover:text-slate-600 ml-1">No</button>
+                            <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-muted-foreground hover:text-foreground ml-1">No</button>
                           </span>
                         ) : (
-                          <button onClick={() => setConfirmDeleteId(l.id)} className="text-slate-300 hover:text-red-400 transition-colors">
+                          <button onClick={() => setConfirmDeleteId(l.id)} className="text-muted-foreground/40 hover:text-red-400 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}

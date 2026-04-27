@@ -1,5 +1,5 @@
 # Nursing Timer in Dashboard Quick Links
-**Status:** Under Review
+**Status:** Rejected
 **Area:** Dashboard quick links — DashboardTab + BabySteps
 
 > ⚠️ This plan is under review and may be removed. Before starting this session, explicitly confirm with the user that they want to implement the live nursing timer on the dashboard. Do not begin implementation without that confirmation.

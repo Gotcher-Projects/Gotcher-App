@@ -43,6 +43,7 @@ async function doRefresh() {
 
   if (!res.ok) {
     localStorage.removeItem('gotcherapp_user');
+    localStorage.removeItem('babyStepsData');
     window.dispatchEvent(new Event('session-expired'));
     throw new Error('Session expired');
   }
@@ -86,15 +87,19 @@ export async function apiRequest(path, options = {}) {
     });
 
     if (!retry.ok) {
-      const data = await retry.json().catch(() => ({}));
-      throw new Error(data.error || `Request failed: ${retry.status}`);
+      const body = await retry.json().catch(() => ({}));
+      const err = new Error(body.error || `Request failed: ${retry.status}`);
+      err.status = retry.status;
+      throw err;
     }
     return retry.status === 204 ? null : retry.json();
   }
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Request failed: ${res.status}`);
+    const err = new Error(data.error || `Request failed: ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }

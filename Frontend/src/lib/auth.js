@@ -35,6 +35,7 @@ export async function logoutUser() {
     // Proceed with local logout even if request fails
   }
   localStorage.removeItem('gotcherapp_user');
+  localStorage.removeItem('babyStepsData');
 }
 
 export function saveSession(user) {

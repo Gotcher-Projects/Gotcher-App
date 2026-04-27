@@ -1,6 +1,6 @@
 # Bug: Onboarding Gate + Baby Profile Cache
 
-**Status:** Not started
+**Status:** Complete
 
 ## Issue 1 — Stale baby data shown on new account
 
