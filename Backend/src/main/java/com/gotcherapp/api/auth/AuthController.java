@@ -72,8 +72,10 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response,
+                                     @RequestBody(required = false) Map<String, String> body) {
         String refreshToken = CookieUtil.getCookieValue(request, "refresh_token");
+        if (refreshToken == null && body != null) refreshToken = body.get("refreshToken");
         try {
             AuthResponse data = authService.refresh(refreshToken);
             cookieUtil.setAccessTokenCookie(response, data.accessToken(), ACCESS_MAX_AGE);
@@ -89,8 +91,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response,
+                                    @RequestBody(required = false) Map<String, String> body) {
         String refreshToken = CookieUtil.getCookieValue(request, "refresh_token");
+        if (refreshToken == null && body != null) refreshToken = body.get("refreshToken");
         try {
             if (refreshToken != null) authService.logout(refreshToken);
         } catch (IllegalArgumentException ignored) {}

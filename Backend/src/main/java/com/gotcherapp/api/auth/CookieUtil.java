@@ -4,6 +4,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,37 +18,34 @@ public class CookieUtil {
     }
 
     public void setAccessTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
-        Cookie c = new Cookie("access_token", token);
-        c.setHttpOnly(true);
-        c.setPath("/");
-        c.setMaxAge(maxAgeSeconds);
-        c.setSecure(secure);
-        response.addCookie(c);
+        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from("access_token", token)
+            .httpOnly(true)
+            .path("/")
+            .maxAge(maxAgeSeconds)
+            .secure(secure)
+            .sameSite("Lax")
+            .build().toString());
     }
 
     public void setRefreshTokenCookie(HttpServletResponse response, String token, int maxAgeSeconds) {
-        Cookie c = new Cookie("refresh_token", token);
-        c.setHttpOnly(true);
-        c.setPath("/auth");
-        c.setSecure(secure);
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("refresh_token", token)
+            .httpOnly(true)
+            .path("/auth")
+            .secure(secure)
+            .sameSite("Lax");
         if (maxAgeSeconds >= 0) {
-            c.setMaxAge(maxAgeSeconds);
+            builder = builder.maxAge(maxAgeSeconds);
         }
-        response.addCookie(c);
+        response.addHeader(HttpHeaders.SET_COOKIE, builder.build().toString());
     }
 
-    public static void clearAuthCookies(HttpServletResponse response) {
-        Cookie access = new Cookie("access_token", "");
-        access.setHttpOnly(true);
-        access.setPath("/");
-        access.setMaxAge(0);
-        response.addCookie(access);
-
-        Cookie refresh = new Cookie("refresh_token", "");
-        refresh.setHttpOnly(true);
-        refresh.setPath("/auth");
-        refresh.setMaxAge(0);
-        response.addCookie(refresh);
+    public void clearAuthCookies(HttpServletResponse response) {
+        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from("access_token", "")
+            .httpOnly(true).path("/").maxAge(0).secure(secure).sameSite("Lax")
+            .build().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from("refresh_token", "")
+            .httpOnly(true).path("/auth").maxAge(0).secure(secure).sameSite("Lax")
+            .build().toString());
     }
 
     public static String getCookieValue(HttpServletRequest request, String name) {
