@@ -82,10 +82,10 @@ public class AuthController {
             cookieUtil.setRefreshTokenCookie(response, data.refreshToken(), REFRESH_MAX_AGE);
             return ResponseEntity.ok(data);
         } catch (IllegalArgumentException e) {
-            CookieUtil.clearAuthCookies(response);
+            cookieUtil.clearAuthCookies(response);
             return ApiError.badRequest(e.getMessage());
         } catch (InvalidTokenException e) {
-            CookieUtil.clearAuthCookies(response);
+            cookieUtil.clearAuthCookies(response);
             return ApiError.unauthorized("Invalid or expired refresh token");
         }
     }
@@ -98,7 +98,7 @@ public class AuthController {
         try {
             if (refreshToken != null) authService.logout(refreshToken);
         } catch (IllegalArgumentException ignored) {}
-        CookieUtil.clearAuthCookies(response);
+        cookieUtil.clearAuthCookies(response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
