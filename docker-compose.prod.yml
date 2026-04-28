@@ -52,7 +52,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@cradlehq.app}
       BACKEND_URL: https://${APP_DOMAIN}/api
-      CORS_ORIGINS: https://${APP_DOMAIN},http://localhost,capacitor://localhost
+      CORS_ORIGINS: https://${APP_DOMAIN},http://localhost,https://localhost,capacitor://localhost
       ADMIN_SECRET: ${ADMIN_SECRET:-}
     depends_on:
       postgres:
