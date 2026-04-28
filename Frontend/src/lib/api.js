@@ -1,19 +1,60 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { Capacitor } from '@capacitor/core';
+import { getNativeTokens } from './auth.js';
 
-/**
- * Upload a file via multipart form. On 401 deduplicates and awaits a single token refresh,
- * then retries once. Fires 'session-expired' window event and throws if refresh fails.
- * @param {string} path
- * @param {FormData} formData
- * @param {'POST'|'PATCH'} [method='POST']
- * @returns {Promise<any>} parsed JSON response
- */
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const isNative = Capacitor.isNativePlatform();
+
+let refreshing = null;
+
+async function doRefresh() {
+  if (isNative) {
+    const { refreshToken } = getNativeTokens();
+    if (!refreshToken) {
+      window.dispatchEvent(new Event('session-expired'));
+      throw new Error('Session expired');
+    }
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) {
+      localStorage.removeItem('cradlehq_access_token');
+      localStorage.removeItem('cradlehq_refresh_token');
+      localStorage.removeItem('gotcherapp_user');
+      localStorage.removeItem('babyStepsData');
+      window.dispatchEvent(new Event('session-expired'));
+      throw new Error('Session expired');
+    }
+    const data = await res.json();
+    localStorage.setItem('cradlehq_access_token', data.accessToken);
+    if (data.refreshToken) localStorage.setItem('cradlehq_refresh_token', data.refreshToken);
+  } else {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      localStorage.removeItem('gotcherapp_user');
+      localStorage.removeItem('babyStepsData');
+      window.dispatchEvent(new Event('session-expired'));
+      throw new Error('Session expired');
+    }
+  }
+}
+
+function authHeaders() {
+  if (!isNative) return {};
+  const token = localStorage.getItem('cradlehq_access_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export async function apiUpload(path, formData, method = 'POST') {
   const makeReq = () => fetch(`${API_BASE}${path}`, {
     method,
-    credentials: 'include',
+    credentials: isNative ? 'omit' : 'include',
+    headers: authHeaders(),
     body: formData,
-    // No Content-Type header — browser sets it with the multipart boundary
   });
 
   let res = await makeReq();
@@ -33,39 +74,13 @@ export async function apiUpload(path, formData, method = 'POST') {
   return res.json();
 }
 
-let refreshing = null;
-
-async function doRefresh() {
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!res.ok) {
-    localStorage.removeItem('gotcherapp_user');
-    localStorage.removeItem('babyStepsData');
-    window.dispatchEvent(new Event('session-expired'));
-    throw new Error('Session expired');
-  }
-
-  // New access_token cookie is set by the server response automatically
-}
-
-/**
- * Authenticated JSON fetch. On 401 deduplicates and awaits a single token refresh shared
- * across all concurrent callers, then retries once. If refresh fails, fires a
- * 'session-expired' window event (App.jsx handles logout) and throws.
- * Returns null for 204 No Content.
- * @param {string} path
- * @param {RequestInit} [options]
- * @returns {Promise<any|null>}
- */
 export async function apiRequest(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
+    credentials: isNative ? 'omit' : 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options.headers,
     },
   });
@@ -76,12 +91,12 @@ export async function apiRequest(path, options = {}) {
     }
     await refreshing;
 
-    // Retry with the new cookie
     const retry = await fetch(`${API_BASE}${path}`, {
       ...options,
-      credentials: 'include',
+      credentials: isNative ? 'omit' : 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders(),
         ...options.headers,
       },
     });

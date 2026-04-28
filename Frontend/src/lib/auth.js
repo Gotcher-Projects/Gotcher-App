@@ -1,14 +1,40 @@
+import { Capacitor } from '@capacitor/core';
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const isNative = Capacitor.isNativePlatform();
+
+const KEYS = {
+  accessToken: 'cradlehq_access_token',
+  refreshToken: 'cradlehq_refresh_token',
+};
+
+export function getNativeTokens() {
+  return {
+    accessToken: localStorage.getItem(KEYS.accessToken),
+    refreshToken: localStorage.getItem(KEYS.refreshToken),
+  };
+}
+
+function saveNativeTokens(data) {
+  if (data.accessToken) localStorage.setItem(KEYS.accessToken, data.accessToken);
+  if (data.refreshToken) localStorage.setItem(KEYS.refreshToken, data.refreshToken);
+}
+
+function clearNativeTokens() {
+  localStorage.removeItem(KEYS.accessToken);
+  localStorage.removeItem(KEYS.refreshToken);
+}
 
 export async function loginUser(email, password, rememberMe = false) {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    credentials: isNative ? 'omit' : 'include',
     body: JSON.stringify({ email, password, rememberMe }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Login failed');
+  if (isNative) saveNativeTokens(data);
   return data;
 }
 
@@ -16,24 +42,29 @@ export async function registerUser(email, password, displayName) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    credentials: isNative ? 'omit' : 'include',
     body: JSON.stringify({ email, password, display_name: displayName }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Registration failed');
+  if (isNative) saveNativeTokens(data);
   return data;
 }
 
 export async function logoutUser() {
   try {
-    await fetch(`${API_BASE}/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
+    const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit' };
+    if (isNative) {
+      const { refreshToken } = getNativeTokens();
+      opts.body = refreshToken ? JSON.stringify({ refreshToken }) : undefined;
+    } else {
+      opts.credentials = 'include';
+    }
+    await fetch(`${API_BASE}/auth/logout`, opts);
   } catch {
     // Proceed with local logout even if request fails
   }
+  clearNativeTokens();
   localStorage.removeItem('gotcherapp_user');
   localStorage.removeItem('babyStepsData');
 }
@@ -69,23 +100,38 @@ export async function resetPassword(token, newPassword) {
   return data;
 }
 
-// Validates the current session against the server.
-// Tries /auth/me; if the access token is expired (401) attempts a silent refresh.
-// Returns true if the session is (or becomes) valid, false if the user must log in again.
 export async function validateSession() {
   try {
+    if (isNative) {
+      const { accessToken, refreshToken } = getNativeTokens();
+      if (!accessToken) return false;
+
+      const meRes = await fetch(`${API_BASE}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+      if (meRes.ok) return true;
+      if (meRes.status !== 401 || !refreshToken) return false;
+
+      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!refreshRes.ok) { clearNativeTokens(); return false; }
+      saveNativeTokens(await refreshRes.json());
+      return true;
+    }
+
+    // Web: cookie-based
     const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
     if (meRes.ok) return true;
     if (meRes.status !== 401) return false;
 
-    // Access token expired — attempt silent refresh
     const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     });
-    if (!refreshRes.ok) {
-      localStorage.removeItem('gotcherapp_user');
-    }
+    if (!refreshRes.ok) localStorage.removeItem('gotcherapp_user');
     return refreshRes.ok;
   } catch {
     return false;
