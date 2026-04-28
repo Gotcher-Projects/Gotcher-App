@@ -14,7 +14,7 @@ Complete the App Store Connect listing metadata, prepare screenshots and assets,
    - Use the iOS Simulator in Xcode (run on Codemagic or borrow a Mac briefly) OR use a tool like Rotato/Codemagic's screenshot service
 
 2. **Privacy policy URL** — App Store requires a privacy policy for apps that collect user data (this app does: baby photos, health info)
-   - Simplest option: a `/privacy` page on michaelgotcher.com
+   - Simplest option: a `/privacy` page on cradlehq.app
    - Can be a basic HTML page listing what data is collected and how it's used
 
 3. **TestFlight tester** — install the TestFlight build on a real iPhone to verify core flows before submission. Borrow a device or add a family member as a tester.
@@ -22,21 +22,21 @@ Complete the App Store Connect listing metadata, prepare screenshots and assets,
 ## Steps
 
 ### 1. Complete App Store Connect metadata
-App Store Connect → Baby Steps → App Information:
+App Store Connect → CradleHQ → App Information:
 - **Subtitle** (30 chars): Baby tracking & memories
 - **Category**: Primary — Health & Fitness, Secondary — Lifestyle
-- **Privacy Policy URL**: https://michaelgotcher.com/privacy
+- **Privacy Policy URL**: https://cradlehq.app/privacy
 
-App Store Connect → Baby Steps → Pricing and Availability:
+App Store Connect → CradleHQ → Pricing and Availability:
 - Price: Free
 - Availability: All countries
 
 ### 2. Complete the version metadata (1.0)
-App Store Connect → Baby Steps → iOS App → 1.0 Prepare for Submission:
+App Store Connect → CradleHQ → iOS App → 1.0 Prepare for Submission:
 - **Description** (4000 chars): Write a full store description. Lead with value, mention key features (feeding, sleep, diapers, milestones, journal, photo memories).
 - **Keywords** (100 chars): baby tracker, infant log, feeding tracker, baby milestone, newborn journal
-- **Support URL**: https://michaelgotcher.com
-- **Marketing URL** (optional): https://michaelgotcher.com
+- **Support URL**: https://cradlehq.app
+- **Marketing URL** (optional): https://cradlehq.app
 
 Upload screenshots for each required device size.
 

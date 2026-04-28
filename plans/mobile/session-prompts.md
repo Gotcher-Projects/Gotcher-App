@@ -46,7 +46,7 @@ This session is mostly manual (keystore generation, Play Console setup, build). 
 
 Read before writing anything:
 - `Frontend/android/app/build.gradle` (current release build config)
-- `Frontend/capacitor.config.json` (confirm appId is com.gotcherapp.babysteps)
+- `Frontend/capacitor.config.json` (confirm appId is com.gotcherapp.cradlehq)
 
 Prerequisites the user must complete manually before this session:
 - Google Play Console account activated ($25 one-time fee, takes up to 48h)
@@ -69,7 +69,7 @@ Goal: `ios/` platform added and committed, `codemagic.yaml` written and triggeri
 Prerequisites the user must complete manually before this session:
 - Apple Developer account activated ($99/yr, takes 24–48h)
 - Codemagic account created and connected to GitHub repo
-- App Store Connect app record created (bundle ID: com.gotcherapp.babysteps)
+- App Store Connect app record created (bundle ID: com.gotcherapp.cradlehq)
 - Apple Distribution certificate + provisioning profile downloaded and uploaded to Codemagic
 
 ---

@@ -1,7 +1,7 @@
 # S1 — Capacitor Install & Android Build
-**Status:** Not started
+**Status:** Needs Verification — app loads in emulator, CORS fix written but not yet deployed to production. Login will work once CORS_ORIGINS env var is set on VPS and API container is rebuilt.
 **Branch:** mobile/capacitor-setup
-**Depends on:** Nothing — app already live at michaelgotcher.com
+**Depends on:** Nothing — app already live at cradlehq.app
 
 ## Goal
 Get Capacitor installed in the existing Vite+React frontend, add the Android platform, and verify the app loads correctly in an Android emulator. No feature changes — just the scaffold.
@@ -27,9 +27,9 @@ npm install @capacitor/android
 ### 2. Initialize Capacitor
 ```bash
 cd Frontend
-npx cap init "Baby Steps" "com.gotcherapp.babysteps" --web-dir dist
+npx cap init "CradleHQ" "com.gotcherapp.cradlehq" --web-dir dist
 ```
-This creates `capacitor.config.json`. Review it — confirm `webDir: "dist"` and `appId: "com.gotcherapp.babysteps"`.
+This creates `capacitor.config.json`. Review it — confirm `webDir: "dist"` and `appId: "com.gotcherapp.cradlehq"`.
 
 ### 3. Verify vite.config.js base
 Open `Frontend/vite.config.js` — confirm there is no `base` override that would break asset paths in a file:// context. Capacitor serves from `dist/` directly, so relative paths must work. The default Vite `base: "/"` works fine; if it's set to something else, change it to `"/"`.
@@ -60,7 +60,7 @@ In Android Studio:
 
 ### 7. Verify API connectivity
 - Log in with the demo account: demo@gotcherapp.com / DemoPass1
-- The app must hit `https://michaelgotcher.com` — confirm `VITE_API_URL` is set correctly in `Frontend/.env.production` (should already exist from deployment work)
+- The app must hit `https://cradlehq.app` — confirm `VITE_API_URL` is set correctly in `Frontend/.env.production` (should already exist from deployment work)
 - If login works, API connectivity is confirmed
 
 ### 8. .gitignore the Android build artifacts
