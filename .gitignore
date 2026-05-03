@@ -11,6 +11,7 @@ Frontend/coverage/
 .claude/
 Backend/build/
 Backend/.gradle/
+Backend/bin/
 logs/
 *.log
 ScreenshotsForClaude/

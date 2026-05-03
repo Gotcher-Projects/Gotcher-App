@@ -103,7 +103,7 @@ export default function DashboardTab({
 
   return (
     <Card className="shadow-xl rounded-2xl">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* ── Header ── */}
         <h2 className="text-2xl font-bold font-display text-foreground mb-5 flex items-center gap-2">
           <Sparkles className="w-6 h-6" />
@@ -152,7 +152,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs">oz (optional)</Label>
                       <Input
@@ -189,7 +189,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs">Duration (min)</Label>
                       <Input
@@ -226,7 +226,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {quickLogForm.category === 'poop' && (
                       <div>
                         <Label className="text-xs">Type</Label>
@@ -314,7 +314,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs">Sleep time</Label>
                     <Input type="time" value={quickLogForm.startTime} onChange={e => setQuickLogForm(f => ({ ...f, startTime: e.target.value }))} className="mt-1" />
