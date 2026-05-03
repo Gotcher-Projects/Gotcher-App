@@ -4,6 +4,25 @@ Copy-paste the relevant block at the start of each session.
 
 ---
 
+## Session 0 — Planning & Print-on-Demand Evaluation
+
+```
+Session 0 of storybook. No branch needed — planning only, no code.
+Plan: plans/storybook/s0-planning.md
+
+This is a decisions session, not an implementation session. Goals:
+1. Decide whether S5 (Lulu print-on-demand) is in scope for the initial launch or deferred
+2. Choose the pricing model for the digital storybook (one-time vs. subscription)
+3. Confirm free-vs-paid gating behavior (full hide vs. teaser chapters)
+4. If S5 is in scope: research Lulu API checkout flow + PDF spec requirements,
+   create plans/storybook/s5-print.md as a stub
+
+Read plans/storybook/s0-planning.md fully before starting. All open questions and
+the Lulu API evaluation are there. Do not write any code this session.
+```
+
+---
+
 ## Session 1 — Paid User Flag
 
 ```

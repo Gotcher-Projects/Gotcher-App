@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Camera, BookOpen, Loader2, Trash2, Pencil } from "lucide-react";
+import { Camera, Trash2, Pencil } from "lucide-react";
 import { LoadingButton } from "@/components/ui/LoadingButton";
 import { apiUpload } from "@/lib/api";
 import { shareFirstTime } from "@/lib/share";
 import { openCropModal } from "@/lib/imageUtils.jsx";
+import { pickPhoto } from "@/lib/camera";
 
 export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError }) {
   const [view, setView] = useState('journal');
@@ -62,13 +63,14 @@ function groupByMonth(entries) {
 
 function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
   const cancelCropRef = useRef(null);
+  const newPhotoInputRef = useRef(null);
+  const editPhotoInputRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
   const [title, setTitle] = useState("");
   const [story, setStory] = useState("");
   const [croppedPhoto, setCroppedPhoto] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
@@ -132,21 +134,6 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
     setEditSaving(false);
   };
 
-  const handleExportPdf = async () => {
-    if (!data.journal.length) return;
-    setExporting(true);
-    try {
-      const { generatePdf, downloadPdf } = await import('@/lib/pdf');
-      const babyName = data.profile.name || "Baby";
-      const doc = await generatePdf(data.journal, babyName);
-      downloadPdf(doc, babyName);
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      onError("Failed to generate PDF. Please try again.");
-    }
-    setExporting(false);
-  };
-
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       <Card className="shadow-xl rounded-2xl lg:sticky lg:top-6 lg:self-start bg-color-warm/20">
@@ -167,21 +154,33 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
 
           <div>
             <Label>Photo (optional)</Label>
-            <label className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors">
+            <button
+              type="button"
+              onClick={async () => {
+                const file = await pickPhoto();
+                if (file) {
+                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
+                } else {
+                  newPhotoInputRef.current?.click();
+                }
+              }}
+              className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
+            >
               <Camera className="w-4 h-4" />
               {croppedPhoto ? `Photo ready (${croppedPhoto.orientation})` : "Add a photo"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  e.target.value = '';
-                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
-                }}
-              />
-            </label>
+            </button>
+            <input
+              ref={newPhotoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                e.target.value = '';
+                cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
+              }}
+            />
             {croppedPhoto && (
               <img src={URL.createObjectURL(croppedPhoto.blob)} alt="preview" className="mt-2 w-full max-w-xs rounded-lg object-cover" />
             )}
@@ -191,21 +190,6 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
             Save Entry
           </LoadingButton>
 
-          <div className="pt-4 border-t">
-            <h3 className="font-bold mb-2 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-color-highlight" /> Memory Book
-            </h3>
-            <p className="text-sm text-muted-foreground mb-3">Export all entries as a formatted PDF with photos</p>
-            <Button
-              onClick={handleExportPdf}
-              disabled={!data.journal.length || exporting}
-              className="w-full bg-color-highlight hover:bg-color-highlight/90"
-            >
-              {exporting
-                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-                : <><BookOpen className="w-4 h-4 mr-2" /> Export Memory Book</>}
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -260,21 +244,33 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                             {editCroppedPhoto && (
                               <img src={URL.createObjectURL(editCroppedPhoto.blob)} alt="new photo preview" className="w-full max-w-xs rounded-lg object-cover mb-2" />
                             )}
-                            <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const file = await pickPhoto();
+                                if (file) {
+                                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
+                                } else {
+                                  editPhotoInputRef.current?.click();
+                                }
+                              }}
+                              className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors"
+                            >
                               <Camera className="w-4 h-4" />
                               {editCroppedPhoto ? `Photo ready (${editCroppedPhoto.orientation})` : e.image_url ? "Replace photo" : "Add a photo"}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={ev => {
-                                  const file = ev.target.files[0];
-                                  if (!file) return;
-                                  ev.target.value = '';
-                                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
-                                }}
-                              />
-                            </label>
+                            </button>
+                            <input
+                              ref={editPhotoInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={ev => {
+                                const file = ev.target.files[0];
+                                if (!file) return;
+                                ev.target.value = '';
+                                cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
+                              }}
+                            />
                           </div>
                           <div className="flex gap-2 pt-1">
                             <LoadingButton
@@ -369,6 +365,7 @@ const FIRST_TIME_PRESETS = [
 
 function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, onError }) {
   const cancelCropRef = useRef(null);
+  const photoInputRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
   const [mode, setMode] = useState('suggestions'); // 'suggestions' | 'custom'
@@ -457,21 +454,33 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Photo (optional)</Label>
-              <label className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors">
+              <button
+                type="button"
+                onClick={async () => {
+                  const file = await pickPhoto();
+                  if (file) {
+                    cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
+                  } else {
+                    photoInputRef.current?.click();
+                  }
+                }}
+                className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
+              >
                 <Camera className="w-4 h-4" />
                 {croppedImage ? `Photo ready (${croppedImage.orientation})` : 'Add a photo'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    e.target.value = '';
-                    cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
-                  }}
-                />
-              </label>
+              </button>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  e.target.value = '';
+                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
+                }}
+              />
             </div>
           </div>
 
@@ -527,6 +536,7 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
   const cancelCropRef = useRef(null);
+  const photoInputRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
   const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
@@ -619,21 +629,33 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
       <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={2} placeholder="Notes" className="focus-visible:ring-color-highlight" />
       <div>
         <Label className="text-xs text-muted-foreground">{ft.imageUrl ? 'Replace photo (optional)' : 'Add photo (optional)'}</Label>
-        <label className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors">
+        <button
+          type="button"
+          onClick={async () => {
+            const file = await pickPhoto();
+            if (file) {
+              cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
+            } else {
+              photoInputRef.current?.click();
+            }
+          }}
+          className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
+        >
           <Camera className="w-4 h-4" />
           {editCroppedImage ? `Photo ready (${editCroppedImage.orientation})` : ft.imageUrl ? 'Replace photo' : 'Add a photo'}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files[0];
-              if (!file) return;
-              e.target.value = '';
-              cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
-            }}
-          />
-        </label>
+        </button>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            e.target.value = '';
+            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
+          }}
+        />
       </div>
       <div className="flex gap-2">
         <button

@@ -23,6 +23,22 @@ Prerequisites the user must complete manually before this session:
 
 ---
 
+## S1.5 — Mobile Visual Polish
+
+Start S1.5. Plan: `plans/mobile/s1.5-mobile-visual-polish.md`
+
+Read before writing anything:
+- `Frontend/src/components/ui/input.jsx` (check for w-full / min-width issues — fix here first)
+- `Frontend/src/components/ui/textarea.jsx` (same check)
+- `Frontend/src/index.css` (confirm overflow-x: hidden is on html + body)
+- `Frontend/src/components/CradleHq.jsx` (outer shell padding + tab trigger sizing)
+
+Goal: Every tab and form looks correct in the Android emulator — no horizontal overflow, no clipped inputs, no text running off screen. Fix at the component level where possible so fixes apply everywhere at once.
+
+Do not add features. Do not change the visual design. Web behavior must be unchanged after fixes.
+
+---
+
 ## S2 — Camera Plugin
 
 Start S2. Plan: `plans/mobile/s2-camera-plugin.md`
@@ -35,6 +51,23 @@ Read before writing anything:
 Goal: Replace all 4 `<input type="file">` photo pickers with the Capacitor Camera plugin on native, with web fallback preserved.
 
 Do not add crop UI to First Times — that's a separate deferred item. Do not touch sleep/feeding/diaper. Web behavior must be unchanged.
+
+---
+
+## S2.5 — Privacy Policy & Store Submission Prep
+
+Start S2.5. Plan: `plans/mobile/s2.5-privacy-policy-prep.md`
+
+Read before writing anything:
+- `Frontend/public/privacy.html` (full file — all changes go here)
+
+Goal: Remove beta banner, add GDPR section, add camera/photo library permission language, update effective date. The Privacy Nutrition Labels checklist in the plan is a manual step for App Store Connect / Play Console — document it but don't implement anything for it.
+
+Do not change any app logic. Do not touch any other files. Web behavior must be unchanged.
+
+Prerequisites the user must complete manually before this session:
+- privacy@cradlehq.app email set up and receiving mail
+- Confirmed that https://cradlehq.app/privacy.html is live and loading
 
 ---
 

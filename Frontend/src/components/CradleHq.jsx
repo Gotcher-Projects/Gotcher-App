@@ -452,7 +452,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-10" />
             <div>
               <h1 className="font-display font-bold text-2xl text-brand-navy">Cradle<span className="text-primary">HQ</span></h1>
-              <p className="text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
+              <p className="hidden sm:block text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -531,12 +531,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
         {needsOnboarding === false && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-auto flex-wrap justify-start gap-2 bg-card/80 p-2">
-            <TabsTrigger value="dashboard" className="flex-1 min-w-[100px] font-medium">Dashboard</TabsTrigger>
-            <TabsTrigger value="memories"  className="flex-1 min-w-[100px] font-medium">Memories</TabsTrigger>
-            <TabsTrigger value="track"     className="flex-1 min-w-[100px] font-medium">Track</TabsTrigger>
-            <TabsTrigger value="health"    className="flex-1 min-w-[100px] font-medium">Health</TabsTrigger>
-            <TabsTrigger value="discover"  className="flex-1 min-w-[100px] font-medium">Discover</TabsTrigger>
+          <TabsList className="w-full h-auto flex-wrap justify-start gap-1.5 bg-card/80 p-2">
+            <TabsTrigger value="dashboard" className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Dashboard</TabsTrigger>
+            <TabsTrigger value="memories"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Memories</TabsTrigger>
+            <TabsTrigger value="track"     className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Track</TabsTrigger>
+            <TabsTrigger value="health"    className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Health</TabsTrigger>
+            <TabsTrigger value="discover"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Discover</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
@@ -632,6 +632,11 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
       <footer className="max-w-6xl mx-auto mt-8 text-center text-sm text-slate-600">
         <p>Not medical advice • Every baby develops uniquely</p>
+        <p className="mt-1">
+          <a href="/privacy.html" className="hover:underline">Privacy Policy</a>
+          {" · "}
+          <a href="/terms.html" className="hover:underline">Terms of Service</a>
+        </p>
       </footer>
     </div>
   );
