@@ -35,10 +35,12 @@ export default function App() {
       if (session) {
         const valid = await validateSession();
         if (valid) {
-          // Apply email_verified flag from redirect if present
+          // Re-read session after validate — validateSession may have refreshed user data (e.g. tier)
+          const freshSession = getStoredSession();
+          const baseUser = freshSession?.user ?? session.user;
           const userToSet = ev === 'true'
-            ? { ...session.user, email_verified: true }
-            : session.user;
+            ? { ...baseUser, email_verified: true }
+            : baseUser;
           if (ev === 'true') saveSession(userToSet);
           setUser(userToSet);
         }

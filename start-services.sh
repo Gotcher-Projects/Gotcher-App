@@ -58,20 +58,6 @@ echo "  GotcherApp — Starting Services"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# ── Port conflict check ────────────────────────────────────────────────────
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^taverntales-"; then
-  echo "  [ERROR] TavernTales containers are running and own ports 5432/5050/3000."
-  echo "          GotcherApp's postgres will start without a port binding and all"
-  echo "          DB connections will hit the wrong database."
-  echo ""
-  echo "  Stop TavernTales first:"
-  echo "    docker stop taverntales-postgres taverntales-pgadmin"
-  echo ""
-  echo "  Then re-run this script."
-  exit 1
-fi
-# ──────────────────────────────────────────────────────────────────────────
-
 # ── Docker ─────────────────────────────────────────────────────────────────
 DOCKER_DESKTOP="/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
@@ -100,6 +86,14 @@ if ! docker info > /dev/null 2>&1; then
 else
   echo "  Docker already running."
 fi
+
+# ── Port conflict check (after Docker is ready — it may restore old sessions) ─
+TAVERNTALES=$(docker ps --format '{{.Names}}' 2>/dev/null | grep "^taverntales-" || true)
+if [ -n "$TAVERNTALES" ]; then
+  echo "  [WARN] TavernTales containers are running — stopping them to free ports 5432/5050..."
+  docker stop $TAVERNTALES > /dev/null 2>&1 && echo "  Stopped: $TAVERNTALES" || true
+fi
+# ──────────────────────────────────────────────────────────────────────────
 
 echo "  Starting postgres + pgadmin via docker compose..."
 docker compose -f "$ROOT_DIR/Backend/docker-compose.yml" up -d

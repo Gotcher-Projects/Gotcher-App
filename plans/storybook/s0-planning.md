@@ -1,5 +1,5 @@
 # Session 0 — Planning & Print-on-Demand Evaluation
-**Status:** Not started
+**Status:** Complete
 **Branch:** `main` (planning only — no code)
 **Depends on:** nothing
 
@@ -100,8 +100,33 @@ inventory, no fulfillment — you pay per-unit at order time.
 
 ## Output of This Session
 By the end of this planning session, you should have:
-- [ ] Decision recorded: is S5 in scope for initial launch?
-- [ ] Pricing model chosen (even if payment processor isn't wired yet)
-- [ ] Free-vs-paid gating behavior confirmed (full hide vs. teaser)
-- [ ] Lulu API key obtained (if S5 is in scope) — sign up at lulu.com/account/api-keys
-- [ ] S5 stub plan file created if proceeding, or this item closed as "deferred post-launch"
+- [x] Decision recorded: is S5 in scope for initial launch?
+- [x] Pricing model chosen (even if payment processor isn't wired yet)
+- [x] Free-vs-paid gating behavior confirmed (full hide vs. teaser)
+- [x] S5 stub plan file created → `plans/storybook/s5-print.md`
+
+---
+
+## Decisions Recorded (2026-05-03)
+
+### S5 (Print-on-Demand)
+- **In scope** — deferred to after S1–S4 (digital storybook ships first)
+- **Vendor:** Lulu
+- **Multi-copy ordering** is a requirement (users order for grandparents, family, etc.)
+- **Lulu-hosted checkout** — Lulu handles payment, no Stripe charge on our side for print
+- S5 needs its own planning session before implementation to resolve PDF spec and API unknowns
+
+### Tiers & Pricing
+- Tier names: `free`, `plus`, `pro`
+- **Plus:** $5/month
+- **Pro:** pricing deferred
+- AI storybook (digital + physical print) gated to `plus` and `pro`
+- **AI credits:** per-chapter, monthly allowance, resets on billing date
+- **Free users:** zero AI generation credits
+- **Credit amounts per tier:** TBD — tuned as we go; S1 just needs the data model
+- Partial regeneration supported — users regenerate individual chapters, not forced to redo the whole book
+- Payments plan created: `plans/payments/`
+
+### Free-vs-Paid Gating
+- **Teaser** — free users see the Storybook tab with chapter titles and a sample/prompt,
+  but cannot generate or read full chapters without upgrading to Plus or Pro

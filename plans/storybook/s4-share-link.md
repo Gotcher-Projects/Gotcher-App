@@ -8,6 +8,9 @@ Let parents share their baby's storybook with a private URL. A "Share" button in
 storybook view generates a link (`cradlehq.app/book/{token}`) that anyone can read —
 no app install, no login required. Parents can revoke access at any time.
 
+**Gating (S0 decision):** Share section is only shown to `plus` and `pro` users.
+Free users cannot share until they upgrade.
+
 ## Files to Change
 | File | Change |
 |------|--------|
@@ -31,7 +34,7 @@ to detect the `/book/` prefix and render `PublicBookPage` instead of the normal 
 Read `App.jsx` first.
 
 ### Share section in StorybookTab
-Add below the chapter list, only for paid users:
+Shown only for `plus` and `pro` users (check `tier !== 'free'`). Add below the chapter list:
 ```
 ────────────────────────────────────
   Share your baby's story
@@ -52,7 +55,7 @@ const [shareLoading, setShareLoading] = useState(false);
 ```
 On mount (for paid users only), call `GET /storybook/share` — if a token exists, store it.
 "Copy link" copies `https://cradlehq.app/book/{token}` to clipboard using the existing
-`navigator.clipboard.writeText` pattern (check share.js for the fallback pattern).
+`navigator.clipboard.writeText` pattern (check share.js for the clipboard fallback pattern).
 "Revoke" calls `DELETE /storybook/share`, clears local token.
 "Generate new link" calls `GET /storybook/share` again (backend creates a new token after
 the old one was deleted).
@@ -62,19 +65,19 @@ Fetches from `GET /book/public/{token}` — no auth header.
 Renders:
 - Header: "{Baby Name}'s Story" with CradleHQ branding (logo + "Made with CradleHQ" link)
 - If no published chapters: "No chapters published yet — check back soon."
-- Each published chapter: anchor label as chapter title, published date, body text
-  Same typography decisions as the in-app view (serif, relaxed leading, constrained width)
+- Each published chapter: anchor label as chapter title, published date, body text.
+  Same typography as the in-app view (serif, relaxed leading, constrained width).
 - Footer: "Created with CradleHQ — track your baby's story at cradlehq.app"
 
 The public page should look polished enough that a grandparent reading it wants to share it.
-Use a light theme (white/cream background) since this is outward-facing, not the dark app UI.
+Use a light theme (white/cream background) since this is outward-facing, not the app UI.
 
 ### Token not found (404)
-Render a simple "This link is no longer active. Ask the parent to share a new one." message.
+Render: "This link is no longer active. Ask the parent to share a new one."
 No redirect, no error state that exposes app internals.
 
 ### No published chapters
-If the token is valid but there are no published chapters, show:
+If the token is valid but there are no published chapters:
 "This story is still being written — check back soon."
 Do not show draft chapters on the public page.
 
@@ -94,7 +97,8 @@ or equivalent catch-all. If not, add it during this session.
 The Vite dev server already handles this (history API fallback is on by default).
 
 ## Verification
-- [ ] "Share" section appears in storybook view for paid users
+- [ ] "Share" section appears in storybook view for `plus` and `pro` users only
+- [ ] "Share" section is hidden for free users
 - [ ] "Copy link" copies a valid URL to clipboard
 - [ ] Pasting the link in a private/incognito window loads the public book page
 - [ ] Public page shows baby name + all published chapters

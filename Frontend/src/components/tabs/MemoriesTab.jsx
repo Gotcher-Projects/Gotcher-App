@@ -11,8 +11,15 @@ import { apiUpload } from "@/lib/api";
 import { shareFirstTime } from "@/lib/share";
 import { openCropModal } from "@/lib/imageUtils.jsx";
 import { pickPhoto } from "@/lib/camera";
+import StorybookTab from "@/components/tabs/StorybookTab";
 
-export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError }) {
+export default function MemoriesTab({
+  data, week, onAdd, onEdit, onDelete, onUpdateImage,
+  firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError,
+  tier, chapters, initialCredits, availableEventAnchors,
+  onChapterGenerate, onChapterUpdate, onChapterDelete, onUnlockChapter,
+  onNavigate,
+}) {
   const [view, setView] = useState('journal');
 
   return (
@@ -20,7 +27,8 @@ export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpd
       <PillNav
         options={[
           { value: 'journal', label: 'Journal' },
-          { value: 'firsts',  label: 'Firsts' },
+          { value: 'firsts',  label: 'Firsts'  },
+          { value: 'book',    label: 'Book'    },
         ]}
         active={view}
         onChange={setView}
@@ -28,6 +36,27 @@ export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpd
       />
       {view === 'journal' && <JournalTab data={data} week={week} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
       {view === 'firsts'  && <FirstTimesTab firsts={firsts} babyName={babyName} onAdd={onAddFirst} onUpdate={onUpdateFirst} onDelete={onDeleteFirst} onUpload={onUpload} onError={onError} />}
+      {view === 'book'    && (
+        <StorybookTab
+          chapters={chapters}
+          tier={tier}
+          week={week}
+          initialCredits={initialCredits}
+          onGenerate={onChapterGenerate}
+          onUpdate={onChapterUpdate}
+          onDelete={onChapterDelete}
+          onUnlockChapter={onUnlockChapter}
+          availableEventAnchors={availableEventAnchors ?? []}
+          onNavigate={(target) => {
+            if (target === 'firsts') {
+              setView('firsts');
+            } else {
+              onNavigate?.(target);
+            }
+          }}
+          onError={onError}
+        />
+      )}
     </>
   );
 }

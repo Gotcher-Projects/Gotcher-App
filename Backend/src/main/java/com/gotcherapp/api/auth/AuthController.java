@@ -104,10 +104,12 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal AuthPrincipal principal) {
-        return ResponseEntity.ok(Map.of("user", Map.of(
-            "userId", principal.userId(),
-            "email", principal.email()
-        )));
+        try {
+            UserDto user = authService.getUser(principal.userId());
+            return ResponseEntity.ok(Map.of("user", user));
+        } catch (Exception e) {
+            return ApiError.unauthorized("Invalid session");
+        }
     }
 
     @GetMapping("/verify-email")

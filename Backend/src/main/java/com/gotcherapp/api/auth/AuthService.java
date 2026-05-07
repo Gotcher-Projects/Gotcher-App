@@ -66,7 +66,7 @@ public class AuthService {
             log.warn("Failed to send verification email to {}: {}", email, e.getMessage());
         }
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", 0));
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -75,7 +75,7 @@ public class AuthService {
         }
 
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, email, password_hash, display_name, is_active, email_verified FROM users WHERE email = ?",
+            "SELECT id, email, password_hash, display_name, is_active, email_verified, tier, ai_credits_remaining FROM users WHERE email = ?",
             req.email().toLowerCase()
         );
 
@@ -92,6 +92,8 @@ public class AuthService {
         String email = (String) user.get("email");
         String displayName = (String) user.get("display_name");
         boolean emailVerified = Boolean.TRUE.equals(user.get("email_verified"));
+        String tier = (String) user.get("tier");
+        int credits = user.get("ai_credits_remaining") != null ? ((Number) user.get("ai_credits_remaining")).intValue() : 0;
 
         jdbc.update("UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = ?", userId);
 
@@ -99,7 +101,7 @@ public class AuthService {
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, refreshToken, req.rememberMe() ? 30 : 7);
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits));
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -133,17 +135,19 @@ public class AuthService {
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE id = ?", stored.get("id"));
 
         List<Map<String, Object>> userRows = jdbc.queryForList(
-            "SELECT id, email, display_name, email_verified FROM users WHERE id = ?", userId);
+            "SELECT id, email, display_name, email_verified, tier, ai_credits_remaining FROM users WHERE id = ?", userId);
         if (userRows.isEmpty()) throw new InvalidTokenException();
 
         String email = (String) userRows.get(0).get("email");
         String displayName = (String) userRows.get(0).get("display_name");
         boolean emailVerified = Boolean.TRUE.equals(userRows.get(0).get("email_verified"));
+        String tier = (String) userRows.get(0).get("tier");
+        int credits = userRows.get(0).get("ai_credits_remaining") != null ? ((Number) userRows.get(0).get("ai_credits_remaining")).intValue() : 0;
         String newAccessToken = jwtUtil.generateAccessToken(userId, email);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, newRefreshToken, 7);
 
-        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified));
+        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits));
     }
 
     public void logout(String refreshToken) {
@@ -151,6 +155,22 @@ public class AuthService {
             throw new IllegalArgumentException("Refresh token required");
         }
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE token = ?", refreshToken);
+    }
+
+    public UserDto getUser(Long userId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT id, email, display_name, email_verified, tier, ai_credits_remaining FROM users WHERE id = ?", userId);
+        if (rows.isEmpty()) throw new InvalidTokenException();
+        Map<String, Object> u = rows.get(0);
+        int credits = u.get("ai_credits_remaining") != null ? ((Number) u.get("ai_credits_remaining")).intValue() : 0;
+        return new UserDto(
+            ((Number) u.get("id")).longValue(),
+            (String) u.get("email"),
+            (String) u.get("display_name"),
+            Boolean.TRUE.equals(u.get("email_verified")),
+            (String) u.get("tier"),
+            credits
+        );
     }
 
     private void storeRefreshToken(Long userId, String token, int days) {

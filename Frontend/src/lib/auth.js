@@ -109,7 +109,11 @@ export async function validateSession() {
       const meRes = await fetch(`${API_BASE}/auth/me`, {
         headers: { 'Authorization': `Bearer ${accessToken}` },
       });
-      if (meRes.ok) return true;
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        if (meData.user) saveSession(meData.user);
+        return true;
+      }
       if (meRes.status !== 401 || !refreshToken) return false;
 
       const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
@@ -118,13 +122,19 @@ export async function validateSession() {
         body: JSON.stringify({ refreshToken }),
       });
       if (!refreshRes.ok) { clearNativeTokens(); return false; }
-      saveNativeTokens(await refreshRes.json());
+      const refreshData = await refreshRes.json();
+      saveNativeTokens(refreshData);
+      if (refreshData.user) saveSession(refreshData.user);
       return true;
     }
 
     // Web: cookie-based
     const meRes = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
-    if (meRes.ok) return true;
+    if (meRes.ok) {
+      const meData = await meRes.json();
+      if (meData.user) saveSession(meData.user);
+      return true;
+    }
     if (meRes.status !== 401) return false;
 
     const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {

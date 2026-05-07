@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
+import { MILESTONES } from "../lib/babyData";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
 import TrackTab from "./tabs/TrackTab";
@@ -25,8 +26,9 @@ function loadLocal(key) {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner }) {
+export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner, onUserUpdate }) {
   const { theme } = useTheme();
+  const tier = user?.tier ?? 'free';
   const [data, setData] = useState({
     profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "" },
     milestones: {},
@@ -39,6 +41,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [vaccines, setVaccines] = useState({});
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
+  const [chapters, setChapters] = useState([]);
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
 
@@ -165,6 +168,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   useEffect(() => {
     apiRequest('/first-times')
       .then(list => setFirsts(list))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiRequest('/storybook')
+      .then(list => setChapters(list))
       .catch(() => {});
   }, []);
 
@@ -341,6 +350,35 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     setFirsts(f => [ft, ...f]);
   }
 
+  async function generateChapter(id) {
+    const chapter = await apiRequest(`/storybook/generate/${id}`, { method: 'POST' });
+    setChapters(c => c.map(ch => ch.id === id ? chapter : ch));
+    return chapter;
+  }
+
+  async function updateChapter(id, patch) {
+    const chapter = await apiRequest(`/storybook/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+    setChapters(c => c.map(ch => ch.id === id ? chapter : ch));
+    return chapter;
+  }
+
+  async function deleteChapter(id) {
+    await apiRequest(`/storybook/${id}`, { method: 'DELETE' });
+    setChapters(c => c.filter(ch => ch.id !== id));
+  }
+
+  async function unlockChapterPeriod(req) {
+    const chapter = await apiRequest('/storybook/unlock', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    });
+    setChapters(c => c.some(x => x.id === chapter.id) ? c : [chapter, ...c]);
+    return chapter;
+  }
+
   async function updateFirstTime(id, patch) {
     const ft = await apiRequest(`/first-times/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
     setFirsts(f => f.map(x => x.id === id ? ft : x));
@@ -412,6 +450,23 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const week = getWeek(data.profile.birthdate);
   const months = getMonths(data.profile.birthdate);
   const activities = getActivities(week);
+
+  const usedEventKeys = new Set(
+    chapters.filter(c => c.anchorType !== 'period').map(c => c.anchorKey)
+  );
+  const availableEventAnchors = [
+    ...Object.keys(data.milestones)
+      .filter(k => data.milestones[k] && !usedEventKeys.has(k))
+      .map(k => {
+        const [gkStr, iStr] = k.split('-');
+        const label = MILESTONES[parseInt(gkStr)]?.[parseInt(iStr)];
+        return label ? { anchorType: 'milestone', anchorKey: k, anchorLabel: label } : null;
+      })
+      .filter(Boolean),
+    ...firsts
+      .filter(ft => !usedEventKeys.has(String(ft.id)))
+      .map(ft => ({ anchorType: 'first_time', anchorKey: String(ft.id), anchorLabel: ft.label, imageUrl: ft.imageUrl ?? null })),
+  ];
 
   return (
     <div className={`min-h-screen p-4 ${
@@ -576,6 +631,20 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               onDeleteFirst={deleteFirstTime}
               onUpload={img => apiUpload('/upload?context=first_times', img)}
               onError={onError}
+              tier={tier}
+              chapters={chapters}
+              initialCredits={user?.ai_credits_remaining ?? null}
+              onChapterGenerate={generateChapter}
+              onChapterUpdate={updateChapter}
+              onChapterDelete={deleteChapter}
+              onUnlockChapter={unlockChapterPeriod}
+              availableEventAnchors={availableEventAnchors}
+              onNavigate={(target) => {
+                if (target === 'health-milestones') {
+                  setActiveTab('health');
+                  setHealthView('milestones');
+                }
+              }}
             />
           </TabsContent>
 
