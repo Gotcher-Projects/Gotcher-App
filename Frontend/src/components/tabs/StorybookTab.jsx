@@ -2,58 +2,46 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Lock, BookOpen } from "lucide-react";
+import { Loader2, Lock, BookOpen, Wand2 } from "lucide-react";
+import { STORYBOOK_PERIODS } from "@/lib/storybookPeriods";
+import StorybookWizard from "@/components/storybook/StorybookWizard";
+import LayoutRenderer from "@/components/storybook/LayoutRenderer";
+import { ChapterPhoto, renderPublishedBody, renderDraftBody } from "@/components/storybook/LegacyChapterRenderer";
 
-const PERIOD_OPTIONS = [
-  { key: '0-4w',    label: 'Your First Month',        startWeeks: 0,  endWeeks: 4   },
-  { key: '0-8w',    label: 'Your First Two Months',   startWeeks: 0,  endWeeks: 8   },
-  { key: '0-13w',   label: 'Your First Three Months', startWeeks: 0,  endWeeks: 13  },
-  { key: '0-26w',   label: 'Your First Six Months',   startWeeks: 0,  endWeeks: 26  },
-  { key: '0-52w',   label: 'Your First Year',         startWeeks: 0,  endWeeks: 52  },
-  { key: '13-26w',  label: 'Months 3–6',              startWeeks: 13, endWeeks: 26  },
-  { key: '26-52w',  label: 'Months 6–12',             startWeeks: 26, endWeeks: 52  },
-  { key: '52-104w', label: 'Year 1–2',                startWeeks: 52, endWeeks: 104 },
-];
+// Event-only period options kept for the "By Milestone" flow
+const EVENT_ANCHOR_MODES = [{ value: 'event', label: 'By Milestone' }];
 
 export default function StorybookTab({
   chapters, tier, week, initialCredits,
   availableEventAnchors,
+  journalEntries, firsts, birthdate,
   onGenerate, onUpdate, onDelete, onUnlockChapter,
+  onWizardGenerate, onUpload,
   onNavigate, onError,
 }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [credits, setCredits] = useState(initialCredits ?? null);
-  const [chapterMode, setChapterMode] = useState('event');
   const [selectedValue, setSelectedValue] = useState('');
   const [adding, setAdding] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const isPaid = tier !== 'free';
-  const usedPeriodKeys = new Set(chapters.filter(c => c.anchorType === 'period').map(c => c.anchorKey));
-  const availablePeriods = PERIOD_OPTIONS.filter(p => p.endWeeks <= (week || 0) && !usedPeriodKeys.has(p.key));
-
   const eventAnchors = availableEventAnchors ?? [];
 
-  async function handleAddChapter() {
+  async function handleAddEventChapter() {
     if (!selectedValue) return;
     setAdding(true);
     try {
-      if (chapterMode === 'event') {
-        const [type, ...keyParts] = selectedValue.split(':');
-        const anchorKey = keyParts.join(':');
-        const anchor = eventAnchors.find(a => a.anchorType === type && a.anchorKey === anchorKey);
-        if (!anchor) return;
-        await onUnlockChapter({ anchorType: anchor.anchorType, anchorKey: anchor.anchorKey, anchorLabel: anchor.anchorLabel, imageUrl: anchor.imageUrl ?? null });
-      } else {
-        const opt = PERIOD_OPTIONS.find(p => p.key === selectedValue);
-        if (!opt) return;
-        await onUnlockChapter({
-          anchorType: 'period',
-          anchorKey: opt.key,
-          anchorLabel: opt.label,
-          periodStartWeeks: opt.startWeeks,
-          periodEndWeeks: opt.endWeeks,
-        });
-      }
+      const [type, ...keyParts] = selectedValue.split(':');
+      const anchorKey = keyParts.join(':');
+      const anchor = eventAnchors.find(a => a.anchorType === type && a.anchorKey === anchorKey);
+      if (!anchor) return;
+      await onUnlockChapter({
+        anchorType: anchor.anchorType,
+        anchorKey: anchor.anchorKey,
+        anchorLabel: anchor.anchorLabel,
+        imageUrl: anchor.imageUrl ?? null,
+      });
       setSelectedValue('');
     } catch {
       onError('Failed to add chapter');
@@ -61,7 +49,39 @@ export default function StorybookTab({
     setAdding(false);
   }
 
+  async function handleGenerate(id) {
+    const chapter = await onGenerate(id);
+    setCredits(c => c === null ? null : Math.max(0, c - 1));
+    return chapter;
+  }
+
+  async function handleWizardGenerate(payload) {
+    const chapter = await onWizardGenerate(payload);
+    setCredits(c => c === null ? null : Math.max(0, c - 1));
+    return chapter;
+  }
+
   const sorted = [...chapters].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  if (showWizard) {
+    return (
+      <StorybookWizard
+        journalEntries={journalEntries ?? []}
+        firsts={firsts ?? []}
+        birthdate={birthdate}
+        chapters={chapters}
+        week={week}
+        tier={tier}
+        credits={credits}
+        onWizardGenerate={handleWizardGenerate}
+        onGenerate={handleGenerate}
+        onUpdate={onUpdate}
+        onUpload={onUpload}
+        onClose={() => setShowWizard(false)}
+        onError={onError}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -77,17 +97,32 @@ export default function StorybookTab({
         </div>
       )}
 
+      {/* Period chapter wizard entry point */}
+      <Card className="bg-color-warm/10 border-color-highlight/20 border">
+        <CardContent className="p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-foreground">Write a Period Chapter</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Choose a time window, pick what to include, and let AI write your baby's story.
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowWizard(true)}
+            className="flex-shrink-0 bg-color-highlight hover:bg-color-highlight/90 gap-2"
+          >
+            <Wand2 className="w-4 h-4" />
+            Create
+          </Button>
+        </CardContent>
+      </Card>
+
       {chapters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="flex flex-col items-center justify-center py-10 text-center">
           <BookOpen className="w-16 h-16 text-primary/30 mb-4" />
           <p className="text-lg font-semibold text-muted-foreground">Your story starts here</p>
           <p className="text-sm text-muted-foreground/70 mt-1 max-w-xs">
-            Each milestone and first time becomes a chapter in your baby's memory book.
+            Create your first chapter above, or link a milestone below.
           </p>
-          <div className="flex gap-3 mt-4">
-            <Button size="sm" variant="outline" onClick={() => onNavigate('firsts')}>Go to Firsts →</Button>
-            <Button size="sm" variant="outline" onClick={() => onNavigate('health-milestones')}>Go to Milestones →</Button>
-          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -97,10 +132,9 @@ export default function StorybookTab({
               chapter={chapter}
               tier={tier}
               credits={credits}
-              onGenerate={async (id) => {
-                await onGenerate(id);
-                setCredits(c => c === null ? null : Math.max(0, c - 1));
-              }}
+              journalEntries={journalEntries ?? []}
+              firsts={firsts ?? []}
+              onGenerate={handleGenerate}
               onUpdate={onUpdate}
               onDelete={onDelete}
               onError={onError}
@@ -109,87 +143,44 @@ export default function StorybookTab({
         </div>
       )}
 
-      <Card className="bg-color-warm/10">
-        <CardContent className="p-5 space-y-3">
-          <h3 className="font-semibold text-foreground">Add a Chapter</h3>
-
-          {/* Mode toggle */}
-          <div className="flex gap-2">
-            {[
-              { value: 'event',  label: 'By Milestone' },
-              { value: 'period', label: 'By Time Period' },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => { setChapterMode(opt.value); setSelectedValue(''); }}
-                className={`text-sm px-3 py-1 rounded-full border transition-colors ${
-                  chapterMode === opt.value
-                    ? 'bg-color-highlight/10 border-color-highlight/30 text-color-highlight'
-                    : 'border-border text-muted-foreground hover:bg-secondary'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {chapterMode === 'period' && (
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-              <strong>Tip:</strong> Chapters work best when you have journal entries, milestones, or first times
-              logged for that period. Sparse data may result in a shorter chapter.
-            </div>
-          )}
-
-          {chapterMode === 'event' && eventAnchors.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No milestones or first times available yet — log some in the Health and Memories tabs first.
+      {/* Milestone event chapter — kept for linking individual milestones */}
+      {eventAnchors.length > 0 && (
+        <Card className="bg-color-warm/10">
+          <CardContent className="p-5 space-y-3">
+            <h3 className="font-semibold text-foreground">Add a Milestone Chapter</h3>
+            <p className="text-xs text-muted-foreground">
+              Link a single milestone or first time as its own chapter.
             </p>
-          ) : chapterMode === 'period' && availablePeriods.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No time periods available yet — check back as your baby grows.
-            </p>
-          ) : (
             <div className="flex gap-2">
               <select
                 value={selectedValue}
                 onChange={e => setSelectedValue(e.target.value)}
                 className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                {chapterMode === 'event' ? (
-                  <>
-                    <option value="">Select a milestone or first time…</option>
-                    {eventAnchors.map(a => (
-                      <option key={`${a.anchorType}:${a.anchorKey}`} value={`${a.anchorType}:${a.anchorKey}`}>
-                        {a.anchorLabel}
-                      </option>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <option value="">Select a time period…</option>
-                    {availablePeriods.map(p => (
-                      <option key={p.key} value={p.key}>{p.label}</option>
-                    ))}
-                  </>
-                )}
+                <option value="">Select a milestone or first time…</option>
+                {eventAnchors.map(a => (
+                  <option key={`${a.anchorType}:${a.anchorKey}`} value={`${a.anchorType}:${a.anchorKey}`}>
+                    {a.anchorLabel}
+                  </option>
+                ))}
               </select>
               <Button
-                onClick={handleAddChapter}
+                onClick={handleAddEventChapter}
                 disabled={!selectedValue || adding}
                 size="sm"
                 className="bg-color-highlight hover:bg-color-highlight/90"
               >
-                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Chapter'}
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
-function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, onError }) {
+function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerate, onUpdate, onDelete, onError }) {
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(chapter.body || '');
@@ -240,6 +231,24 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
     chapter.anchorType === 'period' ? 'Time Period' :
     chapter.anchorType === 'milestone' ? 'Milestone' : 'First Time';
 
+  // Fallback photo list for wizard chapters whose body has no inline markers yet
+  const hasPhotoMarkers = /\[PHOTO:(?:journal|first_time):\d+\]/.test(chapter.body || '');
+  const wizardPhotoItems = [];
+  if (!hasPhotoMarkers) {
+    for (const id of chapter.selectedJournalIds || []) {
+      const entry = journalEntries.find(e => e.id === id);
+      if (!entry) continue;
+      const photo = chapter.photoOverrides?.[`journal:${id}`] || entry.image_url;
+      if (photo) wizardPhotoItems.push({ label: entry.title, imageUrl: photo, orientation: entry.image_orientation || 'landscape' });
+    }
+    for (const id of chapter.selectedFirstTimeIds || []) {
+      const ft = firsts.find(f => f.id === id);
+      if (!ft) continue;
+      const photo = chapter.photoOverrides?.[`first_time:${id}`] || ft.imageUrl;
+      if (photo) wizardPhotoItems.push({ label: ft.label, imageUrl: photo, orientation: ft.imageOrientation || 'landscape' });
+    }
+  }
+
   const cardHeader = (
     <div>
       <span className="text-xs text-muted-foreground uppercase tracking-wide">{typeLabel}</span>
@@ -286,8 +295,21 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
                 </Button>
               </div>
             </div>
+          ) : chapter.layoutData?.blocks?.length > 0 ? (
+            <div className="rounded-lg overflow-hidden bg-[#fdf9f2]">
+              <LayoutRenderer layout={chapter.layoutData} />
+            </div>
           ) : (
-            <p className="text-base leading-relaxed whitespace-pre-wrap">{chapter.body}</p>
+            <>
+              {renderDraftBody(chapter.body, chapter.photoOverrides, journalEntries, firsts)}
+              {wizardPhotoItems.length > 0 && (
+                <div className="mt-3 space-y-4">
+                  {wizardPhotoItems.map((item, i) => (
+                    <ChapterPhoto key={i} url={item.imageUrl} label={item.label} orientation={item.orientation} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {!editing && (
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
@@ -301,6 +323,11 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
               >
                 Regenerate
               </Button>
+              {chapter.layoutData?.blocks?.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => onUpdate(chapter.id, { clearLayoutData: true })}>
+                  Use classic style
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => onDelete(chapter.id)} className="text-red-500 hover:text-red-600 hover:border-red-300 ml-auto">
                 Delete
               </Button>
@@ -312,9 +339,10 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
   }
 
   if (chapter.status === 'published') {
+    const hasLayout = chapter.layoutData?.blocks?.length > 0;
     return (
       <div className="rounded-xl shadow-sm overflow-hidden bg-[#fdf9f2] dark:bg-card border border-[#ddd0b8] dark:border-border">
-        <div className="px-8 py-10">
+        <div className={`px-8 ${hasLayout && !editing ? 'pt-10 pb-6' : 'py-10'}`}>
           <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{typeLabel}</p>
           <h2 className="text-center font-display font-semibold text-2xl text-foreground mb-3 leading-snug">{chapter.anchorLabel}</h2>
           <div className="flex items-center justify-center gap-2 mb-7">
@@ -322,7 +350,7 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
             <span className="text-color-highlight/50 text-xs">◆</span>
             <div className="h-px w-14 bg-color-highlight/25" />
           </div>
-          {chapter.imageUrl && !editing && (
+          {chapter.imageUrl && !editing && !hasLayout && (
             <div className="mb-7">
               <img
                 src={chapter.imageUrl}
@@ -348,24 +376,33 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
                 </Button>
               </div>
             </div>
-          ) : (
+          ) : !hasLayout && (
             <div>
-              {chapter.body?.split('\n\n').map((para, i) => (
-                <p key={i} className={`font-serif text-[15px] leading-8 text-foreground/85 ${i === 0 ? 'book-chapter-first' : 'mt-4'}`}>
-                  {para.trim()}
-                </p>
-              ))}
+              {renderPublishedBody(chapter.body, chapter.photoOverrides, journalEntries, firsts)}
             </div>
           )}
-          {chapter.publishedAt && !editing && (
+          {!hasLayout && chapter.publishedAt && !editing && (
             <p className="text-center text-xs text-muted-foreground mt-8">
               {new Date(chapter.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           )}
         </div>
+        {!editing && hasLayout && (
+          <LayoutRenderer layout={chapter.layoutData} />
+        )}
+        {!editing && hasLayout && chapter.publishedAt && (
+          <p className="text-center text-xs text-muted-foreground px-8 py-4">
+            {new Date(chapter.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+        )}
         {!editing && (
           <div className="px-6 py-3 border-t border-[#ddd0b8] dark:border-border flex gap-2 justify-end">
             <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
+            {hasLayout && (
+              <Button size="sm" variant="outline" onClick={() => onUpdate(chapter.id, { clearLayoutData: true })}>
+                Use classic style
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => onDelete(chapter.id)} className="text-red-500 hover:text-red-600 hover:border-red-300">Delete</Button>
           </div>
         )}
@@ -408,3 +445,4 @@ function ChapterCard({ chapter, tier, credits, onGenerate, onUpdate, onDelete, o
     </Card>
   );
 }
+

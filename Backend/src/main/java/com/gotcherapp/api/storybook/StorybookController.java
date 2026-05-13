@@ -5,6 +5,7 @@ import com.gotcherapp.api.security.AuthPrincipal;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
 import com.gotcherapp.api.storybook.dto.UnlockRequest;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
+import com.gotcherapp.api.storybook.dto.WizardRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +41,25 @@ public class StorybookController {
             return ResponseEntity.status(201).body(chapter);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ApiError.badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/storybook/wizard")
+    public ResponseEntity<?> wizard(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody WizardRequest req
+    ) {
+        try {
+            ChapterResponse chapter = storybookService.wizard(principal.userId(), req);
+            return ResponseEntity.ok(chapter);
+        } catch (StorybookService.ForbiddenException e) {
+            return ApiError.forbidden(e.getMessage());
+        } catch (StorybookService.InsufficientCreditsException e) {
+            return ResponseEntity.status(402).body(new ApiError(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ApiError.badRequest(e.getMessage());
+        } catch (Exception e) {
+            return ApiError.serverError(e.getMessage());
         }
     }
 

@@ -379,6 +379,18 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     return chapter;
   }
 
+  async function wizardGenerate(payload) {
+    const chapter = await apiRequest('/storybook/wizard', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setChapters(c => c.some(x => x.id === chapter.id)
+      ? c.map(x => x.id === chapter.id ? chapter : x)
+      : [chapter, ...c]
+    );
+    return chapter;
+  }
+
   async function updateFirstTime(id, patch) {
     const ft = await apiRequest(`/first-times/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
     setFirsts(f => f.map(x => x.id === id ? ft : x));
@@ -638,6 +650,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               onChapterUpdate={updateChapter}
               onChapterDelete={deleteChapter}
               onUnlockChapter={unlockChapterPeriod}
+              onWizardGenerate={wizardGenerate}
               availableEventAnchors={availableEventAnchors}
               onNavigate={(target) => {
                 if (target === 'health-milestones') {

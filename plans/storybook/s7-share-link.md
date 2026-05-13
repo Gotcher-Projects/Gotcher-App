@@ -1,7 +1,8 @@
-# Session 4 — Shareable Book Link
+# Session 7 — Shareable Book Link
 **Status:** Not started
 **Branch:** `feature/storybook`
-**Depends on:** S3 (storybook view must exist), S2 (public backend endpoint live)
+**Depends on:** S5–S6 (layout editor implementation), S3 (storybook view must exist), S2 (public backend endpoint live)
+**Note:** Renumbered from S4.1 → S7 to accommodate Layout Editor sessions (S5–S6).
 
 ## Goal
 Let parents share their baby's storybook with a private URL. A "Share" button in the
@@ -67,6 +68,7 @@ Renders:
 - If no published chapters: "No chapters published yet — check back soon."
 - Each published chapter: anchor label as chapter title, published date, body text.
   Same typography as the in-app view (serif, relaxed leading, constrained width).
+  If chapter has `layout_data`, render via LayoutRenderer; otherwise legacy inline-marker render.
 - Footer: "Created with CradleHQ — track your baby's story at cradlehq.app"
 
 The public page should look polished enough that a grandparent reading it wants to share it.
@@ -110,3 +112,4 @@ The Vite dev server already handles this (history API fallback is on by default)
 - [ ] Public page has CradleHQ branding and footer link
 - [ ] Direct load of /book/:token URL works (SPA routing not broken)
 - [ ] No auth token or user PII visible in the public page response
+- [ ] Chapters with layout_data render via LayoutRenderer on the public page

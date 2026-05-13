@@ -18,6 +18,7 @@ export default function MemoriesTab({
   firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError,
   tier, chapters, initialCredits, availableEventAnchors,
   onChapterGenerate, onChapterUpdate, onChapterDelete, onUnlockChapter,
+  onWizardGenerate,
   onNavigate,
 }) {
   const [view, setView] = useState('journal');
@@ -47,6 +48,11 @@ export default function MemoriesTab({
           onDelete={onChapterDelete}
           onUnlockChapter={onUnlockChapter}
           availableEventAnchors={availableEventAnchors ?? []}
+          journalEntries={data.journal}
+          firsts={firsts}
+          birthdate={data.profile?.birthdate}
+          onWizardGenerate={onWizardGenerate}
+          onUpload={onUpload}
           onNavigate={(target) => {
             if (target === 'firsts') {
               setView('firsts');

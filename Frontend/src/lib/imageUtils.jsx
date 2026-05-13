@@ -132,7 +132,7 @@ function CropModal({ file, onComplete, onCancel }) {
   )
 }
 
-export function openCropModal(file, onComplete) {
+export function openCropModal(file, onComplete, onCancel) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = ReactDOM.createRoot(container)
@@ -146,7 +146,7 @@ export function openCropModal(file, onComplete) {
     <CropModal
       file={file}
       onComplete={result => { close(); onComplete(result) }}
-      onCancel={close}
+      onCancel={() => { close(); onCancel?.() }}
     />
   )
 

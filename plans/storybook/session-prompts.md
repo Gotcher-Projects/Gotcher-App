@@ -165,18 +165,78 @@ are all specified in the plan file.
 
 ---
 
-## Session 4 — Shareable Book Link
+## Session 4 — Layout Editor Planning
+**Status: Complete** — decisions recorded in `plans/storybook/s4-layout-editor.md`
+
+---
+
+## Session 5 — Layout Editor Implementation
 
 ```
-Session 4 of storybook. Branch: feature/storybook.
-Plan: plans/storybook/s4-share-link.md
+Session 5 of storybook — Layout Editor Implementation.
+Plan: plans/storybook/s5-layout-editor-impl.md
+Design decisions: plans/storybook/s4-layout-editor.md
 
-Frontend only. S3 must be done (storybook view must exist). Backend public endpoint
+All design decisions are in s4-layout-editor.md. This session is implementation only.
+
+Order of work (follow the plan exactly):
+1. V30 migration + backend DTO/service/controller (layout_data read/write)
+2. npm install react-rnd in Frontend
+3. Extract LegacyChapterRenderer.jsx from StorybookTab.jsx
+4. Build LayoutEditor.jsx (template picker → free-form canvas with react-rnd)
+5. Add step 5 to StorybookWizard.jsx
+6. Build LayoutRenderer.jsx + branch in StorybookTab.jsx
+
+Read s4-layout-editor.md and s5-layout-editor-impl.md before writing any code.
+Read ChapterResponse.java, StorybookService.java, StorybookController.java, and
+StorybookWizard.jsx before touching those files.
+```
+
+---
+
+## Session 5.1 — Layout Editor Polish & Multi-Page Chapters
+
+```
+Session 5.1 of storybook — Layout Editor Polish & Multi-Page Chapters.
+Plan: plans/storybook/s5.1-layout-editor-polish.md
+Branch: journal-updates
+
+Two phases — do Phase A (quick fixes) before touching Phase B.
+
+Phase A — three small fixes in LayoutEditor.jsx:
+1. Classic paragraph formatting in text block display mode (split on \n\n, font-serif paragraphs)
+2. Photo drag/click conflict — remove onClick from photo block, add corner Camera button
+3. Strip [PHOTO:...] markers from text content when initializing blocks from chapter.body
+
+Phase B — multi-page chapters (bigger lift):
+1. Layout data v2 format: { version: 2, pages: [{ id, sourceKey, blocks }] }
+2. LayoutRenderer: detect version === 2, render page-flip carousel with prev/next + swipe
+3. LayoutEditor: page tabs + page navigation bar + "Add page" button
+4. StorybookWizard: mode picker after entry selection ("One Story" vs "One Page Per Memory")
+5. Backend: new generate-pages endpoint (StorybookController + StorybookService + ClaudeClient)
+
+No DB migration needed for Phase B — format change is within existing layout_data TEXT column.
+Existing v1 layouts and chapters without layout_data must continue to work unchanged.
+
+Read s5.1-layout-editor-polish.md fully before writing any code.
+Read LayoutEditor.jsx, LayoutRenderer.jsx, StorybookWizard.jsx before touching those files.
+```
+
+---
+
+## Session 7 — Shareable Book Link
+
+```
+Session 7 of storybook. Branch: feature/storybook.
+Plan: plans/storybook/s7-share-link.md
+
+Frontend only. S5–S6 (layout editor) must be done. Backend public endpoint
 already built in S2.
 
-Key S0 decisions:
+Key decisions:
 - Share section visible to plus and pro users only (check tier !== 'free')
 - Free users do not see the share section
+- Public page renders chapters via LayoutRenderer if layout_data present, else legacy renderer
 
 Files:
 1. Frontend/src/components/tabs/StorybookTab.jsx — add Share section at the bottom
@@ -188,3 +248,8 @@ Read share.js to reuse the clipboard fallback pattern.
 Check deployment-guide.html to confirm Caddy catch-all is configured for SPA routing.
 All layout, privacy, and routing decisions are in the plan file.
 ```
+
+---
+
+## Session 8 — Print-on-Demand
+**Note:** Needs its own planning session (S8 Planning) before implementation — see `plans/storybook/s8-print.md` for open questions that must be resolved first.

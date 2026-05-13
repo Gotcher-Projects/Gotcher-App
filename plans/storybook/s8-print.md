@@ -1,7 +1,8 @@
-# Storybook S5 — Print-on-Demand (Lulu)
+# Storybook S8 — Print-on-Demand (Lulu)
 **Status:** Not started
-**Branch:** `storybook-s5`
-**Depends on:** Storybook S4 (shareable link), Payments S1 (tier check)
+**Branch:** `storybook-s8`
+**Depends on:** S7 (shareable link), Payments S1 (tier check)
+**Note:** Renumbered from S5 → S8 to accommodate Layout Editor (S5–S6) and Share Link (S7).
 
 ## Goal
 Allow paid users to order a physical printed copy of their storybook via Lulu's API.
@@ -18,7 +19,7 @@ Lulu handles printing, shipping, and payment — we handle PDF assembly and orde
 
 ---
 
-## Open Questions (resolve in S5 planning session before implementation)
+## Open Questions (resolve in S8 planning session before implementation)
 
 ### Lulu API
 - [ ] Does Lulu's API support a redirect-to-checkout flow, or does it require us to collect payment and POST an order?
@@ -86,13 +87,13 @@ Default: chronological (event chapters by anchor week, period chapters by period
 `sort_order` column overrides when set. User-controlled ordering UI is a separate future session.
 
 ### Trim size
-8×10" assumed — **must be confirmed against Lulu's spec catalog in S5 planning session.**
+8×10" assumed — **must be confirmed against Lulu's spec catalog in S8 planning session.**
 This affects all PDF layout decisions; confirm before building the renderer.
 
 ---
 
 ## Sessions
 This plan needs its own planning session before implementation to resolve the open questions above.
-- **S5 Planning** — Research Lulu API checkout flow, PDF spec, white-label options; confirm trim size; make decisions
-- **S5 S1** — Backend: server-side PDF assembly (OpenPDF), Lulu API integration, order submission
-- **S5 S2** — Frontend: "Order a Book" UI, quantity picker, redirect, order confirmation
+- **S8 Planning** — Research Lulu API checkout flow, PDF spec, white-label options; confirm trim size; make decisions
+- **S8 S1** — Backend: server-side PDF assembly (OpenPDF), Lulu API integration, order submission
+- **S8 S2** — Frontend: "Order a Book" UI, quantity picker, redirect, order confirmation
