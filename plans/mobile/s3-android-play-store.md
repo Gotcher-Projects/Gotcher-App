@@ -1,5 +1,5 @@
 # S3 — Android Play Store Prep
-**Status:** In Progress
+**Status:** Complete
 **Branch:** mobile-v1
 **Depends on:** S2 complete — camera plugin working in emulator
 
@@ -145,9 +145,10 @@ Initial reviews take 3–7 days for new accounts. Google may request additional 
 - The `android/` directory is gitignored from S1 — the Gradle signing config change lives there. Document the signing config block in this plan so it can be reapplied after a fresh `npx cap add android`.
 - Consider adding the signing config to a committed `android-signing-config.gradle` snippet stored in the repo (without actual secrets) so it's not lost.
 - Keystore file: `cradlehq-release.jks`, alias: `cradlehq`
+- **Future consideration:** Add `"server": { "url": "https://cradlehq.app" }` to `Frontend/capacitor.config.json` so the app loads live from the web instead of bundled assets. This would mean any prod deploy instantly reaches app users without a Play Store update. Tradeoff: app requires an internet connection to function.
 
 ## Outputs needed for S4
-- [ ] AAB built and signed successfully
-- [ ] Play Console listing created (even if not yet live)
-- [ ] Keystore backed up securely
-- [ ] App submitted to Play Store (or at least internal testing track)
+- [x] AAB built and signed successfully
+- [x] Play Console listing created (even if not yet live)
+- [x] Keystore backed up securely
+- [x] App submitted to Play Store (or at least internal testing track)
