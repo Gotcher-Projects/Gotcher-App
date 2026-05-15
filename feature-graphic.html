@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1024px;
+      height: 500px;
+      overflow: hidden;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .container {
+      width: 1024px;
+      height: 500px;
+      background: hsl(238, 100%, 97%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Soft purple circle top-right */
+    .glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, hsla(239, 84%, 67%, 0.12) 0%, transparent 70%);
+      top: -180px;
+      right: -120px;
+      pointer-events: none;
+    }
+
+    /* Soft peach circle bottom-left */
+    .glow-2 {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, hsla(48, 96%, 89%, 0.6) 0%, transparent 70%);
+      bottom: -140px;
+      left: -80px;
+      pointer-events: none;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      z-index: 1;
+      margin-top: 40px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .logo {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .wordmark {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .app-name {
+      font-size: 90px;
+      font-weight: 800;
+      color: hsl(244, 44%, 20%);
+      letter-spacing: -2.5px;
+      line-height: 1;
+    }
+
+    .sub-tagline {
+      font-size: 15px;
+      font-weight: 600;
+      color: hsl(239, 84%, 67%);
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      text-align: center;
+      width: 100%;
+    }
+
+    .divider {
+      width: 56px;
+      height: 3px;
+      background: hsl(239, 84%, 67%);
+      border-radius: 2px;
+    }
+
+    .main-tagline {
+      font-size: 26px;
+      font-weight: 500;
+      color: hsl(244, 44%, 38%);
+      letter-spacing: 0.1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="glow"></div>
+    <div class="glow-2"></div>
+    <div class="content">
+      <div class="logo-row">
+        <img class="logo" src="Frontend/public/images/cradleVector.png" alt="">
+        <div class="wordmark">
+          <div class="app-name">Cradle<span style="color: hsl(239, 84%, 67%);">HQ</span></div>
+          <div class="sub-tagline">Track · Celebrate · Connect</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
