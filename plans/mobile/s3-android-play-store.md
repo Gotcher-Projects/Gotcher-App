@@ -89,7 +89,7 @@ java -jar bundletool.jar build-apks \
 java -jar bundletool.jar install-apks --apks=app.apks
 ```
 
-### 5. Create the Play Store listing
+### 5. ✅ Create the Play Store listing
 In Google Play Console → Create app:
 - App name: **CradleHQ**
 - Default language: English (US)
@@ -125,11 +125,11 @@ Fill in the store listing:
 
 Content rating: complete the questionnaire (this app is rated Everyone).
 
-### 6. Set up Google Play App Signing
+### 6. ✅ Set up Google Play App Signing
 Play Console → Setup → App integrity → Enroll in Play App Signing.
 Upload your keystore — Google re-signs APKs for distribution. This means even if your keystore is later lost, Google holds the signing key.
 
-### 7. Create a release
+### 7. ✅ Create a release — Internal testing release submitted (2026-05-14). Awaiting Play Store propagation before promoting to production.
 Play Console → Production → Create new release → Upload `app-release.aab`
 - Add release notes: "Initial release of CradleHQ baby tracking app."
 - Review and roll out

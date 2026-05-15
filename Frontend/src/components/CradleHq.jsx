@@ -614,12 +614,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
         {needsOnboarding === false && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-auto flex-wrap justify-start gap-1.5 bg-card/80 p-2">
-            <TabsTrigger value="dashboard" className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Dashboard</TabsTrigger>
-            <TabsTrigger value="memories"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Memories</TabsTrigger>
-            <TabsTrigger value="track"     className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Track</TabsTrigger>
-            <TabsTrigger value="health"    className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Health</TabsTrigger>
-            <TabsTrigger value="discover"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Discover</TabsTrigger>
+          <TabsList className="w-full h-auto flex-nowrap overflow-x-auto justify-start gap-1.5 bg-card/80 p-2">
+            <TabsTrigger value="dashboard" className="shrink-0 text-xs sm:text-sm font-medium">Dashboard</TabsTrigger>
+            <TabsTrigger value="memories"  className="shrink-0 text-xs sm:text-sm font-medium">Memories</TabsTrigger>
+            <TabsTrigger value="track"     className="shrink-0 text-xs sm:text-sm font-medium">Track</TabsTrigger>
+            <TabsTrigger value="health"    className="shrink-0 text-xs sm:text-sm font-medium">Health</TabsTrigger>
+            <TabsTrigger value="discover"  className="shrink-0 text-xs sm:text-sm font-medium">Discover</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
