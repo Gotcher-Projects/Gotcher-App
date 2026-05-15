@@ -106,6 +106,19 @@ docker compose -f "$ROOT_DIR/Backend/docker-compose.yml" up -d
 echo ""
 # ──────────────────────────────────────────────────────────────────────────
 
+# ── Capacitor Android sync (only if android/ project exists) ───────────────
+if [ -d "$ROOT_DIR/Frontend/android" ]; then
+  echo "  Android project detected — building and syncing Capacitor assets..."
+  (cd "$ROOT_DIR/Frontend" && npm run build && npx cap sync android)
+  if [ $? -eq 0 ]; then
+    echo "  Capacitor sync complete."
+  else
+    echo "  [WARN] Capacitor sync failed — Android assets may be stale."
+  fi
+  echo ""
+fi
+# ──────────────────────────────────────────────────────────────────────────
+
 # ── Services ───────────────────────────────────────────────────────────────
 start_service "api"      "$ROOT_DIR/Backend"   "set -a && [ -f .env ] && source .env; set +a && ./gradlew bootRun"  "http://localhost:3001"
 start_service "frontend" "$ROOT_DIR/Frontend"  "npm run dev"        "http://localhost:3000"

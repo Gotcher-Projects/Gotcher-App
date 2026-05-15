@@ -233,9 +233,9 @@ export default function DiaperTab({ logs, onAdd, onDelete, onError }) {
                 <div className="flex items-center justify-between text-xs text-slate-400 font-medium mb-2 border-b pb-1.5">
                   <span className="w-16">Time</span>
                   <span className="w-16">Category</span>
-                  <span className="w-20">Type</span>
-                  <span className="w-20">Color</span>
-                  <span className="flex-1">Consistency</span>
+                  <span className="hidden sm:block w-20">Type</span>
+                  <span className="hidden sm:block w-20">Color</span>
+                  <span className="hidden sm:block flex-1">Consistency</span>
                   <span className="w-10"></span>
                 </div>
                 <div className="space-y-2">
@@ -246,9 +246,9 @@ export default function DiaperTab({ logs, onAdd, onDelete, onError }) {
                         ? <span className="text-sky-500 font-medium">Pee</span>
                         : <span className="text-amber-600 font-medium">Poop</span>
                       }</span>
-                      <span className="text-slate-700 w-20 capitalize">{l.type || '—'}</span>
-                      <span className="text-slate-600 w-20 capitalize">{l.color || '—'}</span>
-                      <span className="text-slate-600 flex-1 capitalize">{l.consistency || '—'}</span>
+                      <span className="hidden sm:block text-slate-700 w-20 capitalize">{l.type || '—'}</span>
+                      <span className="hidden sm:block text-slate-600 w-20 capitalize">{l.color || '—'}</span>
+                      <span className="hidden sm:block text-slate-600 flex-1 capitalize">{l.consistency || '—'}</span>
                       <div className="w-10 text-right">
                         {confirmDeleteId === l.id ? (
                           <span className="flex items-center gap-1 justify-end">

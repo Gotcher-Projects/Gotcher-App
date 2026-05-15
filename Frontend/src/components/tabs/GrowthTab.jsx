@@ -51,7 +51,7 @@ function MetricChart({ title, color, babyData, percData, yLabel, xLabel }) {
 
   return (
     <Card className="shadow-md rounded-2xl">
-      <CardContent className="p-5">
+      <CardContent className="p-5 overflow-x-hidden">
         <h3 className="font-semibold text-foreground mb-3 text-sm">{title}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>
@@ -204,7 +204,7 @@ export default function GrowthTab({ records, birthdate, sex, onAdd, onDelete, on
         </CardContent>
       </Card>
 
-      <div className="lg:col-span-2 space-y-4">
+      <div className="lg:col-span-2 space-y-4 min-w-0">
         {showCharts && (
           <>
             <MetricChart title="Weight (lbs)" color={chartColor0} babyData={weightBaby} percData={weightPerc} yLabel="lbs" xLabel={xLabel} />

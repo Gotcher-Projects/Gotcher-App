@@ -290,9 +290,9 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
       </Dialog>
 
       <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="font-display text-lg font-bold text-foreground">History</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex rounded-lg overflow-hidden border border-border">
               {DAYS_OPTIONS.map(opt => (
                 <button
@@ -327,7 +327,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground font-medium mb-2 border-b border-border pb-1.5">
                   <span className="w-28">Type</span>
-                  <span className="flex-1 text-center">Time</span>
+                  <span className="hidden sm:block flex-1 text-center">Time</span>
                   <span className="w-16 text-right">Duration</span>
                   <span className="w-16"></span>
                 </div>
@@ -335,7 +335,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
                   {dayLogs.map(l => (
                     <div key={l.id} className="flex items-center justify-between text-sm">
                       <span className="text-foreground font-medium w-28">{typeLabel(l.type)}</span>
-                      <span className="flex-1 text-center text-muted-foreground text-xs">
+                      <span className="hidden sm:block flex-1 text-center text-muted-foreground text-xs">
                         {new Date(l.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                       </span>
                       <span className="text-muted-foreground w-16 text-right">{mlToOz(l.amountMl) ?? formatDuration(durationSeconds(l.startedAt, l.endedAt))}</span>

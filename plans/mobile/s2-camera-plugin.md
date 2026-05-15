@@ -1,5 +1,5 @@
 # S2 — Camera Plugin
-**Status:** Not started
+**Status:** Complete
 **Branch:** mobile/camera-plugin
 **Depends on:** S1 complete — Capacitor installed, Android platform added
 
@@ -84,6 +84,6 @@ Capacitor Camera requires READ_MEDIA_IMAGES on Android 13+. This is declared aut
 - No iOS platform yet
 
 ## Outputs needed for S3
-- [ ] Photo picker works natively in Android emulator for all 4 entry points
-- [ ] Web photo picker still works in browser (regression check)
-- [ ] `npx cap sync android` runs clean after install
+- [x] Photo picker works natively in Android emulator for all 4 entry points
+- [x] Web photo picker still works in browser (regression check)
+- [x] `npx cap sync android` runs clean after install

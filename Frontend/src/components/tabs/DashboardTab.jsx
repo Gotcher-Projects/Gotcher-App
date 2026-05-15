@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, CalendarDays, CheckCircle2, Zap, ArrowRight } from "lucide-react";
+import { Sparkles, CalendarDays, CheckCircle2, Zap, ArrowRight, Loader2 } from "lucide-react";
 import { MILESTONES } from "@/lib/babyData";
 import { formatBabyAge } from "@/lib/babyAge";
 import { fmtDuration, timeAgo, computeFeedingStats, computeSleepStats } from "@/lib/dashboardStats";
@@ -26,7 +26,6 @@ const QUICK_LOG_BUTTONS = [
 
 export default function DashboardTab({
   data, setData, week, months,
-  onSaveProfile, profileSaving, profileSaved,
   onToggleMilestone, appointments,
   feeding, sleep,
   onManualAdd, onAddSleep, onAddDiaper,
@@ -103,7 +102,7 @@ export default function DashboardTab({
 
   return (
     <Card className="shadow-xl rounded-2xl">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* ── Header ── */}
         <h2 className="text-2xl font-bold font-display text-foreground mb-5 flex items-center gap-2">
           <Sparkles className="w-6 h-6" />
@@ -152,7 +151,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs">oz (optional)</Label>
                       <Input
@@ -189,7 +188,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs">Duration (min)</Label>
                       <Input
@@ -226,7 +225,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {quickLogForm.category === 'poop' && (
                       <div>
                         <Label className="text-xs">Type</Label>
@@ -314,7 +313,7 @@ export default function DashboardTab({
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs">Sleep time</Label>
                     <Input type="time" value={quickLogForm.startTime} onChange={e => setQuickLogForm(f => ({ ...f, startTime: e.target.value }))} className="mt-1" />
@@ -379,85 +378,8 @@ export default function DashboardTab({
           </div>
         </div>
 
-        {/* ── Profile + Milestones grid ── */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h3 className="font-semibold font-display text-lg">Profile Setup</h3>
-            <div>
-              <Label>Baby's Name</Label>
-              <Input
-                value={data.profile.name}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
-                placeholder="e.g., Harper"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Birthdate</Label>
-              <Input
-                type="date"
-                value={data.profile.birthdate}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Sex</Label>
-              <select
-                value={data.profile.sex || ''}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
-                className="mt-1 w-full rounded-md border border-border bg-input text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Not specified</option>
-                <option value="male">Boy</option>
-                <option value="female">Girl</option>
-              </select>
-            </div>
-            <div>
-              <Label>Your Name</Label>
-              <Input
-                value={data.profile.parentName}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, parentName: e.target.value } }))}
-                placeholder="e.g., Sarah"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={data.profile.email}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, email: e.target.value } }))}
-                placeholder="your@email.com"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input
-                type="tel"
-                value={data.profile.phone}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, phone: e.target.value } }))}
-                placeholder="555-0123"
-                className=""
-              />
-            </div>
-            <Button
-              onClick={onSaveProfile}
-              disabled={profileSaving}
-              className="w-full"
-            >
-              {profileSaving ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-              ) : profileSaved ? (
-                "Saved!"
-              ) : (
-                "Save Profile"
-              )}
-            </Button>
-          </div>
-
-          <div>
+        {/* ── Milestones ── */}
+        <div>
             <h3 className="font-semibold font-display text-lg mb-3">Milestones</h3>
 
             {!data.profile.birthdate ? (
@@ -577,9 +499,9 @@ export default function DashboardTab({
                 );
               })()}
             </div>
-          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+

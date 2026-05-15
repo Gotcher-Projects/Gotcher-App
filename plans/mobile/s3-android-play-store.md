@@ -1,26 +1,29 @@
 # S3 — Android Play Store Prep
-**Status:** Not started
-**Branch:** mobile/android-release
+**Status:** In Progress
+**Branch:** mobile-v1
 **Depends on:** S2 complete — camera plugin working in emulator
 
 ## Goal
 Sign a release build of the Android app, create the Google Play Console listing, and submit the app for review on the Play Store.
 
-## Prerequisites (manual — do before this session)
-1. **Google Play Console account** — https://play.google.com/console
+## Prerequisites
+1. **Google Play Console account** — https://play.google.com/console ✅
    - One-time $25 registration fee
-   - Takes up to 48 hours to activate after payment
    - Use michaelgotcher7@gmail.com or a dedicated account
 
-2. **App icon** — 512×512 PNG, no rounded corners (Google adds them), no alpha transparency
-   - Also prepare: feature graphic 1024×500 PNG (used in Play Store listing header)
+2. **App icon** — 512×512 PNG ✅
+   - Generated: `Frontend/public/images/play-store-icon-512.png`
+   - White background, centered purple CradleHQ logo
 
-3. **Screenshots** — at least 2 phone screenshots (1080×1920 or similar 16:9/9:16)
-   - Take these from the Android emulator while running the app in S1/S2
+3. **Screenshots** ✅
+   - Taken from physical Android device (full resolution)
+   - Located in `C:\Projects\GotcherApp\MobileAppScreenshots\`
+   - Mobile layout overflow bugs fixed (AppointmentTab, GrowthTab, FeedingTab)
+   - Dashboard profile form moved to Edit Profile modal (cleaner screenshot)
 
 ## Steps
 
-### 1. Generate a release keystore
+### 1. ✅ Generate a release keystore
 This keystore is permanent — back it up. If lost, you cannot update the app.
 
 ```bash
@@ -34,7 +37,7 @@ Fill in the prompts (name, org, etc.). Store the resulting `cradlehq-release.jks
 
 **Do NOT commit the keystore or passwords to git.**
 
-### 2. Configure signing in Android Gradle
+### 2. ✅ Configure signing in Android Gradle
 In `Frontend/android/app/build.gradle`, add a `signingConfigs` block and update `buildTypes.release`:
 
 ```groovy
@@ -64,7 +67,7 @@ export KEY_ALIAS=cradlehq
 export KEY_PASS=your_key_password
 ```
 
-### 3. Build a release AAB
+### 3. ✅ Build a release AAB
 Google Play requires Android App Bundle (AAB) format:
 ```bash
 cd Frontend
@@ -75,7 +78,7 @@ cd android
 ```
 Output: `android/app/build/outputs/bundle/release/app-release.aab`
 
-### 4. Verify the build locally (optional)
+### 4. ✅ Verify the build locally (optional)
 Install `bundletool` and test the AAB on your emulator before uploading:
 ```bash
 # Download bundletool from https://github.com/google/bundletool/releases
@@ -94,8 +97,27 @@ In Google Play Console → Create app:
 - Free or paid: Free
 
 Fill in the store listing:
-- Short description (80 chars): Track your baby's feeding, sleep, diapers, milestones, and memories.
-- Full description (4000 chars): Write a proper description — this affects search ranking
+- Short description (80 chars): Track everything about your baby — feeding, sleep, diapers, and every memory.
+- Full description (4000 chars):
+  ```
+  CradleHQ is the baby tracking app built by parents, for parents, who wanted an easy way to stay on top of every moment.
+
+  Track the essentials:
+  • Feeding — log breast, bottle, and solid feeds. Track timing, amounts, and patterns over time.
+  • Sleep — track naps and nighttime sleep, see patterns at a glance
+  • Diapers — quick pee/poop logging with optional color and consistency notes
+  • Growth — record height, weight, and head circumference over time
+  • Vaccines & Appointments — never miss a checkup. Log upcoming appointments and track your baby's vaccine history.
+
+  Capture the memories:
+  • Journal — write entries and attach photos to document your baby's story
+  • First Times — log those one-of-a-kind moments like first smile, first steps, and first words
+  • Milestones — track developmental milestones week by week
+
+  Fast to log, easy to review. Everything you need and nothing you don't — right when you need it most.
+
+  Start tracking today — because the early days go fast.
+  ```
 - Category: Parenting
 - Upload screenshots (at least 2 phone)
 - Upload feature graphic

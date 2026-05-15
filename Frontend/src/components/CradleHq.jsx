@@ -4,7 +4,9 @@ import { apiRequest, apiUpload } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Loader2, UserRound } from "lucide-react";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
@@ -44,6 +46,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [resending, setResending] = useState(false);
   const [appError, setAppError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -414,7 +417,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const activities = getActivities(week);
 
   return (
-    <div className={`min-h-screen p-4 ${
+    <div className={`min-h-screen p-4 overflow-x-hidden ${
       theme === 'dark'
         ? 'bg-gradient-to-br from-brand-lavender/10 via-brand-lavender/20 to-color-success/8'
         : 'bg-gradient-to-br from-color-warm/10 via-brand-lavender/20 to-color-success/8'
@@ -452,19 +455,99 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-10" />
             <div>
               <h1 className="font-display font-bold text-2xl text-brand-navy">Cradle<span className="text-primary">HQ</span></h1>
-              <p className="text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
+              <p className="hidden sm:block text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {user?.display_name && (
-              <span className="text-sm text-slate-600">Hi, <strong>{user.display_name}</strong></span>
+              <span className="hidden sm:inline text-sm text-slate-600">Hi, <strong>{user.display_name}</strong></span>
             )}
+            <Button variant="outline" size="sm" onClick={() => setProfileModalOpen(true)} className="flex items-center gap-1.5">
+              <UserRound className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Edit Profile</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={onLogout}>
               Sign Out
             </Button>
           </div>
         </div>
       </header>
+
+      <Dialog open={profileModalOpen} onOpenChange={open => { setProfileModalOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserRound className="w-4 h-4 text-primary" />
+              Edit Profile
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label>Baby's Name</Label>
+              <Input
+                value={data.profile.name}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
+                placeholder="e.g., Harper"
+              />
+            </div>
+            <div>
+              <Label>Birthdate</Label>
+              <Input
+                type="date"
+                value={data.profile.birthdate}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
+              />
+            </div>
+            <div>
+              <Label>Sex</Label>
+              <select
+                value={data.profile.sex || ''}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
+                className="mt-1 w-full rounded-md border border-border bg-input text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Not specified</option>
+                <option value="male">Boy</option>
+                <option value="female">Girl</option>
+              </select>
+            </div>
+            <div>
+              <Label>Your Name</Label>
+              <Input
+                value={data.profile.parentName}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, parentName: e.target.value } }))}
+                placeholder="e.g., Sarah"
+              />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={data.profile.email}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, email: e.target.value } }))}
+                placeholder="your@email.com"
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input
+                type="tel"
+                value={data.profile.phone}
+                onChange={e => setData(d => ({ ...d, profile: { ...d.profile, phone: e.target.value } }))}
+                placeholder="555-0123"
+              />
+            </div>
+            <Button
+              onClick={async () => { await saveProfile(); setProfileModalOpen(false); }}
+              disabled={profileSaving}
+              className="w-full"
+            >
+              {profileSaving ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+              ) : profileSaved ? 'Saved!' : 'Save Profile'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <main className="max-w-6xl mx-auto">
         {needsOnboarding === null && (
@@ -531,12 +614,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
         {needsOnboarding === false && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full h-auto flex-wrap justify-start gap-2 bg-card/80 p-2">
-            <TabsTrigger value="dashboard" className="flex-1 min-w-[100px] font-medium">Dashboard</TabsTrigger>
-            <TabsTrigger value="memories"  className="flex-1 min-w-[100px] font-medium">Memories</TabsTrigger>
-            <TabsTrigger value="track"     className="flex-1 min-w-[100px] font-medium">Track</TabsTrigger>
-            <TabsTrigger value="health"    className="flex-1 min-w-[100px] font-medium">Health</TabsTrigger>
-            <TabsTrigger value="discover"  className="flex-1 min-w-[100px] font-medium">Discover</TabsTrigger>
+          <TabsList className="w-full h-auto flex-wrap justify-start gap-1.5 bg-card/80 p-2">
+            <TabsTrigger value="dashboard" className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Dashboard</TabsTrigger>
+            <TabsTrigger value="memories"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Memories</TabsTrigger>
+            <TabsTrigger value="track"     className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Track</TabsTrigger>
+            <TabsTrigger value="health"    className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Health</TabsTrigger>
+            <TabsTrigger value="discover"  className="flex-1 min-w-[60px] text-xs sm:text-sm font-medium">Discover</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
@@ -545,9 +628,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               setData={setData}
               week={week}
               months={months}
-              onSaveProfile={saveProfile}
-              profileSaving={profileSaving}
-              profileSaved={profileSaved}
               onToggleMilestone={toggleMilestone}
               appointments={appointments}
               feeding={feeding}
@@ -632,6 +712,11 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
 
       <footer className="max-w-6xl mx-auto mt-8 text-center text-sm text-slate-600">
         <p>Not medical advice • Every baby develops uniquely</p>
+        <p className="mt-1">
+          <a href="/privacy.html" className="hover:underline">Privacy Policy</a>
+          {" · "}
+          <a href="/terms.html" className="hover:underline">Terms of Service</a>
+        </p>
       </footer>
     </div>
   );
