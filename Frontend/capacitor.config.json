@@ -1,5 +1,9 @@
 {
   "appId": "com.gotcherapp.cradlehq",
   "appName": "CradleHQ",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://cradlehq.app",
+    "cleartext": false
+  }
 }
