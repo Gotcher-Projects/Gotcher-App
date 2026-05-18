@@ -16,3 +16,4 @@ logs/
 *.log
 ScreenshotsForClaude/
 MobileAppScreenshots/
+build-android.sh

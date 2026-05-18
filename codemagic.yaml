@@ -6,6 +6,8 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.gotcherapp.cradlehq
+      integrations:
+        app_store_connect: CradleHQ
       node: 20
       xcode: latest
     scripts:
