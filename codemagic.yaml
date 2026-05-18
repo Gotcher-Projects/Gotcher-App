@@ -10,6 +10,7 @@ workflows:
         app_store_connect: CradleHQ
       node: 20
       xcode: latest
+      cocoapods: default
     scripts:
       - name: Install dependencies
         script: cd Frontend && npm ci
@@ -22,7 +23,7 @@ workflows:
       - name: Build IPA
         script: |
           cd Frontend/ios/App
-          xcodebuild -project App.xcodeproj \
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
