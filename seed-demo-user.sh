@@ -408,8 +408,6 @@ post_first() {
   echo "    $DATE: $LABEL"
 }
 
-post_first "Smile" "2025-12-01" "A real, genuine smile — not gas! Both eyes crinkled up and everything. I cried happy tears."
-post_first "Laugh" "2026-01-10" "I was making silly faces and she just burst out laughing. The best sound in the world."
 post_first "Rolled over" "2026-02-14" "Valentine's Day — she gave us the best gift. Rolled over on the play mat and looked so proud of herself."
 post_first "Bath" "2025-11-05" "She was not impressed at first, then settled right in. Wrapped her up in the hooded towel — she looked like a tiny burrito."
 post_first "Grabbed a toy" "2026-01-28" "Reached out and grabbed the hanging ring on her activity gym. Held it for a full five seconds before letting go."
@@ -417,7 +415,7 @@ post_first "Slept 5 hours straight" "2025-12-20" "We woke up in a panic thinking
 post_first "Solid food" "2026-04-10" "Sweet potato puree. She scrunched her face, then opened her mouth for more. She's ready!"
 post_first "Trip to the park" "2026-03-15" "Sat in the stroller and watched the trees. Completely transfixed by the leaves moving in the breeze."
 
-echo "    Done (8 first times)"
+echo "    Done (6 first times)"
 
 # ── Storybook Chapters (unlock) ───────────────────────────────────────────────
 echo "==> Unlocking storybook chapters for milestones and first times..."
@@ -500,5 +498,5 @@ echo "  Poop:     16 entries (last 7 days)"
 echo "  Milestones: 14 achieved (weeks 0–20)"
 echo "  Vaccines: 12 given (birth + 2m + 4m complete)"
 echo "  Appointments: 4 (2 past, 2 upcoming)"
-echo "  First Times: 8 entries"
-echo "  Storybook:  14 milestone chapters + 2 period chapters + 8 first-time chapters (all unlocked)"
+echo "  First Times: 6 entries"
+echo "  Storybook:  14 milestone chapters + 2 period chapters + 6 first-time chapters (all unlocked)"

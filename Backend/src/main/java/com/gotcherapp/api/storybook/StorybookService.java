@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gotcherapp.api.baby.BabyProfileRepository;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
+import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
 import com.gotcherapp.api.storybook.dto.UnlockRequest;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
@@ -187,20 +188,22 @@ public class StorybookService {
             throw new IllegalArgumentException("At least selectedJournalIds or selectedFirstTimeIds must be provided");
         }
 
-        Map<String, Object> user = jdbc.queryForMap(
-            "SELECT tier, ai_credits_remaining FROM users WHERE id = ?", userId
-        );
-        String tier = (String) user.get("tier");
-        int credits = ((Number) user.get("ai_credits_remaining")).intValue();
-
-        if ("free".equals(tier)) throw new ForbiddenException("Upgrade to Plus to generate chapters");
-        if (credits <= 0) throw new InsufficientCreditsException("No AI credits remaining this month");
-
         Long profileId = babyProfileRepository.requireProfileId(userId);
 
         Map<String, Object> baby = jdbc.queryForMap(
             "SELECT baby_name, birthdate FROM baby_profiles WHERE id = ?", profileId
         );
+
+        boolean skip = Boolean.TRUE.equals(req.skipGeneration());
+        if (!skip) {
+            Map<String, Object> user = jdbc.queryForMap(
+                "SELECT tier, ai_credits_remaining FROM users WHERE id = ?", userId
+            );
+            String tier = (String) user.get("tier");
+            int credits = ((Number) user.get("ai_credits_remaining")).intValue();
+            if ("free".equals(tier)) throw new ForbiddenException("Upgrade to Plus to generate chapters");
+            if (credits <= 0) throw new InsufficientCreditsException("No AI credits remaining this month");
+        }
 
         // Upsert the chapter row
         String journalIdsCsv = serializeIds(req.selectedJournalIds());
@@ -236,6 +239,13 @@ public class StorybookService {
             chapterId = ((Number) newRow.get("id")).longValue();
         }
 
+        if (skip) {
+            List<Map<String, Object>> saved = jdbc.queryForList(
+                "SELECT " + CHAPTER_COLS + " FROM storybook_chapters WHERE id = ?", chapterId
+            );
+            return mapRow(saved.get(0));
+        }
+
         int entryNotesCount = req.entryNotes() != null
             ? (int) req.entryNotes().values().stream().filter(v -> v != null && !v.isBlank()).count() : 0;
         int maxTokens = computeMaxTokens(req.selectedJournalIds(), req.selectedFirstTimeIds(),
@@ -258,6 +268,107 @@ public class StorybookService {
             generatedBody, chapterId
         );
         return mapRow(updated);
+    }
+
+    // ── Generate pages (paged mode) ───────────────────────────────────────────
+
+    public List<GeneratedPageResponse> generatePages(Long userId, Long chapterId) {
+        Map<String, Object> user = jdbc.queryForMap(
+            "SELECT tier, ai_credits_remaining FROM users WHERE id = ?", userId
+        );
+        String tier = (String) user.get("tier");
+        int credits = ((Number) user.get("ai_credits_remaining")).intValue();
+
+        if ("free".equals(tier)) throw new ForbiddenException("Upgrade to Plus to generate chapters");
+
+        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
+        if (profileId.isEmpty()) throw new ForbiddenException("No baby profile found");
+
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT wizard_journal_ids, wizard_first_time_ids, wizard_entry_notes " +
+            "FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?",
+            chapterId, profileId.get()
+        );
+        if (rows.isEmpty()) throw new NoSuchElementException("Chapter not found");
+        Map<String, Object> chapter = rows.get(0);
+
+        List<Long> journalIds = parseIdsCsv(chapter.get("wizard_journal_ids"));
+        if (journalIds == null) journalIds = List.of();
+        List<Long> firstTimeIds = parseIdsCsv(chapter.get("wizard_first_time_ids"));
+        if (firstTimeIds == null) firstTimeIds = List.of();
+        Map<String, String> entryNotes = parseJsonMap(chapter.get("wizard_entry_notes"));
+
+        int totalEntries = journalIds.size() + firstTimeIds.size();
+        if (totalEntries == 0) throw new IllegalArgumentException("No entries selected for this chapter");
+        if (credits < totalEntries) {
+            throw new InsufficientCreditsException(
+                "Not enough credits — you need " + totalEntries + " credits for " + totalEntries + " pages"
+            );
+        }
+
+        Map<String, Object> baby = jdbc.queryForMap(
+            "SELECT baby_name FROM baby_profiles WHERE id = ?", profileId.get()
+        );
+        String babyName = (String) baby.get("baby_name");
+
+        List<GeneratedPageResponse> results = new ArrayList<>();
+        int creditsUsed = 0;
+
+        for (Long id : journalIds) {
+            jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining - 1 WHERE id = ?", userId);
+            creditsUsed++;
+            try {
+                String prompt = buildSingleJournalPrompt(id, babyName, entryNotes);
+                String body = claudeClient.generateSingle(prompt, 400);
+                results.add(new GeneratedPageResponse("journal:" + id, body));
+            } catch (Exception e) {
+                int used = creditsUsed;
+                jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining + ? WHERE id = ?", used, userId);
+                throw new RuntimeException("Page generation failed: " + e.getMessage(), e);
+            }
+        }
+
+        for (Long id : firstTimeIds) {
+            jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining - 1 WHERE id = ?", userId);
+            creditsUsed++;
+            try {
+                String prompt = buildSingleFirstTimePrompt(id, babyName, entryNotes);
+                String body = claudeClient.generateSingle(prompt, 400);
+                results.add(new GeneratedPageResponse("first_time:" + id, body));
+            } catch (Exception e) {
+                int used = creditsUsed;
+                jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining + ? WHERE id = ?", used, userId);
+                throw new RuntimeException("Page generation failed: " + e.getMessage(), e);
+            }
+        }
+
+        return results;
+    }
+
+    private String buildSingleJournalPrompt(Long entryId, String babyName, Map<String, String> entryNotes) {
+        Map<String, Object> entry = jdbc.queryForMap(
+            "SELECT title, story, week FROM journal_entries WHERE id = ?", entryId
+        );
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Baby: ").append(babyName != null ? babyName : "the baby").append("\n\n");
+        prompt.append("Journal entry — Week ").append(entry.get("week")).append(": ").append(entry.get("title")).append("\n");
+        if (entry.get("story") != null) prompt.append(entry.get("story")).append("\n");
+        String note = entryNotes != null ? entryNotes.get("journal:" + entryId) : null;
+        if (note != null && !note.isBlank()) prompt.append("\nParent's memory: ").append(note.trim()).append("\n");
+        return prompt.toString();
+    }
+
+    private String buildSingleFirstTimePrompt(Long firstTimeId, String babyName, Map<String, String> entryNotes) {
+        Map<String, Object> ft = jdbc.queryForMap(
+            "SELECT label, notes FROM first_times WHERE id = ?", firstTimeId
+        );
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Baby: ").append(babyName != null ? babyName : "the baby").append("\n\n");
+        prompt.append("First time milestone: ").append(ft.get("label")).append("\n");
+        if (ft.get("notes") != null) prompt.append("Notes: ").append(ft.get("notes")).append("\n");
+        String note = entryNotes != null ? entryNotes.get("first_time:" + firstTimeId) : null;
+        if (note != null && !note.isBlank()) prompt.append("\nParent's memory: ").append(note.trim()).append("\n");
+        return prompt.toString();
     }
 
     // ── Prompt building ───────────────────────────────────────────────────────

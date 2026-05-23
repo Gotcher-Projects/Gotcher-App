@@ -15,6 +15,17 @@ public class ClaudeClient {
     private static final String ANTHROPIC_VERSION = "2023-06-01";
     static final int DEFAULT_MAX_TOKENS = 600;
 
+    private static final String SINGLE_ENTRY_SYSTEM_PROMPT =
+        "You are writing a single page in a baby's memory book, capturing one specific moment or milestone. " +
+        "Write in second person, addressed to the baby ('You did…' / 'You were…'). " +
+        "LENGTH: Write 1–3 short paragraphs that capture this single memory warmly and specifically. " +
+        "Do not pad or add content not in the source. " +
+        "STRICT RULES: " +
+        "(1) Only reference people and relationships explicitly named in the entry. " +
+        "(2) Do not infer parent genders or count. Use 'the people who love you' if unclear. " +
+        "(3) Tone: heartfelt and warm, never saccharine. " +
+        "(4) No title, no photo markers, no forward-looking closing line — just the paragraphs.";
+
     private static final String SYSTEM_PROMPT =
         "You are writing a chapter in a baby's memory book. " +
         "Write in second person, addressed to the baby ('You did…' / 'You were…'). " +
@@ -36,7 +47,9 @@ public class ClaudeClient {
         "Marker format: [PHOTO:journal:42] or [PHOTO:first_time:42]. " +
         "Only emit markers for IDs listed under 'Photos available'. " +
         "If no 'Photos available' line is present, emit no markers. " +
-        "Do not add a chapter title — just the body paragraphs and photo markers as instructed.";
+        "Do not add a chapter title — just the body paragraphs and photo markers as instructed. " +
+        "STRUCTURE: Open the chapter by grounding the reader in a specific moment or sensory detail from the earliest entry provided — not a general scene-setting sentence. " +
+        "Close with a brief forward-looking line that points toward what is still to come (e.g. 'The months ahead would bring…').'";
 
     @Value("${anthropic.api.key}")
     private String apiKey;
@@ -53,7 +66,15 @@ public class ClaudeClient {
         this.restTemplate = restTemplate;
     }
 
+    public String generateSingle(String userPrompt, int maxTokens) {
+        return callClaude(SINGLE_ENTRY_SYSTEM_PROMPT, userPrompt, maxTokens);
+    }
+
     public String generateChapter(String userPrompt, int maxTokens) {
+        return callClaude(SYSTEM_PROMPT, userPrompt, maxTokens);
+    }
+
+    private String callClaude(String systemPrompt, String userPrompt, int maxTokens) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("ANTHROPIC_API_KEY is not configured");
         }
@@ -67,7 +88,7 @@ public class ClaudeClient {
             "model", model,
             "max_tokens", maxTokens,
             "temperature", temperature,
-            "system", SYSTEM_PROMPT,
+            "system", systemPrompt,
             "messages", List.of(
                 Map.of("role", "user", "content", userPrompt)
             )

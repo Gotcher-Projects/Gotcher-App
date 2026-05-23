@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, X, ChevronLeft, Camera, BookOpen, PenLine } from "lucide-react";
+import { Loader2, X, ChevronLeft, Camera, BookOpen, PenLine, Layers } from "lucide-react";
 import { STORYBOOK_PERIODS } from "@/lib/storybookPeriods";
 import { openCropModal } from "@/lib/imageUtils";
 import { pickPhoto } from "@/lib/camera";
@@ -30,6 +30,7 @@ export default function StorybookWizard({
   tier,
   credits,
   onWizardGenerate,
+  onGeneratePages,
   onGenerate,
   onUpdate,
   onUpload,
@@ -37,6 +38,7 @@ export default function StorybookWizard({
   onError,
 }) {
   const [step, setStep] = useState(1);
+  const [mode, setMode] = useState(null); // 'single' | 'paged'
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [selectedJournalIds, setSelectedJournalIds] = useState(new Set());
   const [selectedFirstTimeIds, setSelectedFirstTimeIds] = useState(new Set());
@@ -64,7 +66,6 @@ export default function StorybookWizard({
     chapters.filter(c => c.anchorType === 'period').map(c => c.anchorKey)
   );
 
-  // Items within the selected period
   const periodJournal = selectedPeriod
     ? [...journalEntries]
         .filter(e => e.week >= selectedPeriod.startWeeks && e.week <= selectedPeriod.endWeeks)
@@ -94,7 +95,6 @@ export default function StorybookWizard({
       return w >= period.startWeeks && w <= period.endWeeks;
     });
 
-    // Auto-select up to MAX_ITEMS, prioritising journal entries then firsts
     const autoJournal = journalInPeriod.slice(0, MAX_ITEMS);
     const remaining = MAX_ITEMS - autoJournal.length;
     const autoFirsts = firstsInPeriod.slice(0, remaining);
@@ -166,7 +166,7 @@ export default function StorybookWizard({
     await handleCropAndUpload(file, key);
   }
 
-  // ── Step 3: Generate ───────────────────────────────────────────────────────
+  // ── Step 4: Generate (single mode) ────────────────────────────────────────
 
   async function handleGenerate() {
     if (!isPaid) { onError('Upgrade to Plus to generate chapters'); return; }
@@ -190,7 +190,7 @@ export default function StorybookWizard({
       };
       const chapter = await onWizardGenerate(payload);
       setGeneratedChapter(chapter);
-      setStep(4);
+      setStep(5);
     } catch (e) {
       const msg = e?.message || '';
       if (msg.includes('402') || msg.includes('credit')) {
@@ -204,7 +204,103 @@ export default function StorybookWizard({
     setGenerating(false);
   }
 
-  // ── Step 4: Publish / Regenerate ──────────────────────────────────────────
+  // ── Step 3: Paged mode generation ─────────────────────────────────────────
+
+  function getPhotoUrl(sourceKey) {
+    if (!sourceKey) return null;
+    const [type, idStr] = sourceKey.split(':');
+    const id = parseInt(idStr);
+    if (type === 'journal') {
+      const entry = journalEntries.find(e => e.id === id);
+      return photoOverrides[`journal:${id}`] || entry?.image_url || null;
+    }
+    if (type === 'first_time') {
+      const ft = firsts.find(f => f.id === id);
+      return photoOverrides[`first_time:${id}`] || ft?.imageUrl || null;
+    }
+    return null;
+  }
+
+  function getPhotoLabel(sourceKey) {
+    if (!sourceKey) return null;
+    const [type, idStr] = sourceKey.split(':');
+    const id = parseInt(idStr);
+    if (type === 'journal') return journalEntries.find(e => e.id === id)?.title || null;
+    if (type === 'first_time') return firsts.find(f => f.id === id)?.label || null;
+    return null;
+  }
+
+  async function handleGeneratePages() {
+    if (!isPaid) { onError('Upgrade to Plus to generate chapters'); return; }
+
+    setGenerating(true);
+    try {
+      const filteredNotes = Object.fromEntries(
+        Object.entries(entryNotes).filter(([, v]) => v && v.trim())
+      );
+      const payload = {
+        anchorKey: selectedPeriod.key,
+        anchorLabel: selectedPeriod.label,
+        periodStartWeeks: selectedPeriod.startWeeks,
+        periodEndWeeks: selectedPeriod.endWeeks,
+        selectedJournalIds: [...selectedJournalIds],
+        selectedFirstTimeIds: [...selectedFirstTimeIds],
+        supplementaryNotes: null,
+        photoOverrides: Object.keys(photoOverrides).length > 0 ? photoOverrides : null,
+        entryNotes: Object.keys(filteredNotes).length > 0 ? filteredNotes : null,
+        skipGeneration: true,
+      };
+      // Save chapter row without generating body
+      const chapter = await onWizardGenerate(payload);
+      // Generate one blurb per entry
+      const generatedPagesResult = await onGeneratePages(chapter.id);
+      // Build v2 layout_data
+      const v2Pages = generatedPagesResult.map((p, i) => {
+        const photoUrl = getPhotoUrl(p.sourceKey);
+        return {
+          id: `page-${i}`,
+          sourceKey: p.sourceKey,
+          blocks: [
+            {
+              id: `b-${i}-0`,
+              type: 'text',
+              x: 0.04,
+              y: 0.04,
+              width: 0.92,
+              height: photoUrl ? 0.38 : 0.92,
+              content: (p.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+            },
+            ...(photoUrl ? [{
+              id: `b-${i}-1`,
+              type: 'photo',
+              x: 0.04,
+              y: 0.46,
+              width: 0.92,
+              height: 0.50,
+              sourceKey: p.sourceKey,
+              url: photoUrl,
+              label: getPhotoLabel(p.sourceKey),
+            }] : []),
+          ],
+        };
+      });
+      const updatedChapter = await onUpdate(chapter.id, { layoutData: { version: 2, pages: v2Pages } });
+      setGeneratedChapter(updatedChapter);
+      setStep(6);
+    } catch (e) {
+      const msg = e?.message || '';
+      if (msg.includes('402') || msg.includes('credit')) {
+        onError('Not enough credits — 1 credit is used per page');
+      } else if (msg.includes('403') || msg.includes('Upgrade')) {
+        onError('Upgrade to Plus to generate chapters');
+      } else {
+        onError('Failed to generate pages — please try again');
+      }
+    }
+    setGenerating(false);
+  }
+
+  // ── Step 5: Publish / Regenerate (single mode) ────────────────────────────
 
   async function handlePublish(chapterId, editedBody) {
     const patch = editedBody !== undefined
@@ -221,9 +317,19 @@ export default function StorybookWizard({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const stepTitle = {
+    1: 'Choose a time period',
+    2: `${selectedPeriod?.label} — Select what to include`,
+    3: generating ? (mode === 'paged' ? 'Writing your pages…' : 'How would you like to tell this story?') : 'How would you like to tell this story?',
+    4: 'Add your memories',
+    5: 'Your chapter',
+    6: 'Design your page',
+  }[step] || '';
+
+  const showBack = step >= 2 && step <= 4 && !generating;
+
   return (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
-      {/* Hidden file input shared across all photo upload buttons */}
       <input
         ref={fileInputRef}
         type="file"
@@ -236,7 +342,7 @@ export default function StorybookWizard({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {step > 1 && step < 4 && (
+            {showBack && (
               <button
                 onClick={() => setStep(s => s - 1)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
@@ -246,14 +352,12 @@ export default function StorybookWizard({
             )}
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Create a Chapter · Step {step} of {step >= 4 ? 5 : 3}
+                {step <= 3 && `Create a Chapter · Step ${step} of 3`}
+                {step === 4 && 'Create a Chapter · Step 4 of 4'}
+                {step >= 5 && 'Create a Chapter'}
               </p>
               <h2 className="font-display font-semibold text-xl text-foreground">
-                {step === 1 && 'Choose a time period'}
-                {step === 2 && `${selectedPeriod?.label} — Select what to include`}
-                {step === 3 && 'Add your memories'}
-                {step === 4 && 'Your chapter'}
-                {step === 5 && 'Design your page'}
+                {stepTitle}
               </h2>
             </div>
           </div>
@@ -515,8 +619,58 @@ export default function StorybookWizard({
           </div>
         )}
 
-        {/* Step 3 — Memories + Generate */}
-        {step === 3 && (
+        {/* Step 3 — Mode picker */}
+        {step === 3 && generating && (
+          <div className="flex flex-col items-center py-8 gap-3 text-muted-foreground">
+            <Loader2 className="w-8 h-8 animate-spin text-color-highlight" />
+            <p className="text-sm font-medium">Writing your pages…</p>
+            <p className="text-xs">Generating one page per memory — this may take a moment</p>
+          </div>
+        )}
+
+        {step === 3 && !generating && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Choose how you'd like this chapter to read.</p>
+
+            {!isPaid && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Upgrade to Plus to generate chapters.
+              </p>
+            )}
+
+            <button
+              onClick={() => { setMode('single'); setStep(4); }}
+              disabled={!isPaid}
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <BookOpen className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">One Story</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  AI weaves all your selected memories into one cohesive narrative chapter.
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => { setMode('paged'); handleGeneratePages(); }}
+              disabled={!isPaid || totalSelected === 0}
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Layers className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">One Page Per Memory</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Each entry gets its own page in the layout editor — drag, resize, and design each one.
+                  Uses 1 credit per page ({totalSelected} credit{totalSelected !== 1 ? 's' : ''}).
+                </p>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Step 4 — Supplementary notes + Generate (single mode) */}
+        {step === 4 && (
           <div className="space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
@@ -560,22 +714,22 @@ export default function StorybookWizard({
           </div>
         )}
 
-        {/* Step 4 — Review */}
-        {step === 4 && generatedChapter && (
+        {/* Step 5 — Review (single mode) */}
+        {step === 5 && generatedChapter && (
           <BookChapterReview
             chapter={generatedChapter}
             journalEntries={journalEntries}
             firsts={firsts}
             onPublish={handlePublish}
             onRegenerate={handleRegenerate}
-            onDesign={() => setStep(5)}
+            onDesign={() => setStep(6)}
             onClose={onClose}
             onError={onError}
           />
         )}
 
-        {/* Step 5 — Layout editor */}
-        {step === 5 && generatedChapter && (
+        {/* Step 6 — Layout editor (both modes) */}
+        {step === 6 && generatedChapter && (
           <LayoutEditor
             chapter={generatedChapter}
             journalEntries={journalEntries}
@@ -588,7 +742,7 @@ export default function StorybookWizard({
               await onUpdate(generatedChapter.id, { status: 'published' });
               onClose();
             }}
-            onBack={() => setStep(4)}
+            onBack={() => setStep(mode === 'paged' ? 3 : 5)}
           />
         )}
       </div>

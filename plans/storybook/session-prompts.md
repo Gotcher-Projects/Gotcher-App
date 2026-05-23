@@ -224,6 +224,26 @@ Read LayoutEditor.jsx, LayoutRenderer.jsx, StorybookWizard.jsx before touching t
 
 ---
 
+## Session 5.2 — Layout Editor v2: Page Reordering, Edit Mode & Standalone Photos
+
+```
+Session 5.2 of storybook — Layout Editor v2.
+Plan: plans/storybook/s5.2-layout-editor-v2.md
+Branch: TBD (cut from journal-updates or main after S5.1 merges)
+Depends on: S5.1 complete and verified.
+
+Implement in order:
+1. Edit mode for published layout chapters (Feature 2) — route the Edit button to the layout editor
+   for hasLayout chapters; add editMode + initialChapter props to StorybookWizard
+2. Page reordering (Feature 1) — Move Left / Move Right buttons in LayoutEditor page nav
+3. Standalone photo uploads (Feature 3) — upload button in PhotoTray, V31 migration + backend endpoint
+
+Read s5.2-layout-editor-v2.md fully before writing any code.
+Read LayoutEditor.jsx, StorybookWizard.jsx, StorybookTab.jsx, MemoriesTab.jsx before touching them.
+```
+
+---
+
 ## Session 7 — Shareable Book Link
 
 ```

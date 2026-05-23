@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S5.1 Phase B — Testing Instructions</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8f5f0;
+      color: #2d2320;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid #ddd0b8;
+    }
+
+    header .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9b7e5a;
+      margin-bottom: 0.4rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1a1210;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #6b5a4e;
+      font-size: 0.95rem;
+    }
+
+    .setup-box {
+      background: #fff8f0;
+      border: 1px solid #e8d5b8;
+      border-left: 4px solid #9b7e5a;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .setup-box h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9b7e5a;
+      margin-bottom: 0.6rem;
+    }
+
+    .setup-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .setup-box ul li {
+      font-size: 0.92rem;
+      color: #3d2d20;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .setup-box ul li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: #9b7e5a;
+      font-weight: 700;
+    }
+
+    .test-card {
+      background: #fff;
+      border: 1px solid #e0d4c0;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .test-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      background: #fdf9f4;
+      border-bottom: 1px solid #e0d4c0;
+    }
+
+    .test-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: #9b7e5a;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .test-card-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1210;
+    }
+
+    .test-card-body {
+      padding: 1.1rem 1.25rem;
+    }
+
+    ol {
+      list-style: none;
+      counter-reset: step-counter;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    ol li {
+      counter-increment: step-counter;
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.92rem;
+      color: #3d2d20;
+    }
+
+    ol li::before {
+      content: counter(step-counter) '.';
+      font-weight: 700;
+      color: #9b7e5a;
+      flex-shrink: 0;
+      min-width: 18px;
+      padding-top: 0.02rem;
+    }
+
+    .expected {
+      display: block;
+      margin-top: 0.3rem;
+      padding: 0.45rem 0.75rem;
+      background: #f0fdf4;
+      border-left: 3px solid #4ade80;
+      border-radius: 4px;
+      font-size: 0.87rem;
+      color: #166534;
+    }
+
+    .expected::before {
+      content: '✓ Expected: ';
+      font-weight: 700;
+    }
+
+    .warn-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-top: 2rem;
+    }
+
+    .warn-box h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #92400e;
+      margin-bottom: 0.6rem;
+    }
+
+    .warn-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .warn-box ul li {
+      font-size: 0.9rem;
+      color: #78350f;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .warn-box ul li::before {
+      content: '⚠';
+      position: absolute;
+      left: 0;
+    }
+
+    code {
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 0.85em;
+      background: #f0ece6;
+      border: 1px solid #ddd0b8;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      color: #6b3a1f;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.15em 0.55em;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-left: 0.3rem;
+    }
+
+    .badge-new {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-regression {
+      background: #fce7f3;
+      color: #9d174d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="label">CradleHQ · Storybook</div>
+      <h1>S5.1 Phase B — Testing Instructions</h1>
+      <p>Multi-page chapters, paged mode wizard, and layout editor carousel.</p>
+    </header>
+
+    <div class="setup-box">
+      <h2>Setup</h2>
+      <ul>
+        <li>Start the backend on port <code>3001</code> and frontend on port <code>3000</code></li>
+        <li>Log in with a <strong>paid-tier account</strong> that has journal entries or first times</li>
+        <li>Open <strong>Memories → Book</strong> and click <strong>Create a Chapter</strong></li>
+      </ul>
+    </div>
+
+    <!-- Test 1 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">1</div>
+        <h2>Mode picker appears <span class="badge badge-new">New</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>Select a time period that has entries.</li>
+          <li>On step 2, leave some entries selected and click <strong>Continue</strong>.</li>
+          <li><span class="expected">Step 3 shows "How would you like to tell this story?" with two cards — <em>One Story</em> and <em>One Page Per Memory</em>.</span></li>
+          <li>Check the <em>One Page Per Memory</em> card — it should show the credit cost based on selected entries, e.g. <em>"Uses 1 credit per page (3 credits)"</em>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 2 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">2</div>
+        <h2>Single mode still works <span class="badge badge-regression">Regression</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>On the mode picker, click <strong>One Story</strong>.</li>
+          <li><span class="expected">Goes to step 4 — supplementary notes textarea + Generate button.</span></li>
+          <li>Generate the chapter and confirm it appears in the review step (step 5) with the chapter body.</li>
+          <li>Click <strong>Design your page</strong> to enter the layout editor (step 6).</li>
+          <li><span class="expected">The Back button returns to step 5 (review), not the mode picker.</span></li>
+          <li>Publish the chapter and confirm it appears in the book list.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 3 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">3</div>
+        <h2>Paged mode — generation <span class="badge badge-new">New</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>Start a new chapter. Pick a period with <strong>2–3 entries</strong> (ideally a mix of journal entries and first times).</li>
+          <li>On step 2, add photos to at least one entry if possible.</li>
+          <li>On step 3, click <strong>One Page Per Memory</strong>.</li>
+          <li><span class="expected">Spinner appears: "Writing your pages…" — takes a moment (one Claude call per entry).</span></li>
+          <li><span class="expected">After completion, goes <em>directly</em> to the layout editor — no review step.</span></li>
+          <li>Confirm the layout editor canvas shows <strong>Page 1 of N</strong> navigation at the bottom.</li>
+          <li>Each page should have a text block pre-filled with a short blurb about that specific memory, and a photo block already assigned if that entry had a photo.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 4 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">4</div>
+        <h2>Multi-page layout editor navigation <span class="badge badge-new">New</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>In the layout editor from Test 3, use the <strong>&lt; &gt;</strong> arrows at the bottom to flip between pages.</li>
+          <li><span class="expected">Each page shows its own independent blocks. The label in the nav bar shows the entry title, e.g. <em>"First Smile · Page 2 of 3"</em>.</span></li>
+          <li>Edit the text block on page 1 (double-click or double-tap to enter edit mode), change some text, then click away to save.</li>
+          <li>Switch to page 2. Switch back to page 1.</li>
+          <li><span class="expected">Your edited text is still there. Page 2 is unchanged.</span></li>
+          <li>Drag a block to a new position — wait for <em>"Saving…" → "Saved ✓"</em> to appear in the toolbar.</li>
+          <li>Click <strong>Add Page</strong> in the toolbar.</li>
+          <li><span class="expected">A new blank page is added and you land on it. The nav shows the updated page count.</span></li>
+          <li>Publish the chapter — confirm it saves successfully.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 5 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">5</div>
+        <h2>Published chapter carousel <span class="badge badge-new">New</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>After publishing in Test 3 or 4, find the chapter in the book list.</li>
+          <li><span class="expected">The chapter card shows a canvas with <strong>&lt; 1 / N &gt;</strong> arrows below it.</span></li>
+          <li>Click the arrows to flip through pages — each page renders its layout correctly.</li>
+          <li><em>On mobile:</em> swipe left/right on the canvas to advance pages.</li>
+          <li>Confirm an older single-page (v1) chapter still renders normally with no arrows.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 6 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">6</div>
+        <h2>Credit deduction <span class="badge badge-new">New</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>Note your current credit count before starting.</li>
+          <li>Run paged mode with <strong>3 entries selected</strong>.</li>
+          <li><span class="expected">After generation completes, your credits have decreased by <strong>3</strong>.</span></li>
+          <li><em>Optional:</em> if you can set credits to 1 in the DB, try paged mode with 3 entries — expect an error: <em>"Not enough credits — 1 credit is used per page"</em>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Test 7 -->
+    <div class="test-card">
+      <div class="test-card-header">
+        <div class="test-number">7</div>
+        <h2>Photo drag/click fix <span class="badge badge-regression">Regression</span></h2>
+      </div>
+      <div class="test-card-body">
+        <ol>
+          <li>Open any existing chapter's layout editor (click <strong>Design</strong> on an existing draft).</li>
+          <li>If a photo block has an image, try <strong>dragging</strong> it across the canvas.</li>
+          <li><span class="expected">Block drags freely — the photo swap tray does <em>not</em> open.</span></li>
+          <li>Now tap/click the small <strong>Camera icon</strong> in the top-right corner of the photo block.</li>
+          <li><span class="expected">The photo swap tray opens.</span></li>
+          <li>For an <em>empty</em> photo block (dashed border), clicking anywhere on it should still open the tray.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      <h2>Things to watch for</h2>
+      <ul>
+        <li>If the API key isn't configured, paged mode will error — check the toast message.</li>
+        <li>If credits run out mid-generation, all used credits should be refunded and an error shown.</li>
+        <li>The <strong>Back</strong> button in the layout editor for paged mode goes to the <em>mode picker</em> (step 3). For single mode it goes to the <em>review</em> step (step 5).</li>
+        <li>Existing single-page (v1) chapters must still open in the layout editor with no regressions.</li>
+        <li>The step counter in the wizard header shows <em>"Step 1 of 3"</em>, <em>"Step 2 of 3"</em>, <em>"Step 3 of 3"</em> for the wizard steps, then just <em>"Create a Chapter"</em> for the layout editor.</li>
+      </ul>
+    </div>
+
+  </div>
+</body>
+</html>

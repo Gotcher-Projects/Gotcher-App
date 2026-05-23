@@ -12,5 +12,6 @@ public record WizardRequest(
     List<Long> selectedFirstTimeIds,
     String supplementaryNotes,
     Map<String, String> photoOverrides,
-    Map<String, String> entryNotes
+    Map<String, String> entryNotes,
+    Boolean skipGeneration
 ) {}

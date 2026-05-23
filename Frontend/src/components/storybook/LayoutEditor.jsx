@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Rnd } from "react-rnd";
 import { Button } from "@/components/ui/button";
-import { X, Plus, ChevronLeft, LayoutTemplate, Type, Image } from "lucide-react";
+import { X, Plus, ChevronLeft, ChevronRight, LayoutTemplate, Type, Image, Camera } from "lucide-react";
+
+function cleanBody(body) {
+  return (body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
+}
 
 const TEMPLATES = [
   {
@@ -75,17 +79,37 @@ function makeId() {
   return `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function initBlocks(chapter) {
-  if (chapter.layoutData?.blocks?.length > 0) {
-    return chapter.layoutData.blocks.map(b => ({ ...b, id: b.id || makeId() }));
+function makePageId() {
+  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+}
+
+function initPages(chapter) {
+  if (chapter.layoutData?.version === 2) {
+    return (chapter.layoutData.pages || []).map(p => ({
+      id: p.id || makePageId(),
+      sourceKey: p.sourceKey || null,
+      blocks: (p.blocks || []).map(b => ({ ...b, id: b.id || makeId() })),
+    }));
   }
-  return [];
+  const blocks = chapter.layoutData?.blocks?.length > 0
+    ? chapter.layoutData.blocks.map(b => ({ ...b, id: b.id || makeId() }))
+    : [];
+  return [{ id: 'p-0', sourceKey: null, blocks }];
+}
+
+function getLayoutData(thePages, isV2) {
+  if (isV2 || thePages.length > 1) {
+    return { version: 2, pages: thePages };
+  }
+  return { version: 1, blocks: thePages[0].blocks };
 }
 
 export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, onPublish, onBack }) {
+  const isV2 = chapter.layoutData?.version === 2;
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState(0);
-  const [blocks, setBlocks] = useState(() => initBlocks(chapter));
+  const [pages, setPages] = useState(() => initPages(chapter));
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [photoTrayFor, setPhotoTrayFor] = useState(null);
   const [editingText, setEditingText] = useState(null);
@@ -106,36 +130,40 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
   useEffect(() => () => clearTimeout(saveTimerRef.current), []);
 
   const cs = containerSize || 400;
-  const hasTextBlock = blocks.some(b => b.type === 'text');
+  const currentBlocks = pages[currentPageIndex]?.blocks || [];
+  const hasTextBlock = currentBlocks.some(b => b.type === 'text');
 
-  const scheduleAutoSave = useCallback((nextBlocks) => {
+  const scheduleAutoSave = useCallback((nextPages) => {
     setSaveStatus('unsaved');
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        await onSave({ version: 1, blocks: nextBlocks });
+        await onSave(getLayoutData(nextPages, isV2));
         setSaveStatus('saved');
       } catch {
         setSaveStatus('unsaved');
       }
     }, 1000);
-  }, [onSave]);
+  }, [onSave, isV2]);
 
-  function updateBlock(id, patch) {
-    setBlocks(prev => {
-      const next = prev.map(b => b.id === id ? { ...b, ...patch } : b);
+  function setCurrentBlocks(updater) {
+    setPages(prev => {
+      const next = [...prev];
+      const page = { ...next[currentPageIndex] };
+      page.blocks = typeof updater === 'function' ? updater(page.blocks) : updater;
+      next[currentPageIndex] = page;
       scheduleAutoSave(next);
       return next;
     });
   }
 
+  function updateBlock(id, patch) {
+    setCurrentBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
+  }
+
   function deleteBlock(id) {
-    setBlocks(prev => {
-      const next = prev.filter(b => b.id !== id);
-      scheduleAutoSave(next);
-      return next;
-    });
+    setCurrentBlocks(prev => prev.filter(b => b.id !== id));
   }
 
   function addTextBlock() {
@@ -143,14 +171,9 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
       id: makeId(),
       type: 'text',
       x: 0.04, y: 0.04, width: 0.92, height: 0.45,
-      // Pre-fill with chapter body the first time a text block is added
-      content: !hasTextBlock ? (chapter.body || '') : '',
+      content: !hasTextBlock ? cleanBody(chapter.body) : '',
     };
-    setBlocks(prev => {
-      const next = [...prev, newBlock];
-      scheduleAutoSave(next);
-      return next;
-    });
+    setCurrentBlocks(prev => [...prev, newBlock]);
   }
 
   function addPhotoBlock() {
@@ -160,24 +183,34 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
       x: 0.04, y: 0.04, width: 0.92, height: 0.45,
       sourceKey: null, url: null, label: null,
     };
-    setBlocks(prev => {
-      const next = [...prev, newBlock];
+    setCurrentBlocks(prev => [...prev, newBlock]);
+  }
+
+  function addPage() {
+    const newPage = { id: makePageId(), sourceKey: null, blocks: [] };
+    setPages(prev => {
+      const next = [...prev, newPage];
       scheduleAutoSave(next);
       return next;
     });
+    setCurrentPageIndex(pages.length);
   }
 
   function applyTemplate(tpl) {
-    const next = tpl.blocks.map(b => ({
+    const newBlocks = tpl.blocks.map(b => ({
       ...b,
       id: makeId(),
-      content: b.type === 'text' ? (chapter.body || '') : undefined,
+      content: b.type === 'text' ? cleanBody(chapter.body) : undefined,
       sourceKey: b.type === 'photo' ? null : undefined,
       url: b.type === 'photo' ? null : undefined,
       label: b.type === 'photo' ? null : undefined,
     }));
-    setBlocks(next);
-    scheduleAutoSave(next);
+    setPages(prev => {
+      const next = [...prev];
+      next[currentPageIndex] = { ...next[currentPageIndex], blocks: newBlocks };
+      scheduleAutoSave(next);
+      return next;
+    });
     setShowTemplatePicker(false);
   }
 
@@ -198,11 +231,20 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
     return photos;
   }, [chapter, journalEntries, firsts]);
 
+  function getPageLabel(page) {
+    if (!page.sourceKey) return null;
+    const [type, idStr] = page.sourceKey.split(':');
+    const id = parseInt(idStr);
+    if (type === 'journal') return journalEntries.find(e => e.id === id)?.title || null;
+    if (type === 'first_time') return firsts.find(f => f.id === id)?.label || null;
+    return null;
+  }
+
   async function handlePublish() {
     setPublishing(true);
     clearTimeout(saveTimerRef.current);
     try {
-      await onSave({ version: 1, blocks });
+      await onSave(getLayoutData(pages, isV2));
       await onPublish();
     } catch {
       setPublishing(false);
@@ -210,6 +252,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
   }
 
   const saveLabel = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'unsaved' ? 'Unsaved' : 'Saved ✓';
+  const multiPage = pages.length > 1;
 
   return (
     <div className="space-y-3">
@@ -238,6 +281,15 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
             <Image className="w-3.5 h-3.5" />
             Add Photo
           </button>
+          {isV2 && (
+            <button
+              onClick={addPage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Page
+            </button>
+          )}
           <button
             onClick={() => setShowTemplatePicker(v => !v)}
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5"
@@ -259,7 +311,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">Replaces your current layout.</p>
+          <p className="text-xs text-muted-foreground">Replaces the current page's layout.</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {TEMPLATES.map(tpl => (
               <button
@@ -281,11 +333,11 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="relative w-full bg-[#fdf9f2] border border-[#ddd0b8] rounded-xl overflow-hidden shadow-sm"
+        className="relative w-full bg-white border border-[#ddd0b8] rounded-xl overflow-hidden shadow-sm"
         style={{ aspectRatio: '1 / 1' }}
       >
         {/* Empty state */}
-        {blocks.length === 0 && (
+        {currentBlocks.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center px-6">
             <p className="text-sm text-muted-foreground">Your page is blank — add a text or photo block to get started.</p>
             <div className="flex gap-3">
@@ -307,7 +359,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           </div>
         )}
 
-        {containerSize > 0 && blocks.map(block => (
+        {containerSize > 0 && currentBlocks.map(block => (
           <Rnd
             key={block.id}
             position={{ x: block.x * cs, y: block.y * cs }}
@@ -344,6 +396,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
               {block.type === 'text' ? (
                 <TextBlock
                   block={block}
+                  cs={cs}
                   isEditing={editingText === block.id}
                   onStartEdit={() => setEditingText(block.id)}
                   onStopEdit={(content) => {
@@ -358,6 +411,32 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           </Rnd>
         ))}
       </div>
+
+      {/* Multi-page navigation */}
+      {multiPage && (
+        <div className="flex items-center justify-center gap-3 py-1 border-t border-border">
+          <button
+            onClick={() => { setCurrentPageIndex(i => Math.max(0, i - 1)); setEditingText(null); }}
+            disabled={currentPageIndex === 0}
+            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-muted-foreground">
+            {getPageLabel(pages[currentPageIndex])
+              ? `${getPageLabel(pages[currentPageIndex])} · `
+              : ''}
+            Page {currentPageIndex + 1} of {pages.length}
+          </span>
+          <button
+            onClick={() => { setCurrentPageIndex(i => Math.min(pages.length - 1, i + 1)); setEditingText(null); }}
+            disabled={currentPageIndex === pages.length - 1}
+            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Publish */}
       <div className="flex gap-2 pt-1">
@@ -385,9 +464,10 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
   );
 }
 
-function TextBlock({ block, isEditing, onStartEdit, onStopEdit }) {
+function TextBlock({ block, cs, isEditing, onStartEdit, onStopEdit }) {
   const [localContent, setLocalContent] = useState(block.content || '');
   const lastTapRef = useRef(0);
+  const fontSize = Math.max(9, cs * 0.025);
 
   useEffect(() => {
     if (!isEditing) setLocalContent(block.content || '');
@@ -400,8 +480,8 @@ function TextBlock({ block, isEditing, onStartEdit, onStopEdit }) {
         value={localContent}
         onChange={e => setLocalContent(e.target.value)}
         onBlur={() => onStopEdit(localContent)}
-        className="w-full h-full resize-none p-3 bg-transparent font-serif text-foreground/85 leading-relaxed outline-none border border-color-highlight/50 rounded"
-        style={{ fontSize: 'clamp(9px, 1.5vw, 13px)' }}
+        className="w-full h-full resize-none p-3 bg-transparent font-serif text-foreground/85 outline-none border border-color-highlight/50 rounded"
+        style={{ fontSize, lineHeight: 1.8 }}
       />
     );
   }
@@ -422,14 +502,14 @@ function TextBlock({ block, isEditing, onStartEdit, onStopEdit }) {
         block.content.split('\n\n').map((para, i) => (
           <p
             key={i}
-            className={`font-serif text-foreground/85 leading-snug ${i > 0 ? 'mt-1.5' : ''}`}
-            style={{ fontSize: 'clamp(9px, 1.4vw, 13px)' }}
+            className="font-serif text-foreground/85"
+            style={{ fontSize, lineHeight: 1.8, marginTop: i > 0 ? fontSize : 0 }}
           >
             {para.trim()}
           </p>
         ))
       ) : (
-        <p className="font-serif text-muted-foreground/50 italic" style={{ fontSize: 'clamp(9px, 1.4vw, 13px)' }}>
+        <p className="font-serif text-muted-foreground/50 italic" style={{ fontSize }}>
           Double-tap to edit…
         </p>
       )}
@@ -440,8 +520,15 @@ function TextBlock({ block, isEditing, onStartEdit, onStopEdit }) {
 function PhotoBlock({ block, onAssign }) {
   if (block.url) {
     return (
-      <div className="w-full h-full overflow-hidden rounded cursor-pointer" onClick={onAssign}>
+      <div className="relative w-full h-full overflow-hidden rounded">
         <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onAssign}
+          className="absolute top-1.5 left-1.5 z-20 p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
+        >
+          <Camera className="w-3.5 h-3.5 text-foreground/70" />
+        </button>
       </div>
     );
   }

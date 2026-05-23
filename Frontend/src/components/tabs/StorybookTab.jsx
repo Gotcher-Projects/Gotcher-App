@@ -16,7 +16,7 @@ export default function StorybookTab({
   availableEventAnchors,
   journalEntries, firsts, birthdate,
   onGenerate, onUpdate, onDelete, onUnlockChapter,
-  onWizardGenerate, onUpload,
+  onWizardGenerate, onGeneratePages, onUpload,
   onNavigate, onError,
 }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -57,8 +57,16 @@ export default function StorybookTab({
 
   async function handleWizardGenerate(payload) {
     const chapter = await onWizardGenerate(payload);
-    setCredits(c => c === null ? null : Math.max(0, c - 1));
+    if (!payload.skipGeneration) {
+      setCredits(c => c === null ? null : Math.max(0, c - 1));
+    }
     return chapter;
+  }
+
+  async function handleGeneratePages(chapterId) {
+    const pages = await onGeneratePages(chapterId);
+    setCredits(c => c === null ? null : Math.max(0, c - pages.length));
+    return pages;
   }
 
   const sorted = [...chapters].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -74,6 +82,7 @@ export default function StorybookTab({
         tier={tier}
         credits={credits}
         onWizardGenerate={handleWizardGenerate}
+        onGeneratePages={handleGeneratePages}
         onGenerate={handleGenerate}
         onUpdate={onUpdate}
         onUpload={onUpload}
@@ -295,8 +304,8 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
                 </Button>
               </div>
             </div>
-          ) : chapter.layoutData?.blocks?.length > 0 ? (
-            <div className="rounded-lg overflow-hidden bg-[#fdf9f2]">
+          ) : (chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2) ? (
+            <div className="rounded-lg overflow-hidden bg-white border border-border">
               <LayoutRenderer layout={chapter.layoutData} />
             </div>
           ) : (
@@ -323,7 +332,7 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
               >
                 Regenerate
               </Button>
-              {chapter.layoutData?.blocks?.length > 0 && (
+              {(chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2) && (
                 <Button size="sm" variant="outline" onClick={() => onUpdate(chapter.id, { clearLayoutData: true })}>
                   Use classic style
                 </Button>
@@ -339,9 +348,9 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
   }
 
   if (chapter.status === 'published') {
-    const hasLayout = chapter.layoutData?.blocks?.length > 0;
+    const hasLayout = chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2;
     return (
-      <div className="rounded-xl shadow-sm overflow-hidden bg-[#fdf9f2] dark:bg-card border border-[#ddd0b8] dark:border-border">
+      <div className={`rounded-xl shadow-sm overflow-hidden border border-[#ddd0b8] dark:border-border ${hasLayout ? 'bg-white dark:bg-card' : 'bg-[#fdf9f2] dark:bg-card'}`}>
         <div className={`px-8 ${hasLayout && !editing ? 'pt-10 pb-6' : 'py-10'}`}>
           <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{typeLabel}</p>
           <h2 className="text-center font-display font-semibold text-2xl text-foreground mb-3 leading-snug">{chapter.anchorLabel}</h2>
