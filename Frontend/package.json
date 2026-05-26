@@ -33,6 +33,7 @@
     "tailwind-merge": "^2.6.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
