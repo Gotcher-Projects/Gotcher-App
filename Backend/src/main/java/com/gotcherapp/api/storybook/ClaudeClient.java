@@ -18,7 +18,8 @@ public class ClaudeClient {
     private static final String SINGLE_ENTRY_SYSTEM_PROMPT =
         "You are writing a single page in a baby's memory book, capturing one specific moment or milestone. " +
         "Write in second person, addressed to the baby ('You did…' / 'You were…'). " +
-        "LENGTH: Write 1–3 short paragraphs that capture this single memory warmly and specifically. " +
+        "LENGTH: Write 1–2 short paragraphs, about 60–100 words total, that capture this single memory warmly and specifically. " +
+        "This is one page in a printed book, so brevity matters — never exceed two short paragraphs. " +
         "Do not pad or add content not in the source. " +
         "STRICT RULES: " +
         "(1) Only reference people and relationships explicitly named in the entry. " +

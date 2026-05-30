@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
+  safelist: ['font-playf', 'font-merri', 'font-nunito', 'font-lato', 'font-display'],
   theme: {
     extend: {
       colors: {
@@ -49,8 +50,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        sans:    ['Inter', 'ui-sans-serif', 'system-ui'],
         display: ['Poppins', 'ui-sans-serif'],
+        playf:   ['Playfair Display', 'Georgia', 'serif'],
+        merri:   ['Merriweather', 'Georgia', 'serif'],
+        nunito:  ['Nunito', 'ui-sans-serif', 'system-ui'],
+        lato:    ['Lato', 'ui-sans-serif', 'system-ui'],
       },
     },
   },

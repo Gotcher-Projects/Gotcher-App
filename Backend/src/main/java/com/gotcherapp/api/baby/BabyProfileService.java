@@ -18,9 +18,12 @@ public class BabyProfileService {
         this.jdbc = jdbc;
     }
 
+    private static final java.util.Set<String> VALID_THEMES =
+        java.util.Set.of("classic", "coral", "midnight", "meadow");
+
     public Optional<BabyProfileResponse> getProfile(Long userId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, baby_name, birthdate, parent_name, phone, sex FROM baby_profiles WHERE user_id = ?",
+            "SELECT id, baby_name, birthdate, parent_name, phone, sex, book_theme FROM baby_profiles WHERE user_id = ?",
             userId
         );
         if (rows.isEmpty()) return Optional.empty();
@@ -39,7 +42,7 @@ public class BabyProfileService {
                 phone       = EXCLUDED.phone,
                 sex         = EXCLUDED.sex,
                 updated_at  = NOW()
-            RETURNING id, baby_name, birthdate, parent_name, phone, sex
+            RETURNING id, baby_name, birthdate, parent_name, phone, sex, book_theme
             """,
             userId,
             req.babyName(),
@@ -51,16 +54,29 @@ public class BabyProfileService {
         return mapRow(row);
     }
 
+    public boolean updateBookTheme(Long userId, String theme) {
+        if (!VALID_THEMES.contains(theme)) {
+            throw new IllegalArgumentException("Invalid theme: " + theme);
+        }
+        int rows = jdbc.update(
+            "UPDATE baby_profiles SET book_theme = ?, updated_at = NOW() WHERE user_id = ?",
+            theme, userId
+        );
+        return rows > 0;
+    }
+
     private BabyProfileResponse mapRow(Map<String, Object> row) {
         Object bd = row.get("birthdate");
         String birthdate = bd != null ? bd.toString() : null;
+        String bookTheme = row.get("book_theme") != null ? (String) row.get("book_theme") : "classic";
         return new BabyProfileResponse(
             ((Number) row.get("id")).longValue(),
             (String) row.get("baby_name"),
             birthdate,
             (String) row.get("parent_name"),
             (String) row.get("phone"),
-            (String) row.get("sex")
+            (String) row.get("sex"),
+            bookTheme
         );
     }
 }

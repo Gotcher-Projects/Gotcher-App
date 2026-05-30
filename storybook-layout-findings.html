@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Storybook Layout — Findings &amp; Improvement Options</title>
+<style>
+  :root {
+    --ink: #1e2233;
+    --muted: #5b6478;
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --accent: #9b7e5a;
+    --accent2: #e06c5f;
+    --line: #e2ddd2;
+    --code-bg: #1e2040;
+    --code-ink: #e8eaf6;
+    --ok: #4a7a4a;
+    --warn: #b9802a;
+    --bad: #c0453b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.title {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 20px;
+    margin-bottom: 8px;
+  }
+  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  h2 {
+    font-size: 22px; margin: 44px 0 14px; padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  p { margin: 10px 0; }
+  code {
+    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 13px;
+    background: #ece8df;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #5c4a32;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin: 16px 0;
+    box-shadow: 0 1px 3px rgba(30,34,51,0.05);
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 3px 9px; border-radius: 999px; vertical-align: middle;
+    margin-left: 8px;
+  }
+  .tag.crit { background: #fbe4e1; color: var(--bad); }
+  .tag.med  { background: #f7ecd6; color: var(--warn); }
+  .tag.low  { background: #e3efe3; color: var(--ok); }
+  .ref {
+    font-family: "SF Mono", Consolas, monospace; font-size: 12.5px;
+    color: var(--accent2); font-weight: 600;
+  }
+  ul, ol { margin: 10px 0; padding-left: 22px; }
+  li { margin: 6px 0; }
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: #f0ebe0;
+    padding: 12px 16px; border-radius: 0 8px 8px 0;
+    margin: 16px 0; font-size: 14.5px;
+  }
+  .callout.bad { border-color: var(--bad); background: #fbe9e7; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 999px;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 13px;
+    margin-right: 8px; flex-shrink: 0;
+  }
+  .opt-head { display: flex; align-items: center; font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  .effort { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: auto; }
+  .effort.lo { background: #e3efe3; color: var(--ok); }
+  .effort.mid { background: #f7ecd6; color: var(--warn); }
+  .effort.hi { background: #fbe4e1; color: var(--bad); }
+  .rec {
+    background: linear-gradient(180deg, #f0ebe0, #f7f5f0);
+    border: 1px solid var(--accent);
+    border-radius: 12px; padding: 18px 22px; margin: 24px 0;
+  }
+  .rec h3 { margin-top: 0; }
+  footer { margin-top: 60px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+  .diagram {
+    font-family: "SF Mono", Consolas, monospace; font-size: 12px; line-height: 1.35;
+    background: #1e2040; color: #cfd3e8; padding: 16px; border-radius: 10px; overflow-x:auto;
+    white-space: pre;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <h1>Storybook Layout — Findings &amp; Improvement Options</h1>
+  <p class="sub">Why "One Page Per Memory" chapters waste real estate and clip text, and how to fix it.</p>
+  <p class="meta">Generated 2026-05-29 · Branch <code>journal-updates</code> · Context: follows s5.44 (theme cards, 7 fonts, virtual canvas)</p>
+</header>
+
+<div class="callout">
+  <strong>TL;DR.</strong> s5.44 made the editor and the published view render at the <em>same</em> size — but that exposed two deeper problems they share. (1) The published chapter card is full-width and painted in the book theme color, while the actual designed page is only a <strong>500&nbsp;px centered square</strong> — so most of the card is empty themed margin. (2) Long AI-generated entries overflow a <strong>hard-coded text block height</strong> and get clipped with <code>overflow:hidden</code>. A third, smaller bug: header text isn't theme-aware, so the title is dark-on-dark on the Midnight theme.
+</div>
+
+<h2>1. What the screenshots show</h2>
+
+<div class="card">
+  <p><strong><code>JournalCutoff2.jpg</code> (the #1 complaint).</strong> Published Midnight chapter. The whole card is dark navy (<code>theme.bg</code>). The page you designed in the editor is the lighter purple square in the middle — a 500&nbsp;px square. Around it: a tall header region, wide left/right navy margins, and a band of navy below the photo. The designed content occupies roughly a third of the card.</p>
+  <p><strong><code>JournalCutoff.jpg</code> / <code>JournalBadSpacing.jpg</code>.</strong> A longer entry (3 paragraphs). The body text is clipped mid-sentence ("…What mattered was that in that moment") because it doesn't fit the fixed text-block height.</p>
+</div>
+
+<div class="diagram">┌──────────────────────────────────────────────┐  ← published card: full width,
+│                 TIME  PERIOD                   │     painted in theme.bg (navy)
+│             &lt;title — dark on dark&gt;             │
+│                 ──────  ·  ──────              │  ← ~140px header, all themed bg
+│                                                │
+│            ┌────────────────────┐              │
+│   wasted   │  designed page     │   wasted     │  ← real content = 500px square,
+│   navy     │  (your canvas bg)  │   navy       │     centered. Big side margins.
+│   margin   │  text + photo      │   margin     │
+│            └────────────────────┘              │
+│                                                │
+│                    1 / 6                        │
+│                  May 29, 2026                   │
+└──────────────────────────────────────────────┘</div>
+
+<h2>2. Findings <span style="font-size:14px;font-weight:400;color:var(--muted)">(verified against source)</span></h2>
+
+<h3>A. Wasted real estate <span class="tag crit">Critical</span></h3>
+<div class="card">
+  <ul>
+    <li>The published <code>ChapterCard</code> outer element sets <code>backgroundColor: theme.bg</code> with <strong>no max-width</strong>, so it stretches to the full content-column width (wide on desktop).
+      <div class="ref">Frontend/src/components/tabs/StorybookTab.jsx:411</div></li>
+    <li>Header is <code>px-8 pt-10 pb-6</code> with a <code>text-2xl</code> title and a divider carrying <code>mb-7</code> — roughly 140&nbsp;px of vertical themed space stacked <em>above</em> the page.
+      <div class="ref">StorybookTab.jsx:413–420</div></li>
+    <li>The actual page is rendered by <code>&lt;LayoutRenderer&gt;</code> <em>below</em> that header.
+      <div class="ref">StorybookTab.jsx:459</div></li>
+    <li>The renderer canvas is <code>max-w-[500px] mx-auto</code>, a fixed 1:1 square. On a ~1000–1290&nbsp;px card that leaves ~250–395&nbsp;px of empty themed margin on each side.
+      <div class="ref">LayoutRenderer.jsx:78 &amp; :132</div></li>
+    <li>Nothing narrows the chapter list — <code>StorybookTab</code> is dropped into the full content column.
+      <div class="ref">MemoriesTab.jsx:41–69</div></li>
+  </ul>
+  <div class="callout bad">Net effect: in the editor (mobile) the canvas fills the width and looks full; published (desktop) the same square floats in a wide themed card and looks tiny — exactly <code>JournalCutoff2</code>.</div>
+</div>
+
+<h3>B. Header text not theme-aware (dark-on-dark) <span class="tag med">Medium</span></h3>
+<div class="card">
+  <p>The header uses <strong>app</strong>-theme color tokens, not the <strong>book</strong> theme:</p>
+  <ul>
+    <li>"TIME PERIOD" → <code>text-muted-foreground</code> <span class="ref">StorybookTab.jsx:414</span></li>
+    <li>Title → <code>text-foreground</code> <span class="ref">StorybookTab.jsx:415</span></li>
+    <li>Date → <code>text-muted-foreground</code> <span class="ref">StorybookTab.jsx:462</span></li>
+  </ul>
+  <p>On Midnight (<code>theme.textColor = #e8eaf6</code> over <code>#1e2040</code>) the title is nearly invisible. The <em>body</em> path already wraps content in <code>theme.textColor</code> (<span class="ref">:448</span>) — the header was simply missed.</p>
+</div>
+
+<h3>C. Text cutoff <span class="tag crit">Critical</span></h3>
+<div class="card">
+  <p>Each generated page is built with a <strong>hard-coded</strong> text-block height, regardless of how long the AI text is:</p>
+  <pre><code>// StorybookWizard.jsx:261–289  (handleGeneratePages)
+{ type: 'text',  x: 0.04, y: 0.04, width: 0.92,
+  height: photoUrl ? 0.38 : 0.92, content: ... }
+{ type: 'photo', x: 0.04, y: 0.46, width: 0.92, height: 0.50, ... }</code></pre>
+  <ul>
+    <li>Font size is fixed at <code>Math.max(9, cs*0.025)</code> = 12.5&nbsp;px on the 500&nbsp;px virtual canvas; the text container is <code>overflow:hidden</code> (applied twice).
+      <div class="ref">LayoutRenderer.jsx:7, :20, :24 — and the same in LayoutEditor.jsx TextBlock</div></li>
+    <li>The backend asks for <strong>"1–3 short paragraphs"</strong> and allows up to <strong>400 tokens</strong> (~300 words) per page.
+      <div class="ref">ClaudeClient.java:18–27 (SINGLE_ENTRY_SYSTEM_PROMPT) · StorybookService.java:327 &amp; :341 (generateSingle(prompt, 400))</div></li>
+  </ul>
+  <div class="callout bad">A 3-paragraph entry cannot fit in 38% of a 500&nbsp;px square at 12.5&nbsp;px / 1.8 line-height, so the tail is clipped. A 2-paragraph entry fits but leaves dead space. The block never adapts to the text.</div>
+</div>
+
+<h2>3. Improvement options</h2>
+
+<h3>Real estate</h3>
+
+<div class="card">
+  <div class="opt-head"><span class="rank">1</span> Constrain the card to a book column &amp; let the canvas fill it <span class="effort lo">Low effort · High impact</span></div>
+  <p>Give the published <code>ChapterCard</code> (and the chapter list) a book width such as <code>max-w-[560px] mx-auto</code>, and bump <code>LayoutRenderer</code> from <code>max-w-[500px]</code> to <code>max-w-full</code> so the designed page fills the card edge-to-edge. No dark side margins; published now matches what you designed in the editor.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span class="rank">2</span> Trim the header for layout chapters <span class="effort lo">Low effort</span></div>
+  <p>Reduce <code>pt-10 pb-6</code> to compact padding, shrink the title, and tighten the divider's <code>mb-7</code>. Reclaims ~80&nbsp;px of themed space above the page so the page itself is the hero.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span class="rank">3</span> Make header text theme-aware <span class="effort lo">Low effort · fixes Finding B</span></div>
+  <p>Apply <code>theme.textColor</code> (falling back to the current classes for light themes) to the TIME PERIOD label, title, and date so they stay legible on Midnight and any future dark theme.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span class="rank">4</span> Reconsider the fixed 1:1 page aspect <span class="effort mid">Medium effort · Optional</span></div>
+  <p>A real book page is portrait, not square. Switching the canvas to e.g. 3:4 uses vertical space naturally and gives long text more room. Larger change — affects editor, renderer, and existing saved layouts — so treat as a follow-up.</p>
+</div>
+
+<h3>Text cutoff</h3>
+
+<div class="card">
+  <div class="opt-head"><span style="margin-right:8px;font-weight:700;color:var(--accent)">A.</span> Cap generated length <span class="effort lo">Cheap · complements all</span></div>
+  <p>Tighten <code>SINGLE_ENTRY_SYSTEM_PROMPT</code> to ~2 short paragraphs / ~80–110 words and lower the token budget <code>400 → ~220</code>. Makes generated text reliably fit the block.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span style="margin-right:8px;font-weight:700;color:var(--accent)">B.</span> Shrink-to-fit font (safety net) <span class="effort mid">Medium effort · robust</span></div>
+  <p>A shared util that measures rendered text against the block height and scales the font down to a minimum, used by both <code>LayoutRenderer</code> and <code>LayoutEditor</code>'s <code>TextBlock</code>. Guarantees nothing is ever clipped, regardless of length.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span style="margin-right:8px;font-weight:700;color:var(--accent)">C.</span> Auto-size the text block from text length <span class="effort mid">Medium effort</span></div>
+  <p>In <code>handleGeneratePages</code>, estimate the needed height from character count and size the text block (and shrink/relocate the photo) instead of the hard-coded <code>0.38</code>. Keeps a readable font while fitting the content.</p>
+</div>
+
+<div class="card">
+  <div class="opt-head"><span style="margin-right:8px;font-weight:700;color:var(--accent)">D.</span> Auto-paginate long entries <span class="effort hi">Larger effort</span></div>
+  <p>If an entry overflows, split it into continuation text-only pages. Best long-term reading experience; most logic. Treat as a later enhancement.</p>
+</div>
+
+<div class="rec">
+  <h3>Recommended combo</h3>
+  <p><strong>Real estate:</strong> options&nbsp;1&nbsp;+&nbsp;2&nbsp;+&nbsp;3 — together they eliminate the wasted margins, reclaim vertical space, and fix the dark-on-dark title.</p>
+  <p><strong>Text cutoff:</strong> option&nbsp;A&nbsp;+&nbsp;B — cap the generation so text fits by default, with shrink-to-fit as a guarantee. Option&nbsp;C as a follow-up if you want larger photos with longer text.</p>
+  <p style="margin-bottom:0">Each item is independently shippable, so we can land the high-impact real-estate fixes first and verify against the <code>JournalCutoff2</code> scenario before touching generation.</p>
+</div>
+
+<h3>Fonts <span class="tag low">Minor</span></h3>
+<div class="card">
+  <p>Already 7 (Georgia, Playfair Display, Merriweather, Inter, Lato, Nunito, Poppins) after s5.44. Optional enhancements: add more families and/or group the picker by <em>Serif / Sans / Display</em> so the 7-button strip reads more clearly. Low priority.</p>
+</div>
+
+<h2>4. Summary table</h2>
+<table>
+  <thead><tr><th>Finding</th><th>Severity</th><th>Root cause (file:line)</th><th>Recommended fix</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Wasted real estate around the page</td>
+      <td><span class="tag crit">Critical</span></td>
+      <td>StorybookTab.jsx:411,459 · LayoutRenderer.jsx:78,132 · MemoriesTab.jsx:41</td>
+      <td>Options 1 + 2</td>
+    </tr>
+    <tr>
+      <td>Title dark-on-dark (Midnight)</td>
+      <td><span class="tag med">Medium</span></td>
+      <td>StorybookTab.jsx:414,415,462</td>
+      <td>Option 3</td>
+    </tr>
+    <tr>
+      <td>Body text clipped on long entries</td>
+      <td><span class="tag crit">Critical</span></td>
+      <td>StorybookWizard.jsx:273 · LayoutRenderer.jsx:7,20,24 · ClaudeClient.java:21 · StorybookService.java:327,341</td>
+      <td>Options A + B</td>
+    </tr>
+    <tr>
+      <td>Limited fonts</td>
+      <td><span class="tag low">Minor</span></td>
+      <td>Resolved in s5.44 (7 fonts)</td>
+      <td>Optional grouping</td>
+    </tr>
+  </tbody>
+</table>
+
+<footer>
+  Source-verified findings for the CradleHQ storybook feature. Code references are to the <code>journal-updates</code> branch as of generation. Next step: confirm which options to implement, then land the real-estate fixes (1–3) first and re-shoot the desktop Midnight scenario.
+</footer>
+
+</div>
+</body>
+</html>

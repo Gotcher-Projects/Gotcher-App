@@ -42,6 +42,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [bookTheme, setBookTheme] = useState('classic');
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
 
@@ -98,6 +99,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             sex: profile.sex || d.profile.sex,
           }
         }));
+        if (profile.bookTheme) setBookTheme(profile.bookTheme);
         setNeedsOnboarding(false);
       })
       .catch(err => {
@@ -657,6 +659,8 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               onWizardGenerate={wizardGenerate}
               onGeneratePages={wizardGeneratePages}
               availableEventAnchors={availableEventAnchors}
+              bookTheme={bookTheme}
+              onUpdateBookTheme={setBookTheme}
               onNavigate={(target) => {
                 if (target === 'health-milestones') {
                   setActiveTab('health');

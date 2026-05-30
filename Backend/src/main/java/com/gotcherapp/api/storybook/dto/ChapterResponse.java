@@ -23,5 +23,6 @@ public record ChapterResponse(
     String supplementaryNotes,
     Map<String, String> photoOverrides,
     Map<String, String> entryNotes,
-    Map<String, Object> layoutData
+    Map<String, Object> layoutData,
+    List<Map<String, Object>> chapterPhotos
 ) {}

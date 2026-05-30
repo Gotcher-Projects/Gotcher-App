@@ -8,8 +8,10 @@ import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
 import com.gotcherapp.api.storybook.dto.UnlockRequest;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
+import com.gotcherapp.api.upload.ImageUploadService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -22,7 +24,7 @@ public class StorybookService {
     private static final String CHAPTER_COLS =
         "id, anchor_type, anchor_key, anchor_label, period_start_weeks, period_end_weeks, " +
         "sort_order, body, status, image_url, generated_at, published_at, created_at, updated_at, " +
-        "wizard_journal_ids, wizard_first_time_ids, supplementary_notes, photo_overrides, wizard_entry_notes, layout_data";
+        "wizard_journal_ids, wizard_first_time_ids, supplementary_notes, photo_overrides, wizard_entry_notes, layout_data, chapter_photos";
 
     // Mirrors MILESTONES in Frontend/src/lib/babyData.js — used to decode DB keys (e.g. "8-2")
     // into human-readable labels for the Claude prompt. Keep in sync if labels change.
@@ -46,13 +48,16 @@ public class StorybookService {
     private final BabyProfileRepository babyProfileRepository;
     private final ClaudeClient claudeClient;
     private final ObjectMapper objectMapper;
+    private final ImageUploadService imageUploadService;
 
     public StorybookService(JdbcTemplate jdbc, BabyProfileRepository babyProfileRepository,
-                            ClaudeClient claudeClient, ObjectMapper objectMapper) {
+                            ClaudeClient claudeClient, ObjectMapper objectMapper,
+                            ImageUploadService imageUploadService) {
         this.jdbc = jdbc;
         this.babyProfileRepository = babyProfileRepository;
         this.claudeClient = claudeClient;
         this.objectMapper = objectMapper;
+        this.imageUploadService = imageUploadService;
     }
 
     // ── List ──────────────────────────────────────────────────────────────────
@@ -319,7 +324,7 @@ public class StorybookService {
             creditsUsed++;
             try {
                 String prompt = buildSingleJournalPrompt(id, babyName, entryNotes);
-                String body = claudeClient.generateSingle(prompt, 400);
+                String body = claudeClient.generateSingle(prompt, 220);
                 results.add(new GeneratedPageResponse("journal:" + id, body));
             } catch (Exception e) {
                 int used = creditsUsed;
@@ -333,7 +338,7 @@ public class StorybookService {
             creditsUsed++;
             try {
                 String prompt = buildSingleFirstTimePrompt(id, babyName, entryNotes);
-                String body = claudeClient.generateSingle(prompt, 400);
+                String body = claudeClient.generateSingle(prompt, 220);
                 results.add(new GeneratedPageResponse("first_time:" + id, body));
             } catch (Exception e) {
                 int used = creditsUsed;
@@ -736,6 +741,33 @@ public class StorybookService {
         return rows.isEmpty() ? Optional.empty() : Optional.of(mapRow(rows.get(0)));
     }
 
+    // ── Chapter photo upload ───────────────────────────────────────────────────
+
+    public Map<String, Object> uploadChapterPhoto(Long chapterId, MultipartFile file, Long userId) throws Exception {
+        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
+        if (profileId.isEmpty()) throw new ForbiddenException("No baby profile found");
+
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT id FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?",
+            chapterId, profileId.get()
+        );
+        if (rows.isEmpty()) throw new NoSuchElementException("Chapter not found");
+
+        String url = imageUploadService.upload(file, "storybook", userId);
+        String key = "upload:" + UUID.randomUUID();
+        Map<String, Object> entry = Map.of("key", key, "url", url, "label", "");
+
+        String entryJson = objectMapper.writeValueAsString(entry);
+        jdbc.update(
+            "UPDATE storybook_chapters SET " +
+            "chapter_photos = COALESCE(chapter_photos, '[]'::jsonb) || ?::jsonb, " +
+            "updated_at = NOW() WHERE id = ?",
+            "[" + entryJson + "]", chapterId
+        );
+
+        return entry;
+    }
+
     // ── Delete ────────────────────────────────────────────────────────────────
 
     public boolean delete(Long userId, Long chapterId) {
@@ -898,8 +930,19 @@ public class StorybookService {
             (String) row.get("supplementary_notes"),
             parseJsonMap(row.get("photo_overrides")),
             parseJsonMap(row.get("wizard_entry_notes")),
-            parseJsonObject(row.get("layout_data"))
+            parseJsonObject(row.get("layout_data")),
+            parseJsonList(row.get("chapter_photos"))
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> parseJsonList(Object raw) {
+        if (raw == null) return List.of();
+        try {
+            return objectMapper.readValue(raw.toString(), new TypeReference<List<Map<String, Object>>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     // ── Inner response types ──────────────────────────────────────────────────

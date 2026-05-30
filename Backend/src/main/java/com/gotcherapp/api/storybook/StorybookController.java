@@ -10,6 +10,7 @@ import com.gotcherapp.api.storybook.dto.WizardRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -113,6 +114,24 @@ public class StorybookController {
         Optional<ChapterResponse> updated = storybookService.update(principal.userId(), id, req);
         if (updated.isEmpty()) return ApiError.notFound("Chapter not found");
         return ResponseEntity.ok(updated.get());
+    }
+
+    @PostMapping("/storybook/{id}/chapter-photos")
+    public ResponseEntity<?> uploadChapterPhoto(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable Long id,
+        @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            Map<String, Object> entry = storybookService.uploadChapterPhoto(id, file, principal.userId());
+            return ResponseEntity.status(201).body(entry);
+        } catch (StorybookService.ForbiddenException e) {
+            return ApiError.forbidden(e.getMessage());
+        } catch (NoSuchElementException e) {
+            return ApiError.notFound(e.getMessage());
+        } catch (Exception e) {
+            return ApiError.serverError(e.getMessage());
+        }
     }
 
     @DeleteMapping("/storybook/{id}")

@@ -7,6 +7,8 @@ import { STORYBOOK_PERIODS } from "@/lib/storybookPeriods";
 import StorybookWizard from "@/components/storybook/StorybookWizard";
 import LayoutRenderer from "@/components/storybook/LayoutRenderer";
 import { ChapterPhoto, renderPublishedBody, renderDraftBody } from "@/components/storybook/LegacyChapterRenderer";
+import { BOOK_THEMES, getTheme } from "@/lib/bookThemes";
+import { apiRequest } from "@/lib/api";
 
 // Event-only period options kept for the "By Milestone" flow
 const EVENT_ANCHOR_MODES = [{ value: 'event', label: 'By Milestone' }];
@@ -17,6 +19,7 @@ export default function StorybookTab({
   journalEntries, firsts, birthdate,
   onGenerate, onUpdate, onDelete, onUnlockChapter,
   onWizardGenerate, onGeneratePages, onUpload,
+  bookTheme: bookThemeProp, onUpdateBookTheme,
   onNavigate, onError,
 }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -24,6 +27,25 @@ export default function StorybookTab({
   const [selectedValue, setSelectedValue] = useState('');
   const [adding, setAdding] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [editingChapter, setEditingChapter] = useState(null);
+  const [bookThemeKey, setBookThemeKey] = useState(bookThemeProp || 'classic');
+  const activeTheme = getTheme(bookThemeKey);
+
+  async function handleThemeSelect(key) {
+    const prev = bookThemeKey;
+    setBookThemeKey(key);
+    if (onUpdateBookTheme) onUpdateBookTheme(key);
+    try {
+      await apiRequest('/baby-profile/book-theme', {
+        method: 'PATCH',
+        body: JSON.stringify({ theme: key }),
+      });
+    } catch {
+      setBookThemeKey(prev);
+      if (onUpdateBookTheme) onUpdateBookTheme(prev);
+      onError?.('Failed to save theme');
+    }
+  }
 
   const isPaid = tier !== 'free';
   const eventAnchors = availableEventAnchors ?? [];
@@ -71,9 +93,11 @@ export default function StorybookTab({
 
   const sorted = [...chapters].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-  if (showWizard) {
+  if (showWizard || editingChapter) {
     return (
       <StorybookWizard
+        editMode={!!editingChapter}
+        initialChapter={editingChapter}
         journalEntries={journalEntries ?? []}
         firsts={firsts ?? []}
         birthdate={birthdate}
@@ -81,12 +105,13 @@ export default function StorybookTab({
         week={week}
         tier={tier}
         credits={credits}
+        theme={activeTheme}
         onWizardGenerate={handleWizardGenerate}
         onGeneratePages={handleGeneratePages}
         onGenerate={handleGenerate}
         onUpdate={onUpdate}
         onUpload={onUpload}
-        onClose={() => setShowWizard(false)}
+        onClose={() => { setShowWizard(false); setEditingChapter(null); }}
         onError={onError}
       />
     );
@@ -94,6 +119,35 @@ export default function StorybookTab({
 
   return (
     <div className="space-y-6">
+      {/* Book theme picker */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-muted-foreground font-medium shrink-0">Book theme:</span>
+        <div className="flex gap-3 flex-wrap">
+          {BOOK_THEMES.map(t => {
+            const selected = bookThemeKey === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => handleThemeSelect(t.key)}
+                className="flex flex-col items-center gap-1 group"
+                title={t.label}
+              >
+                <div
+                  className={`rounded-lg overflow-hidden border-2 transition-all ${selected ? 'border-color-highlight scale-105 shadow-md' : 'border-transparent hover:border-color-highlight/40'}`}
+                  style={{ width: 56, height: 44 }}
+                >
+                  <div style={{ backgroundColor: t.bg, height: 36 }} />
+                  <div style={{ backgroundColor: t.accent, height: 8 }} />
+                </div>
+                <span className={`text-[10px] font-medium ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {!isPaid && !bannerDismissed && (
         <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
           <p className="text-sm">Your story is ready to write — upgrade to Plus to generate chapters.</p>
@@ -141,11 +195,13 @@ export default function StorybookTab({
               chapter={chapter}
               tier={tier}
               credits={credits}
+              theme={activeTheme}
               journalEntries={journalEntries ?? []}
               firsts={firsts ?? []}
               onGenerate={handleGenerate}
               onUpdate={onUpdate}
               onDelete={onDelete}
+              onEditLayout={(ch) => setEditingChapter(ch)}
               onError={onError}
             />
           ))}
@@ -189,7 +245,7 @@ export default function StorybookTab({
   );
 }
 
-function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerate, onUpdate, onDelete, onError }) {
+function ChapterCard({ chapter, tier, credits, theme, journalEntries, firsts, onGenerate, onUpdate, onDelete, onEditLayout, onError }) {
   const [generating, setGenerating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editBody, setEditBody] = useState(chapter.body || '');
@@ -197,6 +253,7 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
 
   const isPaid = tier !== 'free';
   const hasCredits = credits === null || credits > 0;
+  const hasLayout = chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2;
 
   React.useEffect(() => {
     if (!editing) setEditBody(chapter.body || '');
@@ -306,7 +363,7 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
             </div>
           ) : (chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2) ? (
             <div className="rounded-lg overflow-hidden bg-white border border-border">
-              <LayoutRenderer layout={chapter.layoutData} />
+              <LayoutRenderer layout={chapter.layoutData} theme={theme} />
             </div>
           ) : (
             <>
@@ -325,7 +382,7 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
               <Button size="sm" onClick={handlePublish} className="bg-color-highlight hover:bg-color-highlight/90">
                 Approve &amp; Publish
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
+              <Button size="sm" variant="outline" onClick={() => hasLayout ? onEditLayout(chapter) : setEditing(true)}>Edit</Button>
               <Button
                 size="sm" variant="outline" onClick={handleGenerate} disabled={!hasCredits}
                 title={!hasCredits ? 'No credits remaining this month' : 'Regenerate with AI (costs 1 credit)'}
@@ -348,16 +405,18 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
   }
 
   if (chapter.status === 'published') {
-    const hasLayout = chapter.layoutData?.blocks?.length > 0 || chapter.layoutData?.version === 2;
     return (
-      <div className={`rounded-xl shadow-sm overflow-hidden border border-[#ddd0b8] dark:border-border ${hasLayout ? 'bg-white dark:bg-card' : 'bg-[#fdf9f2] dark:bg-card'}`}>
-        <div className={`px-8 ${hasLayout && !editing ? 'pt-10 pb-6' : 'py-10'}`}>
-          <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mb-3">{typeLabel}</p>
-          <h2 className="text-center font-display font-semibold text-2xl text-foreground mb-3 leading-snug">{chapter.anchorLabel}</h2>
-          <div className="flex items-center justify-center gap-2 mb-7">
-            <div className="h-px w-14 bg-color-highlight/25" />
-            <span className="text-color-highlight/50 text-xs">◆</span>
-            <div className="h-px w-14 bg-color-highlight/25" />
+      <div
+        className="rounded-xl shadow-sm overflow-hidden border border-[#ddd0b8] dark:border-border max-w-[560px] mx-auto"
+        style={{ '--book-accent': theme?.accent, backgroundColor: theme?.bg || '#fdf9f2' }}
+      >
+        <div className={`px-8 ${hasLayout && !editing ? 'pt-6 pb-4' : 'py-10'}`}>
+          <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mb-2" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>{typeLabel}</p>
+          <h2 className="text-center font-display font-semibold text-xl text-foreground mb-3 leading-snug" style={{ color: theme?.textColor }}>{chapter.anchorLabel}</h2>
+          <div className={`flex items-center justify-center gap-2 ${hasLayout && !editing ? 'mb-1' : 'mb-7'}`}>
+            <div className="h-px w-14" style={{ backgroundColor: theme?.accent, opacity: 0.25 }} />
+            <span className="text-xs" style={{ color: theme?.accent, opacity: 0.5 }}>{theme?.dividerChar || '◆'}</span>
+            <div className="h-px w-14" style={{ backgroundColor: theme?.accent, opacity: 0.25 }} />
           </div>
           {chapter.imageUrl && !editing && !hasLayout && (
             <div className="mb-7">
@@ -386,27 +445,27 @@ function ChapterCard({ chapter, tier, credits, journalEntries, firsts, onGenerat
               </div>
             </div>
           ) : !hasLayout && (
-            <div>
-              {renderPublishedBody(chapter.body, chapter.photoOverrides, journalEntries, firsts)}
+            <div style={{ color: theme?.textColor }}>
+              {renderPublishedBody(chapter.body, chapter.photoOverrides, journalEntries, firsts, theme)}
             </div>
           )}
           {!hasLayout && chapter.publishedAt && !editing && (
-            <p className="text-center text-xs text-muted-foreground mt-8">
+            <p className="text-center text-xs text-muted-foreground mt-8" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>
               {new Date(chapter.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
           )}
         </div>
         {!editing && hasLayout && (
-          <LayoutRenderer layout={chapter.layoutData} />
+          <LayoutRenderer layout={chapter.layoutData} theme={theme} />
         )}
         {!editing && hasLayout && chapter.publishedAt && (
-          <p className="text-center text-xs text-muted-foreground px-8 py-4">
+          <p className="text-center text-xs text-muted-foreground px-8 py-4" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>
             {new Date(chapter.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         )}
         {!editing && (
           <div className="px-6 py-3 border-t border-[#ddd0b8] dark:border-border flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Edit</Button>
+            <Button size="sm" variant="outline" onClick={() => hasLayout ? onEditLayout(chapter) : setEditing(true)}>Edit</Button>
             {hasLayout && (
               <Button size="sm" variant="outline" onClick={() => onUpdate(chapter.id, { clearLayoutData: true })}>
                 Use classic style

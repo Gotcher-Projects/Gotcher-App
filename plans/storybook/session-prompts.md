@@ -244,6 +244,140 @@ Read LayoutEditor.jsx, StorybookWizard.jsx, StorybookTab.jsx, MemoriesTab.jsx be
 
 ---
 
+## Session 5.3 — Standalone Photo Uploads
+
+```
+Session 5.3 of storybook — Standalone Photo Uploads.
+Plan: plans/storybook/s5.3-standalone-photos.md
+Branch: journal-updates
+Depends on: S5.2 complete and verified.
+
+Full-stack. Latest migration is V30. Next is V31.
+
+Backend first, then frontend:
+1. V31__chapter_photos.sql — ALTER TABLE chapters ADD COLUMN chapter_photos JSONB
+2. ChapterResponse.java — add chapterPhotos field
+3. StorybookService.java — read/write chapter_photos; uploadChapterPhoto() method
+4. StorybookController.java — POST /storybook/{id}/chapter-photos (multipart)
+5. LayoutEditor.jsx — upload button in PhotoTray; include chapterPhotos in availablePhotos memo
+
+Read ChapterResponse.java, StorybookService.java, StorybookController.java, and LayoutEditor.jsx
+before writing any code.
+```
+
+---
+
+## Session 5.4 — Book Theming
+
+```
+Session 5.4 of storybook — Book Theming.
+Plan: plans/storybook/s5.4-book-theming.md
+Branch: journal-updates
+Depends on: S5.3 complete.
+
+Full-stack. Latest migration is V31. Next is V32.
+
+Two features: book-level theme preset (stored on baby_profiles) +
+per-page background color override (stored in layout_data).
+
+Backend first, then frontend:
+1. V32__book_theme.sql — add book_theme VARCHAR(20) to baby_profiles
+2. BabyProfile DTO + service + controller — add bookTheme read/write + PATCH endpoint
+3. bookThemes.js — BOOK_THEMES constant + getTheme() helper
+4. StorybookTab.jsx — theme picker swatch row, PATCH on select
+5. LayoutRenderer.jsx — apply theme bg + per-page backgroundColor override
+6. LayoutEditor.jsx — canvas reflects theme, per-page color swatches in page nav
+
+Finalize theme preset names/colors/fonts at implementation time (4–5 presets).
+Read the plan fully before writing any code.
+```
+
+---
+
+## Session 5.5 — Stickers & Decorative Elements
+
+```
+Session 5.5 of storybook — Stickers & Decorative Elements.
+Plan: plans/storybook/s5.5-stickers.md
+Branch: journal-updates
+Depends on: S5.3 or S5.4 complete.
+
+Frontend only. No backend changes. No DB migration.
+
+1. Create Frontend/public/stickers/ — add SVG files for initial sticker set (~16)
+2. Frontend/src/lib/stickers.js — STICKERS constant
+3. LayoutEditor.jsx — "Add Sticker" toolbar button + StickerPicker bottom sheet + StickerBlock render
+4. LayoutRenderer.jsx — handle sticker block type
+
+Finalize exact sticker set at implementation time.
+Read LayoutEditor.jsx and LayoutRenderer.jsx before writing any code.
+```
+
+---
+
+## Session 5.6 — Rich Text (Tiptap)
+
+```
+Session 5.6 of storybook — Rich Text (Tiptap).
+Plan: plans/storybook/s5.6-rich-text.md
+Branch: journal-updates
+Depends on: S5.3+ complete and layout editor stable.
+
+Frontend only. No backend changes. No DB migration needed.
+
+1. npm install @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-text-align
+2. LayoutEditor.jsx — replace textarea in TextBlock with Tiptap EditorContent + formatting toolbar
+3. LayoutRenderer.jsx — detect string vs Tiptap JSON content, render accordingly
+
+Resolve open questions (toolbar placement, font size mapping) before writing code.
+Read LayoutEditor.jsx and LayoutRenderer.jsx fully before touching them.
+```
+
+---
+
+## Session 5.7 — Book Cover Page
+
+```
+Session 5.7 of storybook — Book Cover Page.
+Plan: plans/storybook/s5.7-book-cover.md
+Branch: journal-updates
+Depends on: S5.4 (theming) complete.
+
+Full-stack. Latest migration is V32. Next is V33.
+
+1. V33__book_cover.sql — add cover_photo_url + cover_subtitle to baby_profiles
+2. BabyProfile DTO + service — add cover fields to read/write
+3. PATCH /baby-profile — extend to accept coverPhotoUrl + coverSubtitle
+4. POST /baby-profile/cover-photo — multipart Cloudinary upload
+5. Frontend/src/components/storybook/BookCover.jsx — new component
+6. StorybookTab.jsx — render BookCover above chapter list + edit actions
+
+Read BabyProfileService, BabyProfileController, and StorybookTab.jsx before writing code.
+```
+
+---
+
+## Session 5.8 — Chapter Reordering
+
+```
+Session 5.8 of storybook — Chapter Reordering.
+Plan: plans/storybook/s5.8-chapter-reordering.md
+Branch: journal-updates
+Depends on: S5.3+ complete.
+
+Full-stack. Latest migration is V33 (or whatever the current last is). Next is V34.
+
+1. V34__chapter_order_index.sql — add order_index INT to chapters
+2. StorybookService.java — sort by order_index, add reorderChapters()
+3. StorybookController.java — PUT /storybook/order endpoint
+4. npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities (if not already present)
+5. StorybookTab.jsx — drag-to-reorder with @dnd-kit, optimistic update, PUT on drop
+
+Read StorybookService.java, StorybookController.java, and StorybookTab.jsx before writing code.
+```
+
+---
+
 ## Session 7 — Shareable Book Link
 
 ```

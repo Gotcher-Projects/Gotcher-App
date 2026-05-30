@@ -46,7 +46,8 @@ export function lookupPhoto(photoType, photoId, photoOverrides, journalEntries, 
   return { url: url ?? null, label, orientation };
 }
 
-export function renderPublishedBody(body, photoOverrides, journalEntries, firsts) {
+export function renderPublishedBody(body, photoOverrides, journalEntries, firsts, theme) {
+  const fontClass = theme?.fontClass || 'font-serif';
   const segments = parseBodySegments(body);
   const elements = [];
   let firstPara = true;
@@ -60,7 +61,7 @@ export function renderPublishedBody(body, photoOverrides, journalEntries, firsts
     mainParas.forEach((para, j) => {
       const isFirst = firstPara; firstPara = false;
       elements.push(
-        <p key={`p-${i}-${j}`} className={`font-serif text-[15px] leading-8 text-foreground/85 ${isFirst ? 'book-chapter-first' : 'mt-4'}`}>
+        <p key={`p-${i}-${j}`} className={`${fontClass} text-[15px] leading-8 text-foreground/85 ${isFirst ? 'book-chapter-first' : 'mt-4'}`}>
           {para.trim()}
         </p>
       );
@@ -73,7 +74,7 @@ export function renderPublishedBody(body, photoOverrides, journalEntries, firsts
       if (url) {
         elements.push(
           <div key={`pair-${i}`} className="flex gap-4 mt-4 items-stretch">
-            <p className={`font-serif text-[15px] leading-8 text-foreground/85 flex-1 min-w-0 ${isFirst ? 'book-chapter-first' : ''}`}>
+            <p className={`${fontClass} text-[15px] leading-8 text-foreground/85 flex-1 min-w-0 ${isFirst ? 'book-chapter-first' : ''}`}>
               {lastPara.trim()}
             </p>
             <figure className="flex-shrink-0 w-[28%] flex flex-col">
@@ -84,7 +85,7 @@ export function renderPublishedBody(body, photoOverrides, journalEntries, firsts
         );
       } else {
         elements.push(
-          <p key={`p-${i}-last`} className={`font-serif text-[15px] leading-8 text-foreground/85 ${isFirst ? 'book-chapter-first' : 'mt-4'}`}>
+          <p key={`p-${i}-last`} className={`${fontClass} text-[15px] leading-8 text-foreground/85 ${isFirst ? 'book-chapter-first' : 'mt-4'}`}>
             {lastPara.trim()}
           </p>
         );

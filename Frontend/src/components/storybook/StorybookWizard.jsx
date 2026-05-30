@@ -29,6 +29,7 @@ export default function StorybookWizard({
   week,
   tier,
   credits,
+  theme,
   onWizardGenerate,
   onGeneratePages,
   onGenerate,
@@ -36,8 +37,10 @@ export default function StorybookWizard({
   onUpload,
   onClose,
   onError,
+  editMode = false,
+  initialChapter = null,
 }) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(editMode ? 6 : 1);
   const [mode, setMode] = useState(null); // 'single' | 'paged'
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [selectedJournalIds, setSelectedJournalIds] = useState(new Set());
@@ -50,7 +53,7 @@ export default function StorybookWizard({
   const [expandedItems, setExpandedItems] = useState(new Set());
   const [supplementaryNotes, setSupplementaryNotes] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [generatedChapter, setGeneratedChapter] = useState(null);
+  const [generatedChapter, setGeneratedChapter] = useState(editMode ? initialChapter : null);
 
   const fileInputRef = useRef(null);
   const cancelCropRef = useRef(null);
@@ -267,16 +270,16 @@ export default function StorybookWizard({
               x: 0.04,
               y: 0.04,
               width: 0.92,
-              height: photoUrl ? 0.38 : 0.92,
+              height: photoUrl ? 0.34 : 0.92,
               content: (p.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim(),
             },
             ...(photoUrl ? [{
               id: `b-${i}-1`,
               type: 'photo',
               x: 0.04,
-              y: 0.46,
+              y: 0.40,
               width: 0.92,
-              height: 0.50,
+              height: 0.56,
               sourceKey: p.sourceKey,
               url: photoUrl,
               label: getPhotoLabel(p.sourceKey),
@@ -323,7 +326,7 @@ export default function StorybookWizard({
     3: generating ? (mode === 'paged' ? 'Writing your pages…' : 'How would you like to tell this story?') : 'How would you like to tell this story?',
     4: 'Add your memories',
     5: 'Your chapter',
-    6: 'Design your page',
+    6: editMode ? 'Edit layout' : 'Design your page',
   }[step] || '';
 
   const showBack = step >= 2 && step <= 4 && !generating;
@@ -352,9 +355,12 @@ export default function StorybookWizard({
             )}
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                {step <= 3 && `Create a Chapter · Step ${step} of 3`}
-                {step === 4 && 'Create a Chapter · Step 4 of 4'}
-                {step >= 5 && 'Create a Chapter'}
+                {editMode
+                  ? 'Edit Chapter'
+                  : step <= 3 ? `Create a Chapter · Step ${step} of 3`
+                  : step === 4 ? 'Create a Chapter · Step 4 of 4'
+                  : 'Create a Chapter'
+                }
               </p>
               <h2 className="font-display font-semibold text-xl text-foreground">
                 {stepTitle}
@@ -734,15 +740,28 @@ export default function StorybookWizard({
             chapter={generatedChapter}
             journalEntries={journalEntries}
             firsts={firsts}
+            theme={theme}
             onSave={async (layoutData) => {
               await onUpdate(generatedChapter.id, { layoutData });
               setGeneratedChapter(prev => ({ ...prev, layoutData }));
             }}
             onPublish={async () => {
-              await onUpdate(generatedChapter.id, { status: 'published' });
-              onClose();
+              if (editMode) {
+                onClose();
+              } else {
+                await onUpdate(generatedChapter.id, { status: 'published' });
+                onClose();
+              }
             }}
-            onBack={() => setStep(mode === 'paged' ? 3 : 5)}
+            onBack={editMode ? onClose : () => setStep(mode === 'paged' ? 3 : 5)}
+            publishLabel={editMode ? 'Save & Close' : undefined}
+            backLabel={editMode ? 'Close' : undefined}
+            onChapterPhotoAdded={(photo) => {
+              setGeneratedChapter(prev => ({
+                ...prev,
+                chapterPhotos: [...(prev.chapterPhotos || []), { key: photo.sourceKey, url: photo.url, label: photo.label }],
+              }));
+            }}
           />
         )}
       </div>

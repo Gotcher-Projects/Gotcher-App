@@ -19,6 +19,7 @@ export default function MemoriesTab({
   tier, chapters, initialCredits, availableEventAnchors,
   onChapterGenerate, onChapterUpdate, onChapterDelete, onUnlockChapter,
   onWizardGenerate, onGeneratePages,
+  bookTheme, onUpdateBookTheme,
   onNavigate,
 }) {
   const [view, setView] = useState('journal');
@@ -54,6 +55,8 @@ export default function MemoriesTab({
           onWizardGenerate={onWizardGenerate}
           onGeneratePages={onGeneratePages}
           onUpload={onUpload}
+          bookTheme={bookTheme}
+          onUpdateBookTheme={onUpdateBookTheme}
           onNavigate={(target) => {
             if (target === 'firsts') {
               setView('firsts');

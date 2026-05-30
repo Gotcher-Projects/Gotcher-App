@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useReducer } from "react";
 import { Rnd } from "react-rnd";
+import { useEditor, EditorContent } from "@tiptap/react";
+import { useFittedFontSize } from "@/lib/fitText";
 import { Button } from "@/components/ui/button";
-import { X, Plus, ChevronLeft, ChevronRight, LayoutTemplate, Type, Image, Camera } from "lucide-react";
+import { X, Plus, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, LayoutTemplate, Type, Image, Camera, Upload, Sticker, Bold, Italic, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { apiUpload } from "@/lib/api";
+import { STICKERS, stickerMaskStyle, stickerColors } from "@/lib/stickers";
+import { tiptapExtensions, toTiptapDoc, renderContentHTML, contentToPlainText, FONT_SIZES, fontSizeKey } from "@/lib/tiptap";
 
 function cleanBody(body) {
   return (body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
@@ -55,6 +60,23 @@ const TEMPLATES = [
   },
 ];
 
+// Virtual page canvas — fixed 3:4 portrait, matched to LayoutRenderer so the
+// editor and published view render identically (CSS-scaled to fit).
+const CANVAS_W = 600;
+const CANVAS_H = 800;
+const BASE_FONT = Math.max(9, CANVAS_W * 0.025);
+const FONT_MAP = { serif: 'font-serif', playf: 'font-playf', merri: 'font-merri', sans: 'font-sans', lato: 'font-lato', nunito: 'font-nunito', display: 'font-display' };
+const FONT_OPTIONS = [
+  { key: 'serif',   label: 'Georgia' },
+  { key: 'playf',   label: 'Playfair' },
+  { key: 'merri',   label: 'Merri' },
+  { key: 'sans',    label: 'Inter' },
+  { key: 'lato',    label: 'Lato' },
+  { key: 'nunito',  label: 'Nunito' },
+  { key: 'display', label: 'Poppins' },
+];
+const REVERSE_FONT_MAP = Object.fromEntries(Object.entries(FONT_MAP).map(([k, v]) => [v, k]));
+
 // Resize handle styles — small squares at corners + edge midpoints
 const HANDLE_STYLE = {
   width: 10,
@@ -83,18 +105,27 @@ function makePageId() {
   return `p-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
 }
 
+// Ensure every block has an id, and migrate legacy plain-string text content
+// to Tiptap JSON so the whole editor works in a single rich-text format.
+function migrateBlock(b) {
+  const block = { ...b, id: b.id || makeId() };
+  if (block.type === 'text') block.content = toTiptapDoc(block.content);
+  return block;
+}
+
 function initPages(chapter) {
   if (chapter.layoutData?.version === 2) {
     return (chapter.layoutData.pages || []).map(p => ({
       id: p.id || makePageId(),
       sourceKey: p.sourceKey || null,
-      blocks: (p.blocks || []).map(b => ({ ...b, id: b.id || makeId() })),
+      backgroundColor: p.backgroundColor || null,
+      blocks: (p.blocks || []).map(migrateBlock),
     }));
   }
   const blocks = chapter.layoutData?.blocks?.length > 0
-    ? chapter.layoutData.blocks.map(b => ({ ...b, id: b.id || makeId() }))
+    ? chapter.layoutData.blocks.map(migrateBlock)
     : [];
-  return [{ id: 'p-0', sourceKey: null, blocks }];
+  return [{ id: 'p-0', sourceKey: null, backgroundColor: null, blocks }];
 }
 
 function getLayoutData(thePages, isV2) {
@@ -104,15 +135,21 @@ function getLayoutData(thePages, isV2) {
   return { version: 1, blocks: thePages[0].blocks };
 }
 
-export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, onPublish, onBack }) {
+export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, onPublish, onBack, publishLabel, backLabel, onChapterPhotoAdded, theme }) {
   const isV2 = chapter.layoutData?.version === 2;
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState(0);
   const [pages, setPages] = useState(() => initPages(chapter));
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showAddPhotoMenu, setShowAddPhotoMenu] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [menuUploading, setMenuUploading] = useState(false);
+  const [menuUploadError, setMenuUploadError] = useState(null);
   const [photoTrayFor, setPhotoTrayFor] = useState(null);
   const [editingText, setEditingText] = useState(null);
+  const [activeEditor, setActiveEditor] = useState(null);
+  const [selectedBlock, setSelectedBlock] = useState(null);
   const [saveStatus, setSaveStatus] = useState('saved');
   const [publishing, setPublishing] = useState(false);
   const saveTimerRef = useRef(null);
@@ -129,7 +166,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
 
   useEffect(() => () => clearTimeout(saveTimerRef.current), []);
 
-  const cs = containerSize || 400;
+  const scale = containerSize > 0 ? containerSize / CANVAS_W : 1;
   const currentBlocks = pages[currentPageIndex]?.blocks || [];
   const hasTextBlock = currentBlocks.some(b => b.type === 'text');
 
@@ -158,8 +195,41 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
     });
   }
 
+  function setCurrentPageBg(color) {
+    setPages(prev => {
+      const next = [...prev];
+      next[currentPageIndex] = { ...next[currentPageIndex], backgroundColor: color || null };
+      scheduleAutoSave(next);
+      return next;
+    });
+  }
+
   function updateBlock(id, patch) {
     setCurrentBlocks(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
+  }
+
+  function handleFontChange(blockId, fontFamily) {
+    setCurrentBlocks(prev =>
+      prev.map(b => b.id === blockId ? { ...b, fontFamily: fontFamily || undefined } : b)
+    );
+  }
+
+  function addStickerBlock(stickerKey) {
+    const newBlock = {
+      id: makeId(),
+      type: 'sticker',
+      stickerKey,
+      x: 0.40, y: 0.42, width: 0.20, height: 0.15,
+    };
+    setCurrentBlocks(prev => [...prev, newBlock]);
+    setSelectedBlock(newBlock.id);
+    setShowStickerPicker(false);
+  }
+
+  function handleStickerColor(blockId, color) {
+    setCurrentBlocks(prev =>
+      prev.map(b => b.id === blockId ? { ...b, color } : b)
+    );
   }
 
   function deleteBlock(id) {
@@ -171,23 +241,52 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
       id: makeId(),
       type: 'text',
       x: 0.04, y: 0.04, width: 0.92, height: 0.45,
-      content: !hasTextBlock ? cleanBody(chapter.body) : '',
+      content: toTiptapDoc(!hasTextBlock ? cleanBody(chapter.body) : ''),
     };
     setCurrentBlocks(prev => [...prev, newBlock]);
   }
 
-  function addPhotoBlock() {
+  function addPhotoBlock(overrides = {}) {
+    const id = makeId();
     const newBlock = {
-      id: makeId(),
+      id,
       type: 'photo',
       x: 0.04, y: 0.04, width: 0.92, height: 0.45,
       sourceKey: null, url: null, label: null,
+      ...overrides,
     };
     setCurrentBlocks(prev => [...prev, newBlock]);
+    return id;
+  }
+
+  function handleAddPhotoFromEntries() {
+    const id = addPhotoBlock();
+    setPhotoTrayFor(id);
+    setShowAddPhotoMenu(false);
+  }
+
+  async function handleMenuUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMenuUploading(true);
+    setMenuUploadError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const data = await apiUpload(`/storybook/${chapter.id}/chapter-photos`, form);
+      const photo = { sourceKey: data.key, url: data.url, label: data.label || '' };
+      addPhotoBlock({ sourceKey: photo.sourceKey, url: photo.url, label: photo.label });
+      if (onChapterPhotoAdded) onChapterPhotoAdded(photo);
+      setShowAddPhotoMenu(false);
+    } catch {
+      setMenuUploadError('Upload failed. Please try again.');
+    } finally {
+      setMenuUploading(false);
+    }
   }
 
   function addPage() {
-    const newPage = { id: makePageId(), sourceKey: null, blocks: [] };
+    const newPage = { id: makePageId(), sourceKey: null, backgroundColor: null, blocks: [] };
     setPages(prev => {
       const next = [...prev, newPage];
       scheduleAutoSave(next);
@@ -196,11 +295,33 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
     setCurrentPageIndex(pages.length);
   }
 
+  function movePageLeft() {
+    if (currentPageIndex === 0) return;
+    setPages(prev => {
+      const next = [...prev];
+      [next[currentPageIndex - 1], next[currentPageIndex]] = [next[currentPageIndex], next[currentPageIndex - 1]];
+      scheduleAutoSave(next);
+      return next;
+    });
+    setCurrentPageIndex(i => i - 1);
+  }
+
+  function movePageRight() {
+    if (currentPageIndex === pages.length - 1) return;
+    setPages(prev => {
+      const next = [...prev];
+      [next[currentPageIndex], next[currentPageIndex + 1]] = [next[currentPageIndex + 1], next[currentPageIndex]];
+      scheduleAutoSave(next);
+      return next;
+    });
+    setCurrentPageIndex(i => i + 1);
+  }
+
   function applyTemplate(tpl) {
     const newBlocks = tpl.blocks.map(b => ({
       ...b,
       id: makeId(),
-      content: b.type === 'text' ? cleanBody(chapter.body) : undefined,
+      content: b.type === 'text' ? toTiptapDoc(cleanBody(chapter.body)) : undefined,
       sourceKey: b.type === 'photo' ? null : undefined,
       url: b.type === 'photo' ? null : undefined,
       label: b.type === 'photo' ? null : undefined,
@@ -227,6 +348,9 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
       if (!ft) continue;
       const url = chapter.photoOverrides?.[`first_time:${id}`] || ft.imageUrl;
       if (url) photos.push({ sourceKey: `first_time:${id}`, url, label: ft.label });
+    }
+    for (const cp of chapter.chapterPhotos || []) {
+      photos.push({ sourceKey: cp.key, url: cp.url, label: cp.label || '' });
     }
     return photos;
   }, [chapter, journalEntries, firsts]);
@@ -263,7 +387,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
-          Back to Review
+          {backLabel || 'Back to Review'}
         </button>
 
         <div className="flex items-center gap-2">
@@ -275,11 +399,18 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
             Add Text
           </button>
           <button
-            onClick={addPhotoBlock}
+            onClick={() => setShowAddPhotoMenu(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
           >
             <Image className="w-3.5 h-3.5" />
             Add Photo
+          </button>
+          <button
+            onClick={() => setShowStickerPicker(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+          >
+            <Sticker className="w-3.5 h-3.5" />
+            Add Sticker
           </button>
           {isV2 && (
             <button
@@ -330,12 +461,25 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
         </div>
       )}
 
+      {/* Rich-text formatting toolbar — shown only while editing a text block */}
+      {editingText && activeEditor && <FormatToolbar editor={activeEditor} />}
+
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="relative w-full bg-white border border-[#ddd0b8] rounded-xl overflow-hidden shadow-sm"
-        style={{ aspectRatio: '1 / 1' }}
+        className="relative w-full max-w-[480px] mx-auto border border-[#ddd0b8] rounded-xl overflow-hidden shadow-sm"
+        style={{ aspectRatio: '3 / 4' }}
       >
+        {containerSize > 0 && (
+          <div
+            style={{
+              position: 'absolute', top: 0, left: 0,
+              width: CANVAS_W, height: CANVAS_H,
+              transform: `scale(${scale})`, transformOrigin: 'top left',
+              backgroundColor: pages[currentPageIndex]?.backgroundColor || theme?.bg || '#fdf9f2',
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setSelectedBlock(null); }}
+          >
         {/* Empty state */}
         {currentBlocks.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center px-6">
@@ -349,7 +493,7 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
                 Add Text
               </button>
               <button
-                onClick={addPhotoBlock}
+                onClick={() => setShowAddPhotoMenu(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-color-highlight/30 hover:border-color-highlight/60 hover:bg-color-warm/10 transition-colors text-sm font-medium text-foreground"
               >
                 <Image className="w-4 h-4 text-color-highlight/60" />
@@ -359,33 +503,37 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           </div>
         )}
 
-        {containerSize > 0 && currentBlocks.map(block => (
+        {currentBlocks.map(block => (
           <Rnd
             key={block.id}
-            position={{ x: block.x * cs, y: block.y * cs }}
-            size={{ width: block.width * cs, height: block.height * cs }}
+            position={{ x: block.x * CANVAS_W, y: block.y * CANVAS_H }}
+            size={{ width: block.width * CANVAS_W, height: block.height * CANVAS_H }}
+            scale={scale}
             bounds="parent"
-            minWidth={cs * 0.10}
-            minHeight={cs * 0.08}
+            minWidth={CANVAS_W * 0.10}
+            minHeight={CANVAS_H * 0.06}
             enableResizing={editingText !== block.id}
             disableDragging={editingText === block.id}
             resizeHandleStyles={RESIZE_HANDLE_STYLES}
             onDragStop={(e, d) => updateBlock(block.id, {
-              x: Math.max(0, d.x / cs),
-              y: Math.max(0, d.y / cs),
+              x: Math.max(0, d.x / CANVAS_W),
+              y: Math.max(0, d.y / CANVAS_H),
             })}
             onResizeStop={(e, dir, ref, delta, pos) => updateBlock(block.id, {
-              x: Math.max(0, pos.x / cs),
-              y: Math.max(0, pos.y / cs),
-              width: ref.offsetWidth / cs,
-              height: ref.offsetHeight / cs,
+              x: Math.max(0, pos.x / CANVAS_W),
+              y: Math.max(0, pos.y / CANVAS_H),
+              width: ref.offsetWidth / CANVAS_W,
+              height: ref.offsetHeight / CANVAS_H,
             })}
             style={{ zIndex: editingText === block.id ? 20 : 10 }}
           >
-            <div className="relative w-full h-full group">
+            <div
+              className="relative w-full h-full group"
+              onClick={() => setSelectedBlock(block.id)}
+            >
               {/* Delete button */}
               <button
-                onClick={() => deleteBlock(block.id)}
+                onClick={(e) => { e.stopPropagation(); deleteBlock(block.id); }}
                 onMouseDown={e => e.stopPropagation()}
                 onTouchStart={e => e.stopPropagation()}
                 className="absolute top-1 right-1 z-30 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -396,13 +544,25 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
               {block.type === 'text' ? (
                 <TextBlock
                   block={block}
-                  cs={cs}
+                  theme={theme}
                   isEditing={editingText === block.id}
-                  onStartEdit={() => setEditingText(block.id)}
+                  isSelected={selectedBlock === block.id}
+                  onStartEdit={() => { setSelectedBlock(block.id); setEditingText(block.id); }}
                   onStopEdit={(content) => {
                     setEditingText(null);
-                    if (content !== block.content) updateBlock(block.id, { content });
+                    if (JSON.stringify(content) !== JSON.stringify(block.content)) {
+                      updateBlock(block.id, { content });
+                    }
                   }}
+                  onFontChange={handleFontChange}
+                  onEditorReady={setActiveEditor}
+                />
+              ) : block.type === 'sticker' ? (
+                <StickerBlock
+                  block={block}
+                  theme={theme}
+                  isSelected={selectedBlock === block.id}
+                  onColorChange={handleStickerColor}
                 />
               ) : (
                 <PhotoBlock block={block} onAssign={() => setPhotoTrayFor(block.id)} />
@@ -410,11 +570,37 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
             </div>
           </Rnd>
         ))}
+          </div>
+        )}
       </div>
+
+      {/* Per-page background color swatches */}
+      {theme && (
+        <div className="flex items-center gap-2 px-1 py-0.5">
+          <span className="text-xs text-muted-foreground shrink-0">Page bg:</span>
+          <button
+            onClick={() => setCurrentPageBg(null)}
+            title="Default"
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${!pages[currentPageIndex]?.backgroundColor ? 'border-color-highlight' : 'border-border hover:border-color-highlight/50'}`}
+            style={{ backgroundColor: theme.bg }}
+          >
+            <span className="text-[7px] text-foreground/50 leading-none font-bold">A</span>
+          </button>
+          {theme.palette.slice(1).map(color => (
+            <button
+              key={color}
+              onClick={() => setCurrentPageBg(color)}
+              title={color}
+              className={`w-5 h-5 rounded border-2 transition-colors ${pages[currentPageIndex]?.backgroundColor === color ? 'border-color-highlight' : 'border-border hover:border-color-highlight/50'}`}
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Multi-page navigation */}
       {multiPage && (
-        <div className="flex items-center justify-center gap-3 py-1 border-t border-border">
+        <div className="flex items-center justify-center gap-2 py-1 border-t border-border">
           <button
             onClick={() => { setCurrentPageIndex(i => Math.max(0, i - 1)); setEditingText(null); }}
             disabled={currentPageIndex === 0}
@@ -422,12 +608,28 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm text-muted-foreground">
+          <button
+            onClick={movePageLeft}
+            disabled={currentPageIndex === 0}
+            title="Move this page earlier"
+            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-sm text-muted-foreground px-1">
             {getPageLabel(pages[currentPageIndex])
               ? `${getPageLabel(pages[currentPageIndex])} · `
               : ''}
             Page {currentPageIndex + 1} of {pages.length}
           </span>
+          <button
+            onClick={movePageRight}
+            disabled={currentPageIndex === pages.length - 1}
+            title="Move this page later"
+            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() => { setCurrentPageIndex(i => Math.min(pages.length - 1, i + 1)); setEditingText(null); }}
             disabled={currentPageIndex === pages.length - 1}
@@ -445,17 +647,95 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
           disabled={publishing}
           className="flex-1 bg-color-highlight hover:bg-color-highlight/90"
         >
-          {publishing ? 'Publishing…' : 'Publish Chapter'}
+          {publishing ? (publishLabel ? 'Saving…' : 'Publishing…') : (publishLabel || 'Publish Chapter')}
         </Button>
       </div>
+
+      {/* Add photo source picker */}
+      {showAddPhotoMenu && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end" onClick={() => setShowAddPhotoMenu(false)}>
+          <div
+            className="w-full bg-background rounded-t-2xl p-4 space-y-3"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-sm">Add a photo</p>
+              <button onClick={() => setShowAddPhotoMenu(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={handleAddPhotoFromEntries}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border hover:border-color-highlight/50 hover:bg-color-warm/10 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-full bg-color-highlight/10 flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5 text-color-highlight" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">From journal &amp; firsts</p>
+                <p className="text-xs text-muted-foreground">Choose a photo you've already added</p>
+              </div>
+            </button>
+
+            <label className={`w-full flex items-center gap-3 p-4 rounded-xl border border-border hover:border-color-highlight/50 hover:bg-color-warm/10 transition-colors text-left cursor-pointer ${menuUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <div className="w-10 h-10 rounded-full bg-color-highlight/10 flex items-center justify-center shrink-0">
+                <Upload className="w-5 h-5 text-color-highlight" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{menuUploading ? 'Uploading…' : 'Upload from device'}</p>
+                <p className="text-xs text-muted-foreground">Add a photo from your phone or computer</p>
+              </div>
+              <input type="file" accept="image/*" className="hidden" onChange={handleMenuUpload} disabled={menuUploading} />
+            </label>
+
+            {menuUploadError && <p className="text-xs text-destructive">{menuUploadError}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Sticker picker */}
+      {showStickerPicker && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end" onClick={() => setShowStickerPicker(false)}>
+          <div
+            className="w-full bg-background rounded-t-2xl p-4 space-y-3 max-h-[60vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-sm">Add a sticker</p>
+              <button onClick={() => setShowStickerPicker(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {STICKERS.map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => addStickerBlock(s.key)}
+                  title={s.label}
+                  className="aspect-square rounded-xl border border-border hover:border-color-highlight/60 hover:bg-color-warm/10 transition-colors p-2.5 flex items-center justify-center"
+                >
+                  <div className="w-full h-full" style={stickerMaskStyle(s.key, theme?.accent || '#9b7e5a')} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Photo tray */}
       {photoTrayFor && (
         <PhotoTray
           photos={availablePhotos}
+          chapterId={chapter.id}
           onSelect={(photo) => {
             updateBlock(photoTrayFor, { sourceKey: photo.sourceKey, url: photo.url, label: photo.label });
             setPhotoTrayFor(null);
+          }}
+          onUploadDone={(photo) => {
+            updateBlock(photoTrayFor, { sourceKey: photo.sourceKey, url: photo.url, label: photo.label });
+            setPhotoTrayFor(null);
+            if (onChapterPhotoAdded) onChapterPhotoAdded(photo);
           }}
           onClose={() => setPhotoTrayFor(null)}
         />
@@ -464,25 +744,53 @@ export default function LayoutEditor({ chapter, journalEntries, firsts, onSave, 
   );
 }
 
-function TextBlock({ block, cs, isEditing, onStartEdit, onStopEdit }) {
-  const [localContent, setLocalContent] = useState(block.content || '');
+function TextBlock({ block, theme, isEditing, isSelected, onStartEdit, onStopEdit, onFontChange, onEditorReady }) {
   const lastTapRef = useRef(0);
-  const fontSize = Math.max(9, cs * 0.025);
+  const dispRef = useRef(null);
+  const fontClass = FONT_MAP[block.fontFamily] ?? theme?.fontClass ?? 'font-serif';
+  const activeFontKey = block.fontFamily ?? REVERSE_FONT_MAP[theme?.fontClass ?? 'font-serif'] ?? 'serif';
+  const html = useMemo(() => renderContentHTML(block.content), [block.content]);
+  const isEmpty = useMemo(() => contentToPlainText(block.content).length === 0, [block.content]);
+  const fittedSize = useFittedFontSize(
+    dispRef, BASE_FONT, 8,
+    [html, fontClass, block.width * CANVAS_W, block.height * CANVAS_H, isEditing]
+  );
 
-  useEffect(() => {
-    if (!isEditing) setLocalContent(block.content || '');
-  }, [block.content, isEditing]);
+  // Block-level font-family picker (separate from the inline format toolbar).
+  // preventDefault on mousedown keeps the contenteditable focused while editing.
+  const fontPicker = (isSelected || isEditing) && (
+    <div
+      className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-1 z-40"
+      onPointerDown={e => e.stopPropagation()}
+      onMouseDown={e => e.preventDefault()}
+      onClick={e => e.stopPropagation()}
+    >
+      {FONT_OPTIONS.map(({ key, label }) => (
+        <button
+          key={key}
+          onPointerDown={e => e.stopPropagation()}
+          onMouseDown={e => e.preventDefault()}
+          onClick={e => { e.stopPropagation(); onFontChange(block.id, activeFontKey === key && block.fontFamily ? null : key); }}
+          className={`px-1.5 py-0.5 rounded text-[10px] text-white transition-colors ${activeFontKey === key ? 'bg-white/30' : 'hover:bg-white/15'}`}
+        >
+          <span className={FONT_MAP[key]}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   if (isEditing) {
     return (
-      <textarea
-        autoFocus
-        value={localContent}
-        onChange={e => setLocalContent(e.target.value)}
-        onBlur={() => onStopEdit(localContent)}
-        className="w-full h-full resize-none p-3 bg-transparent font-serif text-foreground/85 outline-none border border-color-highlight/50 rounded"
-        style={{ fontSize, lineHeight: 1.8 }}
-      />
+      <div className="relative w-full h-full">
+        <RichTextEditor
+          block={block}
+          fontClass={fontClass}
+          textColor={theme?.textColor}
+          onReady={onEditorReady}
+          onStopEdit={onStopEdit}
+        />
+        {fontPicker}
+      </div>
     );
   }
 
@@ -496,22 +804,144 @@ function TextBlock({ block, cs, isEditing, onStartEdit, onStopEdit }) {
     <div
       onDoubleClick={onStartEdit}
       onTouchEnd={handleTouchEnd}
-      className="w-full h-full p-3 overflow-hidden cursor-text select-none border border-transparent rounded"
+      className="relative w-full h-full cursor-text select-none border border-transparent rounded"
     >
-      {block.content ? (
-        block.content.split('\n\n').map((para, i) => (
-          <p
-            key={i}
-            className="font-serif text-foreground/85"
-            style={{ fontSize, lineHeight: 1.8, marginTop: i > 0 ? fontSize : 0 }}
-          >
-            {para.trim()}
-          </p>
-        ))
+      {isEmpty ? (
+        <div className={`book-rich book-rich--edit ${fontClass} w-full h-full p-3 overflow-hidden`} style={{ fontSize: BASE_FONT, lineHeight: 1.8 }}>
+          <p className="text-muted-foreground/50 italic">Double-tap to edit…</p>
+        </div>
       ) : (
-        <p className="font-serif text-muted-foreground/50 italic" style={{ fontSize }}>
-          Double-tap to edit…
-        </p>
+        <div
+          ref={dispRef}
+          className={`book-rich ${fontClass} w-full h-full p-3 overflow-hidden`}
+          style={{ fontSize: fittedSize, lineHeight: 1.8, color: theme?.textColor || undefined }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      )}
+      {fontPicker}
+    </div>
+  );
+}
+
+function RichTextEditor({ block, fontClass, textColor, onReady, onStopEdit }) {
+  const editor = useEditor({
+    extensions: tiptapExtensions,
+    content: toTiptapDoc(block.content),
+    autofocus: 'end',
+    editorProps: {
+      attributes: {
+        class: `book-rich book-rich--edit ${fontClass} w-full h-full p-3 overflow-y-auto outline-none`,
+        style: textColor ? `color: ${textColor}` : '',
+      },
+    },
+    onBlur: ({ editor }) => onStopEdit(editor.getJSON()),
+  });
+
+  useEffect(() => {
+    if (editor) onReady(editor);
+    return () => onReady(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
+
+  return (
+    <div
+      className="w-full h-full border border-color-highlight/50 rounded bg-transparent overflow-hidden"
+      style={{ fontSize: BASE_FONT, lineHeight: 1.8 }}
+    >
+      <EditorContent editor={editor} className="w-full h-full" />
+    </div>
+  );
+}
+
+function FormatToolbar({ editor }) {
+  const [, force] = useReducer(x => x + 1, 0);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.on('transaction', force);
+    editor.on('selectionUpdate', force);
+    return () => {
+      editor.off('transaction', force);
+      editor.off('selectionUpdate', force);
+    };
+  }, [editor]);
+
+  if (!editor) return null;
+
+  const curSize = fontSizeKey(editor.getAttributes('textStyle').fontSize);
+  const setSize = (key) => {
+    const val = FONT_SIZES[key];
+    if (val == null) editor.chain().focus().unsetFontSize().run();
+    else editor.chain().focus().setFontSize(val).run();
+  };
+  const curAlign = ['center', 'right'].find(a => editor.isActive({ textAlign: a })) || 'left';
+
+  const btn = "w-8 h-8 rounded-md flex items-center justify-center transition-colors";
+  const on = "bg-color-highlight text-white";
+  const off = "text-foreground hover:bg-muted";
+
+  return (
+    <div
+      className="flex items-center gap-1 flex-wrap justify-center max-w-[480px] mx-auto rounded-xl border border-border bg-card px-2 py-1.5 shadow-sm"
+      onMouseDown={e => e.preventDefault()}
+    >
+      <button className={`${btn} ${editor.isActive('bold') ? on : off}`} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
+        <Bold className="w-4 h-4" />
+      </button>
+      <button className={`${btn} ${editor.isActive('italic') ? on : off}`} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic">
+        <Italic className="w-4 h-4" />
+      </button>
+
+      <span className="w-px h-5 bg-border mx-0.5" />
+
+      <button className={`${btn} ${curAlign === 'left' ? on : off}`} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="Align left">
+        <AlignLeft className="w-4 h-4" />
+      </button>
+      <button className={`${btn} ${curAlign === 'center' ? on : off}`} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Align center">
+        <AlignCenter className="w-4 h-4" />
+      </button>
+      <button className={`${btn} ${curAlign === 'right' ? on : off}`} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="Align right">
+        <AlignRight className="w-4 h-4" />
+      </button>
+
+      <span className="w-px h-5 bg-border mx-0.5" />
+
+      {[['small', 'S'], ['normal', 'M'], ['large', 'L']].map(([key, label]) => (
+        <button
+          key={key}
+          className={`${btn} text-xs font-semibold ${curSize === key ? on : off}`}
+          onClick={() => setSize(key)}
+          title={`${label} text`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function StickerBlock({ block, theme, isSelected, onColorChange }) {
+  const colors = stickerColors(theme);
+  const current = block.color || colors[0];
+
+  function cycleColor(e) {
+    e.stopPropagation();
+    const idx = colors.indexOf(current);
+    const next = colors[(idx + 1) % colors.length];
+    onColorChange(block.id, next);
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      <div className="w-full h-full p-1" style={stickerMaskStyle(block.stickerKey, current)} />
+      {isSelected && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={cycleColor}
+          title="Change color"
+          className="absolute bottom-1 left-1/2 -translate-x-1/2 z-40 w-5 h-5 rounded-full border-2 border-white shadow"
+          style={{ backgroundColor: current }}
+        />
       )}
     </div>
   );
@@ -543,7 +973,26 @@ function PhotoBlock({ block, onAssign }) {
   );
 }
 
-function PhotoTray({ photos, onSelect, onClose }) {
+function PhotoTray({ photos, chapterId, onSelect, onUploadDone, onClose }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const data = await apiUpload(`/storybook/${chapterId}/chapter-photos`, form);
+      onUploadDone({ sourceKey: data.key, url: data.url, label: data.label || '' });
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end" onClick={onClose}>
       <div
@@ -556,9 +1005,17 @@ function PhotoTray({ photos, onSelect, onClose }) {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-color-highlight/40 hover:border-color-highlight/70 hover:bg-color-warm/10 cursor-pointer transition-colors text-sm text-muted-foreground ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+          <Upload className="w-4 h-4 text-color-highlight/60 shrink-0" />
+          {uploading ? 'Uploading…' : 'Upload a photo'}
+          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
+        </label>
+        {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+
         {photos.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No photos were added in the wizard. Go back to Step 2 to add photos to your entries.
+            No photos added yet. Upload one above or go back to Step 2 to add photos to your entries.
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-2 pb-safe">
