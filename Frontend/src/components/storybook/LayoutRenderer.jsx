@@ -1,65 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useFittedFontSize } from "@/lib/fitText";
-import { stickerMaskStyle } from "@/lib/stickers";
-import { renderContentHTML } from "@/lib/tiptap";
-
-const FONT_MAP = { serif: 'font-serif', playf: 'font-playf', merri: 'font-merri', sans: 'font-sans', lato: 'font-lato', nunito: 'font-nunito', display: 'font-display' };
-
-// Virtual page canvas — fixed 3:4 portrait so the editor and published view
-// render identically regardless of display width (CSS-scaled to fit).
-const CANVAS_W = 600;
-const CANVAS_H = 800;
-const BASE_FONT = Math.max(9, CANVAS_W * 0.025);
-
-function RenderedText({ block, fontClass, textColor }) {
-  const ref = useRef(null);
-  const html = useMemo(() => renderContentHTML(block.content), [block.content]);
-  const w = block.width * CANVAS_W;
-  const h = block.height * CANVAS_H;
-  const fontSize = useFittedFontSize(ref, BASE_FONT, 8, [html, fontClass, w, h]);
-  return (
-    <div
-      ref={ref}
-      className={`book-rich ${fontClass} w-full h-full p-3 overflow-hidden`}
-      style={{ fontSize, lineHeight: 1.8, color: textColor || undefined }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
-
-function renderBlocks(blocks, theme) {
-  return blocks.map((block, i) => {
-    const fontClass = FONT_MAP[block.fontFamily] ?? theme?.fontClass ?? 'font-serif';
-    return (
-      <div
-        key={block.id || i}
-        style={{
-          position: 'absolute',
-          left: block.x * CANVAS_W,
-          top: block.y * CANVAS_H,
-          width: block.width * CANVAS_W,
-          height: block.height * CANVAS_H,
-          overflow: 'hidden',
-        }}
-      >
-        {block.type === 'text' ? (
-          <RenderedText block={block} fontClass={fontClass} textColor={theme?.textColor} />
-        ) : block.type === 'sticker' ? (
-          <div style={stickerMaskStyle(block.stickerKey, block.color || theme?.accent)} />
-        ) : (
-          block.url && (
-            <img
-              src={block.url}
-              alt={block.label || ''}
-              className="w-full h-full object-cover"
-            />
-          )
-        )}
-      </div>
-    );
-  });
-}
+import { CANVAS_W, CANVAS_H, renderBlocks } from "@/lib/bookCanvas";
 
 export default function LayoutRenderer({ layout, theme }) {
   const containerRef = useRef(null);

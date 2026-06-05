@@ -26,3 +26,14 @@ Items deliberately deferred. Revisit when there's more user feedback or a clear 
 - Invite system: `book_collaborators` table (book_id, user_id, role: editor|viewer)
 - Invited users can log in and see/edit the book
 - Or: passwordless magic-link editor access tied to a chapter token (simpler but less secure)
+
+---
+
+## 3. Temporary Claude Request/Response Logging  →  scheduled for removal in S9
+
+**What:** S5.46 adds `[CLAUDE-DEBUG]` logging in `ClaudeClient` that prints the full system
+prompt, user prompt, and Claude response to debug batched page generation.
+**Why it's debt:** those payloads contain real journal/first-time content (personal family
+data) and must not stay in the product.
+**When to revisit:** once batched generation is trusted — tracked as its own plan,
+`plans/storybook/s9-remove-claude-logging.md`.

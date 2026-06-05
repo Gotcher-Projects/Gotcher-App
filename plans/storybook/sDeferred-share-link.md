@@ -1,8 +1,7 @@
-# Session 7 — Shareable Book Link
-**Status:** Not started
+# Deferred — Shareable Book Link
+**Status:** Not started (deferred)
 **Branch:** `feature/storybook`
-**Depends on:** S5–S6 (layout editor implementation), S3 (storybook view must exist), S2 (public backend endpoint live)
-**Note:** Renumbered from S4.1 → S7 to accommodate Layout Editor sessions (S5–S6).
+**Depends on:** the scrapbook builder rewrite (S7–S10), S3 (storybook view must exist), S2 (public backend endpoint live)
 
 ## Goal
 Let parents share their baby's storybook with a private URL. A "Share" button in the

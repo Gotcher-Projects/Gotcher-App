@@ -1,8 +1,7 @@
-# Storybook S8 — Print-on-Demand (Lulu)
-**Status:** Not started
-**Branch:** `storybook-s8`
-**Depends on:** S7 (shareable link), Payments S1 (tier check)
-**Note:** Renumbered from S5 → S8 to accommodate Layout Editor (S5–S6) and Share Link (S7).
+# Deferred — Print-on-Demand (Lulu)
+**Status:** Not started (deferred)
+**Branch:** `storybook-print`
+**Depends on:** the scrapbook builder rewrite (S7–S10), shareable link (deferred), Payments S1 (tier check)
 
 ## Goal
 Allow paid users to order a physical printed copy of their storybook via Lulu's API.

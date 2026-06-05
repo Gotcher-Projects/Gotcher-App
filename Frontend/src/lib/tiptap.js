@@ -1,7 +1,7 @@
 // Shared Tiptap configuration for storybook text blocks.
-// The editor (LayoutEditor) and the static renderer (LayoutRenderer) MUST use
-// the same extension set so that JSON produced in one renders identically in
-// the other.
+// The builder's inline editor (RichTextEditor) and the static renderer
+// (LayoutRenderer) MUST use the same extension set so that JSON produced in one
+// renders identically in the other.
 
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";

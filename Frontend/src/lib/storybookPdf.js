@@ -1,0 +1,291 @@
+import { createRoot } from 'react-dom/client';
+import React from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import LayoutRenderer from '@/components/storybook/LayoutRenderer';
+
+// Virtual canvas size — must match LayoutRenderer constants.
+const CANVAS_W = 600;
+const CANVAS_H = 800;
+
+// PDF page size: 3:4 portrait, 150×200mm.
+const PDF_W = 150;
+const PDF_H = 200;
+
+// theme.fontClass → CSS font-family (for cover / classic DOM elements only;
+// LayoutRenderer pages use Tailwind classes from the loaded stylesheet directly).
+const FONT_CLASS_MAP = {
+  'font-serif':   'Georgia, serif',
+  'font-playf':   '"Playfair Display", Georgia, serif',
+  'font-merri':   '"Merriweather", Georgia, serif',
+  'font-sans':    'system-ui, sans-serif',
+  'font-lato':    '"Lato", system-ui, sans-serif',
+  'font-nunito':  '"Nunito", system-ui, sans-serif',
+  'font-display': '"Poppins", system-ui, sans-serif',
+};
+
+// Render a React element off-screen at the virtual canvas size, then capture it
+// with html2canvas at 2× scale for print quality.
+//
+// Uses position:absolute (NOT position:fixed) so the element is off the visible
+// viewport without overlaying it — position:fixed at y=0 would bleed the live app
+// UI into the capture when backgroundColor is not opaque.
+async function captureComponent(jsx, bgColor, accentColor) {
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = [
+    'position:absolute',
+    'top:-9999px',
+    'left:0',
+    `width:${CANVAS_W}px`,
+    `height:${CANVAS_H}px`,
+    'overflow:hidden',
+  ].join(';');
+  // Provide --book-accent so .book-drop-cap gets the correct color.
+  if (accentColor) wrapper.style.setProperty('--book-accent', accentColor);
+  document.body.appendChild(wrapper);
+
+  const root = createRoot(wrapper);
+  root.render(jsx);
+
+  // Wait for ResizeObserver (inside LayoutRenderer) to fire, React to re-render
+  // with the correct scale, and useLayoutEffect (useFittedFontSize) to size text.
+  await new Promise(r => setTimeout(r, 400));
+  await document.fonts.ready;
+
+  // Wait for any images inside the rendered component to fully load.
+  const imgs = Array.from(wrapper.querySelectorAll('img'));
+  await Promise.all(imgs.map(img =>
+    img.complete
+      ? Promise.resolve()
+      : new Promise(r => { img.onload = r; img.onerror = r; })
+  ));
+
+  // Small additional settle for any trailing paint.
+  await new Promise(r => setTimeout(r, 100));
+
+  const canvas = await html2canvas(wrapper, {
+    useCORS: true,
+    allowTaint: false,
+    scale: 2,
+    width: CANVAS_W,
+    height: CANVAS_H,
+    backgroundColor: bgColor || '#fdf9f2',
+    logging: false,
+    x: 0,
+    y: 0,
+  });
+
+  root.unmount();
+  document.body.removeChild(wrapper);
+
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+// Build a read-only cover DOM element (no React / no edit controls).
+// position:absolute keeps it off-screen without overlaying the viewport.
+function buildCoverElement(babyName, birthdate, coverPhotoUrl, coverSubtitle, theme) {
+  const bg         = theme?.bg         ?? '#fdf9f2';
+  const accent     = theme?.accent     ?? '#c9a96e';
+  const textColor  = theme?.textColor  ?? '#2d2013';
+  const divider    = theme?.dividerChar ?? '◆';
+  const fontFamily = FONT_CLASS_MAP[theme?.fontClass] ?? 'Georgia, serif';
+
+  const defaultSubtitle = birthdate
+    ? `A memory book · Born ${new Date(birthdate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    : 'A memory book';
+  const subtitle = coverSubtitle ?? defaultSubtitle;
+
+  const el = document.createElement('div');
+  el.style.cssText = [
+    'position:absolute',
+    'top:-9999px',
+    'left:0',
+    `width:${CANVAS_W}px`,
+    `height:${CANVAS_H}px`,
+    `background-color:${bg}`,
+    'overflow:hidden',
+    `font-family:${fontFamily}`,
+    `color:${textColor}`,
+    'display:flex',
+    'flex-direction:column',
+  ].join(';');
+
+  // Photo area — top 55% of page
+  const photoH = Math.round(CANVAS_H * 0.55);
+  const photoArea = document.createElement('div');
+  photoArea.style.cssText = `width:100%;height:${photoH}px;overflow:hidden;flex-shrink:0;`;
+  if (coverPhotoUrl) {
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+    img.src = coverPhotoUrl;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    photoArea.appendChild(img);
+  } else {
+    photoArea.style.backgroundColor = accent + '22';
+  }
+  el.appendChild(photoArea);
+
+  // Text area — bottom 45%
+  const textArea = document.createElement('div');
+  textArea.style.cssText = [
+    'flex:1',
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:center',
+    'padding:32px 40px',
+    'text-align:center',
+    'box-sizing:border-box',
+  ].join(';');
+
+  const divRow = document.createElement('div');
+  divRow.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;margin-bottom:16px;';
+  const l1 = document.createElement('div'); l1.style.cssText = `flex:1;height:1px;background:${accent};opacity:0.3;`;
+  const dot = document.createElement('span'); dot.style.cssText = `font-size:10px;color:${accent};opacity:0.5;`; dot.textContent = divider;
+  const l2 = document.createElement('div'); l2.style.cssText = `flex:1;height:1px;background:${accent};opacity:0.3;`;
+  divRow.appendChild(l1); divRow.appendChild(dot); divRow.appendChild(l2);
+  textArea.appendChild(divRow);
+
+  const title = document.createElement('h2');
+  title.style.cssText = `font-size:28px;font-weight:600;margin:0 0 10px;color:${textColor};line-height:1.3;`;
+  title.textContent = `${babyName || 'Baby'}'s Memory Book`;
+  textArea.appendChild(title);
+
+  const sub = document.createElement('p');
+  sub.style.cssText = `font-size:14px;margin:0;color:${textColor};opacity:0.6;`;
+  sub.textContent = subtitle;
+  textArea.appendChild(sub);
+
+  el.appendChild(textArea);
+  return el;
+}
+
+// Capture the cover DOM element (not React-based) with html2canvas.
+async function captureCoverElement(el, bgColor) {
+  document.body.appendChild(el);
+  await document.fonts.ready;
+  const imgs = Array.from(el.querySelectorAll('img'));
+  await Promise.all(imgs.map(img =>
+    img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+  ));
+  await new Promise(r => setTimeout(r, 100));
+  const canvas = await html2canvas(el, {
+    useCORS: true,
+    allowTaint: false,
+    scale: 2,
+    width: CANVAS_W,
+    height: CANVAS_H,
+    backgroundColor: bgColor,
+    logging: false,
+    x: 0,
+    y: 0,
+  });
+  document.body.removeChild(el);
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+/**
+ * Generate a jsPDF document from published storybook chapters.
+ *
+ * For v2 layout chapters, renders each page through the actual <LayoutRenderer>
+ * component off-screen at the virtual canvas size (600×800, scale=1) so the
+ * output is 1:1 with what the user sees on screen — same fonts, same text sizing,
+ * same photo positions.
+ *
+ * @param {Array}  chapters  - sorted ChapterResponse array (all statuses; filters to published)
+ * @param {object} theme     - active book theme object from bookThemes.js
+ * @param {object} coverInfo - { babyName, birthdate, coverPhotoUrl, coverSubtitle }
+ * @returns {Promise<jsPDF>}
+ */
+export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
+  const published = chapters.filter(c => c.status === 'published');
+  if (published.length === 0) throw new Error('No published chapters to export');
+
+  const doc = new jsPDF({ unit: 'mm', format: [PDF_W, PDF_H] });
+  let firstPage = true;
+
+  function addPage(dataUrl) {
+    if (!firstPage) doc.addPage([PDF_W, PDF_H]);
+    doc.addImage(dataUrl, 'JPEG', 0, 0, PDF_W, PDF_H);
+    firstPage = false;
+  }
+
+  // Cover page
+  const { babyName, birthdate, coverPhotoUrl, coverSubtitle } = coverInfo;
+  const coverEl  = buildCoverElement(babyName, birthdate, coverPhotoUrl, coverSubtitle, theme);
+  const coverUrl = await captureCoverElement(coverEl, theme?.bg ?? '#fdf9f2');
+  addPage(coverUrl);
+
+  // Chapter pages
+  for (const chapter of published) {
+    const hasLayoutV2 = chapter.layoutData?.version === 2;
+
+    if (hasLayoutV2) {
+      const pages = chapter.layoutData.pages || [];
+      for (const page of pages) {
+        const pageBg = page.backgroundColor || theme?.bg || '#fdf9f2';
+        // Render the actual LayoutRenderer at 600px wide (scale=1, no CSS transform).
+        // At this size LayoutRenderer renders identically to what the user sees on screen.
+        const dataUrl = await captureComponent(
+          React.createElement(LayoutRenderer, {
+            layout: { version: 2, pages: [page] },
+            theme,
+          }),
+          pageBg,
+          theme?.accent
+        );
+        addPage(dataUrl);
+      }
+    } else if (chapter.body) {
+      // Classic chapter — plain text render matching the on-screen published view.
+      const bg         = theme?.bg ?? '#fdf9f2';
+      const textColor  = theme?.textColor ?? '#2d2013';
+      const accent     = theme?.accent ?? '#c9a96e';
+      const fontFamily = FONT_CLASS_MAP[theme?.fontClass] ?? 'Georgia, serif';
+
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = [
+        'position:absolute', 'top:-9999px', 'left:0',
+        `width:${CANVAS_W}px`, `height:${CANVAS_H}px`,
+        `background-color:${bg}`, 'overflow:hidden',
+        `font-family:${fontFamily}`, `color:${textColor}`,
+        'padding:48px 40px', 'box-sizing:border-box',
+      ].join(';');
+
+      const titleEl = document.createElement('h2');
+      titleEl.style.cssText = `font-size:22px;font-weight:600;text-align:center;margin:0 0 12px;color:${textColor};line-height:1.3;`;
+      titleEl.textContent = chapter.anchorLabel || '';
+      wrapper.appendChild(titleEl);
+
+      const divEl = document.createElement('div');
+      divEl.style.cssText = `height:1px;background:${accent};opacity:0.3;margin:0 40px 20px;`;
+      wrapper.appendChild(divEl);
+
+      const bodyEl = document.createElement('div');
+      bodyEl.style.cssText = `font-size:15px;line-height:1.8;overflow:hidden;`;
+      const rawText = (chapter.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').trim();
+      bodyEl.innerHTML = rawText
+        .split(/\n{2,}/)
+        .map(p => `<p style="margin:0 0 12px;">${p.trim()}</p>`)
+        .join('');
+      wrapper.appendChild(bodyEl);
+
+      document.body.appendChild(wrapper);
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 100));
+      const canvas = await html2canvas(wrapper, {
+        useCORS: true, scale: 2, width: CANVAS_W, height: CANVAS_H,
+        backgroundColor: bg, logging: false, x: 0, y: 0,
+      });
+      document.body.removeChild(wrapper);
+      addPage(canvas.toDataURL('image/jpeg', 0.92));
+    }
+  }
+
+  return doc;
+}
+
+export function downloadPdf(doc, babyName) {
+  const slug = (babyName || 'storybook').toLowerCase().replace(/\s+/g, '-');
+  doc.save(`${slug}-storybook.pdf`);
+}

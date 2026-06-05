@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, X, ChevronLeft, Camera, BookOpen, PenLine, Layers } from "lucide-react";
+import { Loader2, X, ChevronLeft, Camera, BookOpen, PenLine, Layers, Zap } from "lucide-react";
 import { STORYBOOK_PERIODS } from "@/lib/storybookPeriods";
 import { openCropModal } from "@/lib/imageUtils";
 import { pickPhoto } from "@/lib/camera";
-import BookChapterReview from "@/components/storybook/BookChapterReview";
-import LayoutEditor from "@/components/storybook/LayoutEditor";
+import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
+import { buildMemoryList, autoSuggestGroups, buildGroupedLayoutData } from "@/lib/storybookGrouping";
 
 function weeksFromBirthdate(dateStr, birthdate) {
   if (!birthdate || !dateStr) return -1;
@@ -32,7 +32,6 @@ export default function StorybookWizard({
   theme,
   onWizardGenerate,
   onGeneratePages,
-  onGenerate,
   onUpdate,
   onUpload,
   onClose,
@@ -41,7 +40,6 @@ export default function StorybookWizard({
   initialChapter = null,
 }) {
   const [step, setStep] = useState(editMode ? 6 : 1);
-  const [mode, setMode] = useState(null); // 'single' | 'paged'
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [selectedJournalIds, setSelectedJournalIds] = useState(new Set());
   const [selectedFirstTimeIds, setSelectedFirstTimeIds] = useState(new Set());
@@ -51,7 +49,6 @@ export default function StorybookWizard({
   const [pendingUploadKey, setPendingUploadKey] = useState(null);
   const [entryNotes, setEntryNotes] = useState({});
   const [expandedItems, setExpandedItems] = useState(new Set());
-  const [supplementaryNotes, setSupplementaryNotes] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedChapter, setGeneratedChapter] = useState(editMode ? initialChapter : null);
 
@@ -84,7 +81,6 @@ export default function StorybookWizard({
 
   const hasItems = periodJournal.length > 0 || periodFirsts.length > 0;
   const noneSelected = selectedJournalIds.size === 0 && selectedFirstTimeIds.size === 0;
-  const canGenerate = hasItems ? !noneSelected : true;
 
   // ── Step 1: Period selection ───────────────────────────────────────────────
 
@@ -169,126 +165,70 @@ export default function StorybookWizard({
     await handleCropAndUpload(file, key);
   }
 
-  // ── Step 4: Generate (single mode) ────────────────────────────────────────
+  // ── Generate-first: build the chapter, generate grouped pages, save the suggested
+  // layout, and return the updated chapter (with generatedContent + layoutData). ──
 
-  async function handleGenerate() {
+  function buildPayload() {
+    const filteredNotes = Object.fromEntries(
+      Object.entries(entryNotes).filter(([, v]) => v && v.trim())
+    );
+    return {
+      anchorKey: selectedPeriod.key,
+      anchorLabel: selectedPeriod.label,
+      periodStartWeeks: selectedPeriod.startWeeks,
+      periodEndWeeks: selectedPeriod.endWeeks,
+      selectedJournalIds: [...selectedJournalIds],
+      selectedFirstTimeIds: [...selectedFirstTimeIds],
+      supplementaryNotes: null,
+      photoOverrides: Object.keys(photoOverrides).length > 0 ? photoOverrides : null,
+      entryNotes: Object.keys(filteredNotes).length > 0 ? filteredNotes : null,
+      skipGeneration: true,
+    };
+  }
+
+  // Generate-first for both paths. `seed: true` (Quick Build) auto-arranges the
+  // generated content into pages and saves it; `seed: false` (Scrapbook) leaves
+  // the layout empty and just attaches the generated content for manual placing.
+  async function runGenerateFirst(seed) {
+    const filteredNotes = Object.fromEntries(
+      Object.entries(entryNotes).filter(([, v]) => v && v.trim())
+    );
+    const chapter = await onWizardGenerate(buildPayload());
+    const memories = buildMemoryList({
+      journalIds: [...selectedJournalIds],
+      firstTimeIds: [...selectedFirstTimeIds],
+      journalEntries,
+      firsts,
+      photoOverrides,
+      entryNotes: filteredNotes,
+    });
+    const groups = autoSuggestGroups(memories).filter(g => g.sourceKeys.length > 0);
+    const generatedPagesResult = await onGeneratePages(chapter.id, groups);
+
+    if (seed) {
+      const layoutData = buildGroupedLayoutData(groups, generatedPagesResult);
+      const updated = await onUpdate(chapter.id, { layoutData });
+      return updated || { ...chapter, layoutData };
+    }
+    // Manual scrapbook: no layout yet (builder opens with one blank page). Attach
+    // the freshly generated content so the memory panel can place it right away.
+    const generatedContent = Object.fromEntries(
+      generatedPagesResult
+        .filter(p => p.sourceKey)
+        .map(p => [p.sourceKey, { body: p.body, pullQuote: p.pullQuote, title: p.title, caption: p.caption }])
+    );
+    return { ...chapter, generatedContent };
+  }
+
+  // Both paths generate first, then open the builder — Quick Build pre-filled,
+  // Scrapbook with blank pages to arrange yourself.
+  async function handleStartPath(path) {
     if (!isPaid) { onError('Upgrade to Plus to generate chapters'); return; }
-    if (!hasCredits) { onError('No AI credits remaining this month'); return; }
-
+    if (totalSelected === 0) { onError('Select at least one memory to include'); return; }
     setGenerating(true);
     try {
-      const filteredNotes = Object.fromEntries(
-        Object.entries(entryNotes).filter(([, v]) => v && v.trim())
-      );
-      const payload = {
-        anchorKey: selectedPeriod.key,
-        anchorLabel: selectedPeriod.label,
-        periodStartWeeks: selectedPeriod.startWeeks,
-        periodEndWeeks: selectedPeriod.endWeeks,
-        selectedJournalIds: [...selectedJournalIds],
-        selectedFirstTimeIds: [...selectedFirstTimeIds],
-        supplementaryNotes: supplementaryNotes.trim() || null,
-        photoOverrides: Object.keys(photoOverrides).length > 0 ? photoOverrides : null,
-        entryNotes: Object.keys(filteredNotes).length > 0 ? filteredNotes : null,
-      };
-      const chapter = await onWizardGenerate(payload);
+      const chapter = await runGenerateFirst(path === 'quick');
       setGeneratedChapter(chapter);
-      setStep(5);
-    } catch (e) {
-      const msg = e?.message || '';
-      if (msg.includes('402') || msg.includes('credit')) {
-        onError('No AI credits remaining this month');
-      } else if (msg.includes('403') || msg.includes('Upgrade')) {
-        onError('Upgrade to Plus to generate chapters');
-      } else {
-        onError('Failed to generate chapter — please try again');
-      }
-    }
-    setGenerating(false);
-  }
-
-  // ── Step 3: Paged mode generation ─────────────────────────────────────────
-
-  function getPhotoUrl(sourceKey) {
-    if (!sourceKey) return null;
-    const [type, idStr] = sourceKey.split(':');
-    const id = parseInt(idStr);
-    if (type === 'journal') {
-      const entry = journalEntries.find(e => e.id === id);
-      return photoOverrides[`journal:${id}`] || entry?.image_url || null;
-    }
-    if (type === 'first_time') {
-      const ft = firsts.find(f => f.id === id);
-      return photoOverrides[`first_time:${id}`] || ft?.imageUrl || null;
-    }
-    return null;
-  }
-
-  function getPhotoLabel(sourceKey) {
-    if (!sourceKey) return null;
-    const [type, idStr] = sourceKey.split(':');
-    const id = parseInt(idStr);
-    if (type === 'journal') return journalEntries.find(e => e.id === id)?.title || null;
-    if (type === 'first_time') return firsts.find(f => f.id === id)?.label || null;
-    return null;
-  }
-
-  async function handleGeneratePages() {
-    if (!isPaid) { onError('Upgrade to Plus to generate chapters'); return; }
-
-    setGenerating(true);
-    try {
-      const filteredNotes = Object.fromEntries(
-        Object.entries(entryNotes).filter(([, v]) => v && v.trim())
-      );
-      const payload = {
-        anchorKey: selectedPeriod.key,
-        anchorLabel: selectedPeriod.label,
-        periodStartWeeks: selectedPeriod.startWeeks,
-        periodEndWeeks: selectedPeriod.endWeeks,
-        selectedJournalIds: [...selectedJournalIds],
-        selectedFirstTimeIds: [...selectedFirstTimeIds],
-        supplementaryNotes: null,
-        photoOverrides: Object.keys(photoOverrides).length > 0 ? photoOverrides : null,
-        entryNotes: Object.keys(filteredNotes).length > 0 ? filteredNotes : null,
-        skipGeneration: true,
-      };
-      // Save chapter row without generating body
-      const chapter = await onWizardGenerate(payload);
-      // Generate one blurb per entry
-      const generatedPagesResult = await onGeneratePages(chapter.id);
-      // Build v2 layout_data
-      const v2Pages = generatedPagesResult.map((p, i) => {
-        const photoUrl = getPhotoUrl(p.sourceKey);
-        return {
-          id: `page-${i}`,
-          sourceKey: p.sourceKey,
-          blocks: [
-            {
-              id: `b-${i}-0`,
-              type: 'text',
-              x: 0.04,
-              y: 0.04,
-              width: 0.92,
-              height: photoUrl ? 0.34 : 0.92,
-              content: (p.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim(),
-            },
-            ...(photoUrl ? [{
-              id: `b-${i}-1`,
-              type: 'photo',
-              x: 0.04,
-              y: 0.40,
-              width: 0.92,
-              height: 0.56,
-              sourceKey: p.sourceKey,
-              url: photoUrl,
-              label: getPhotoLabel(p.sourceKey),
-            }] : []),
-          ],
-        };
-      });
-      const updatedChapter = await onUpdate(chapter.id, { layoutData: { version: 2, pages: v2Pages } });
-      setGeneratedChapter(updatedChapter);
       setStep(6);
     } catch (e) {
       const msg = e?.message || '';
@@ -297,25 +237,10 @@ export default function StorybookWizard({
       } else if (msg.includes('403') || msg.includes('Upgrade')) {
         onError('Upgrade to Plus to generate chapters');
       } else {
-        onError('Failed to generate pages — please try again');
+        onError('Failed to build your book — please try again');
       }
     }
     setGenerating(false);
-  }
-
-  // ── Step 5: Publish / Regenerate (single mode) ────────────────────────────
-
-  async function handlePublish(chapterId, editedBody) {
-    const patch = editedBody !== undefined
-      ? { body: editedBody, status: 'published', clearLayoutData: true }
-      : { status: 'published', clearLayoutData: true };
-    await onUpdate(chapterId, patch);
-    onClose();
-  }
-
-  async function handleRegenerate(chapterId) {
-    const chapter = await onGenerate(chapterId);
-    setGeneratedChapter(chapter);
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -323,13 +248,25 @@ export default function StorybookWizard({
   const stepTitle = {
     1: 'Choose a time period',
     2: `${selectedPeriod?.label} — Select what to include`,
-    3: generating ? (mode === 'paged' ? 'Writing your pages…' : 'How would you like to tell this story?') : 'How would you like to tell this story?',
-    4: 'Add your memories',
-    5: 'Your chapter',
-    6: editMode ? 'Edit layout' : 'Design your page',
+    3: generating ? 'Building your book…' : 'How would you like to tell this story?',
+    6: editMode ? 'Edit layout' : 'Design your pages',
   }[step] || '';
 
-  const showBack = step >= 2 && step <= 4 && !generating;
+  const showBack = step >= 2 && step <= 3 && !generating;
+
+  // Step 6 — the builder renders its own full-screen UI, so return it directly.
+  if (step === 6 && generatedChapter) {
+    return (
+      <ScrapbookBuilder
+        chapter={generatedChapter}
+        journalEntries={journalEntries}
+        firsts={firsts}
+        theme={theme}
+        onUpdate={onUpdate}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
@@ -358,7 +295,6 @@ export default function StorybookWizard({
                 {editMode
                   ? 'Edit Chapter'
                   : step <= 3 ? `Create a Chapter · Step ${step} of 3`
-                  : step === 4 ? 'Create a Chapter · Step 4 of 4'
                   : 'Create a Chapter'
                 }
               </p>
@@ -625,71 +561,21 @@ export default function StorybookWizard({
           </div>
         )}
 
-        {/* Step 3 — Mode picker */}
+        {/* Step 3 — Path picker */}
         {step === 3 && generating && (
           <div className="flex flex-col items-center py-8 gap-3 text-muted-foreground">
             <Loader2 className="w-8 h-8 animate-spin text-color-highlight" />
-            <p className="text-sm font-medium">Writing your pages…</p>
-            <p className="text-xs">Generating one page per memory — this may take a moment</p>
+            <p className="text-sm font-medium">Building your book…</p>
+            <p className="text-xs">Arranging your memories and writing each page</p>
           </div>
         )}
 
         {step === 3 && !generating && (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Choose how you'd like this chapter to read.</p>
-
-            {!isPaid && (
-              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                Upgrade to Plus to generate chapters.
-              </p>
-            )}
-
-            <button
-              onClick={() => { setMode('single'); setStep(4); }}
-              disabled={!isPaid}
-              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <BookOpen className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground">One Story</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  AI weaves all your selected memories into one cohesive narrative chapter.
-                </p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => { setMode('paged'); handleGeneratePages(); }}
-              disabled={!isPaid || totalSelected === 0}
-              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Layers className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground">One Page Per Memory</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Each entry gets its own page in the layout editor — drag, resize, and design each one.
-                  Uses 1 credit per page ({totalSelected} credit{totalSelected !== 1 ? 's' : ''}).
-                </p>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* Step 4 — Supplementary notes + Generate (single mode) */}
-        {step === 4 && (
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Anything else to include? <span className="text-muted-foreground font-normal">(optional)</span>
-              </label>
-              <Textarea
-                value={supplementaryNotes}
-                onChange={e => setSupplementaryNotes(e.target.value)}
-                rows={5}
-                placeholder="Is there anything else you'd like to include in your baby's memory book for this time? A feeling, a moment, something you want to remember…"
-                className="focus-visible:ring-color-highlight"
-              />
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Either way, we write the text for your memories first. Uses 1 credit per page
+              ({totalSelected} credit{totalSelected !== 1 ? 's' : ''}).
+            </p>
 
             {!isPaid && (
               <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
@@ -702,67 +588,36 @@ export default function StorybookWizard({
               </p>
             )}
 
-            {generating ? (
-              <div className="flex flex-col items-center py-8 gap-3 text-muted-foreground">
-                <Loader2 className="w-8 h-8 animate-spin text-color-highlight" />
-                <p className="text-sm font-medium">Writing your chapter…</p>
-                <p className="text-xs">This usually takes 10–20 seconds</p>
+            <button
+              onClick={() => handleStartPath('scrapbook')}
+              disabled={!isPaid || !hasCredits || totalSelected === 0}
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Layers className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">Scrapbook</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Build it yourself. We open the builder with blank pages and all your memories on
+                  hand — add pages, pick layouts, and place each memory and photo where you want.
+                </p>
               </div>
-            ) : (
-              <Button
-                onClick={handleGenerate}
-                disabled={!isPaid || !hasCredits || (hasItems && noneSelected)}
-                className="w-full bg-color-highlight hover:bg-color-highlight/90"
-              >
-                Generate Chapter
-              </Button>
-            )}
+            </button>
+
+            <button
+              onClick={() => handleStartPath('quick')}
+              disabled={!isPaid || !hasCredits || totalSelected === 0}
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-border bg-color-warm/10 hover:border-color-highlight/40 hover:bg-color-warm/20 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Zap className="w-6 h-6 text-color-highlight/70 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">Quick Build</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  We arrange everything into pages for you. The builder opens pre-filled — tweak
+                  anything, then publish.
+                </p>
+              </div>
+            </button>
           </div>
-        )}
-
-        {/* Step 5 — Review (single mode) */}
-        {step === 5 && generatedChapter && (
-          <BookChapterReview
-            chapter={generatedChapter}
-            journalEntries={journalEntries}
-            firsts={firsts}
-            onPublish={handlePublish}
-            onRegenerate={handleRegenerate}
-            onDesign={() => setStep(6)}
-            onClose={onClose}
-            onError={onError}
-          />
-        )}
-
-        {/* Step 6 — Layout editor (both modes) */}
-        {step === 6 && generatedChapter && (
-          <LayoutEditor
-            chapter={generatedChapter}
-            journalEntries={journalEntries}
-            firsts={firsts}
-            theme={theme}
-            onSave={async (layoutData) => {
-              await onUpdate(generatedChapter.id, { layoutData });
-              setGeneratedChapter(prev => ({ ...prev, layoutData }));
-            }}
-            onPublish={async () => {
-              if (editMode) {
-                onClose();
-              } else {
-                await onUpdate(generatedChapter.id, { status: 'published' });
-                onClose();
-              }
-            }}
-            onBack={editMode ? onClose : () => setStep(mode === 'paged' ? 3 : 5)}
-            publishLabel={editMode ? 'Save & Close' : undefined}
-            backLabel={editMode ? 'Close' : undefined}
-            onChapterPhotoAdded={(photo) => {
-              setGeneratedChapter(prev => ({
-                ...prev,
-                chapterPhotos: [...(prev.chapterPhotos || []), { key: photo.sourceKey, url: photo.url, label: photo.label }],
-              }));
-            }}
-          />
         )}
       </div>
     </div>

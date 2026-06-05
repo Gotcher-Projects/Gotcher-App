@@ -7,5 +7,7 @@ public record BabyProfileResponse(
     String parentName,
     String phone,
     String sex,
-    String bookTheme
+    String bookTheme,
+    String coverPhotoUrl,
+    String coverSubtitle
 ) {}

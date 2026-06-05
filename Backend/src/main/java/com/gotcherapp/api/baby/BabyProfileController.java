@@ -7,6 +7,7 @@ import com.gotcherapp.api.security.AuthPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +36,29 @@ public class BabyProfileController {
     ) {
         BabyProfileResponse profile = babyProfileService.upsert(principal.userId(), req);
         return ResponseEntity.ok(profile);
+    }
+
+    @PostMapping("/cover-photo")
+    public ResponseEntity<?> uploadCoverPhoto(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            String url = babyProfileService.uploadCoverPhoto(principal.userId(), file);
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (Exception e) {
+            return ApiError.serverError(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/cover-subtitle")
+    public ResponseEntity<?> updateCoverSubtitle(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestBody Map<String, String> body
+    ) {
+        String subtitle = body.get("subtitle");
+        babyProfileService.updateCoverSubtitle(principal.userId(), subtitle != null ? subtitle.trim() : null);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/book-theme")

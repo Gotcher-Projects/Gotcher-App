@@ -16,10 +16,11 @@ import StorybookTab from "@/components/tabs/StorybookTab";
 export default function MemoriesTab({
   data, week, onAdd, onEdit, onDelete, onUpdateImage,
   firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError,
-  tier, chapters, initialCredits, availableEventAnchors,
-  onChapterGenerate, onChapterUpdate, onChapterDelete, onUnlockChapter,
+  tier, chapters, initialCredits,
+  onChapterUpdate, onChapterDelete,
   onWizardGenerate, onGeneratePages,
   bookTheme, onUpdateBookTheme,
+  coverPhotoUrl, coverSubtitle,
   onNavigate,
 }) {
   const [view, setView] = useState('journal');
@@ -44,14 +45,14 @@ export default function MemoriesTab({
           tier={tier}
           week={week}
           initialCredits={initialCredits}
-          onGenerate={onChapterGenerate}
           onUpdate={onChapterUpdate}
           onDelete={onChapterDelete}
-          onUnlockChapter={onUnlockChapter}
-          availableEventAnchors={availableEventAnchors ?? []}
           journalEntries={data.journal}
           firsts={firsts}
           birthdate={data.profile?.birthdate}
+          babyName={babyName}
+          coverPhotoUrl={coverPhotoUrl}
+          coverSubtitle={coverSubtitle}
           onWizardGenerate={onWizardGenerate}
           onGeneratePages={onGeneratePages}
           onUpload={onUpload}
