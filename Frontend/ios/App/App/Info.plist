@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CradleHQ uses your photo library to add photos to journal entries and baby memories.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>CradleHQ uses your camera to capture photos for journal entries and baby memories.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CradleHQ saves photos to your library when you export memories.</string>
 </dict>
 </plist>
