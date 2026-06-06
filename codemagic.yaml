@@ -7,7 +7,6 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Install dependencies
         script: cd Frontend && npm ci
@@ -15,8 +14,6 @@ workflows:
         script: cd Frontend && npm run build
       - name: Capacitor sync
         script: cd Frontend && npx cap sync ios
-      - name: Install CocoaPods dependencies
-        script: cd Frontend/ios/App && pod install
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files com.gotcherapp.cradlehq \
@@ -28,7 +25,8 @@ workflows:
       - name: Build IPA
         script: |
           cd Frontend/ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
