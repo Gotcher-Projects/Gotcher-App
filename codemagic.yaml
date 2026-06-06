@@ -5,9 +5,6 @@ workflows:
     integrations:
       app_store_connect: CradleHQ
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.gotcherapp.cradlehq
       node: 20
       xcode: latest
       cocoapods: default
