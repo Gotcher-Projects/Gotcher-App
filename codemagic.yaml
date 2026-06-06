@@ -5,7 +5,7 @@ workflows:
     integrations:
       app_store_connect: CradleHQ
     environment:
-      node: 20
+      node: 22
       xcode: latest
       cocoapods: default
     scripts:
