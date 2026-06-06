@@ -19,7 +19,13 @@ workflows:
       - name: Capacitor sync
         script: cd Frontend && npx cap sync ios
       - name: Set up code signing
-        script: xcode-project use-profiles
+        script: |
+          app-store-connect fetch-signing-files com.gotcherapp.cradlehq \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd Frontend/ios/App
