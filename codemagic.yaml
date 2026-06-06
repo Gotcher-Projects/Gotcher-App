@@ -30,6 +30,8 @@ workflows:
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=RBPKGNW4K6 \
             archive
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
