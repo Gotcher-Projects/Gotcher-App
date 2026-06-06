@@ -7,6 +7,9 @@ workflows:
     environment:
       node: 22
       xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.gotcherapp.cradlehq
     scripts:
       - name: Install dependencies
         script: cd Frontend && npm ci
@@ -16,9 +19,6 @@ workflows:
         script: cd Frontend && npx cap sync ios
       - name: Set up code signing
         script: |
-          app-store-connect fetch-signing-files com.gotcherapp.cradlehq \
-            --type IOS_APP_STORE \
-            --create
           keychain initialize
           keychain add-certificates
           cd Frontend/ios/App
