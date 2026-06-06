@@ -1,5 +1,5 @@
 # S4 — iOS CI/CD Pipeline (Codemagic)
-**Status:** Not started
+**Status:** Complete
 **Branch:** mobile/ios-pipeline
 **Depends on:** S3 complete — Android AAB built successfully, app working in emulator
 
@@ -126,7 +126,15 @@ If the build succeeds, Codemagic uploads the IPA to TestFlight automatically (if
 - If CocoaPods issues arise, `npx cap update ios` regenerates the Pods config.
 
 ## Outputs needed for S5
-- [ ] Codemagic build completes without errors
-- [ ] IPA artifact produced
-- [ ] IPA uploaded to TestFlight (even if not yet reviewed)
-- [ ] `codemagic.yaml` committed and working
+- [x] Codemagic build completes without errors
+- [x] IPA artifact produced (App.ipa 1.79 MB)
+- [x] IPA uploaded to TestFlight (post-processing complete 2026-06-06)
+- [x] `codemagic.yaml` committed and working (branch: mobile-v1)
+
+## What actually happened (deviations from plan)
+- Project uses SPM not CocoaPods — removed `cocoapods: default`, switched from `-workspace` to `-project`
+- Had to remove `ios_signing` block initially (no provisioning profile existed yet)
+- Ended up using `ios_signing` block + manually uploading provisioning profile to Codemagic
+- Used Codemagic-generated `/Users/builder/export_options.plist` instead of our own plist for exportArchive
+- Node bumped to 22 (Capacitor CLI requires >=22)
+- Added `-skipPackageSignatureValidation` for IONCameraLib SPM package
