@@ -5,12 +5,11 @@ workflows:
     integrations:
       app_store_connect: CradleHQ
     environment:
+      node: 22
+      xcode: latest
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.gotcherapp.cradlehq
-      node: 20
-      xcode: latest
-      cocoapods: default
     scripts:
       - name: Install dependencies
         script: cd Frontend && npm ci
@@ -19,18 +18,26 @@ workflows:
       - name: Capacitor sync
         script: cd Frontend && npx cap sync ios
       - name: Set up code signing
-        script: xcode-project use-profiles
+        script: |
+          keychain initialize
+          keychain add-certificates
+          cd Frontend/ios/App
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           cd Frontend/ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath build/App.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=RBPKGNW4K6 \
+            -skipPackageSignatureValidation \
             archive
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
+            -exportOptionsPlist /Users/builder/export_options.plist \
             -exportPath build/output
     artifacts:
       - Frontend/ios/App/build/output/*.ipa
