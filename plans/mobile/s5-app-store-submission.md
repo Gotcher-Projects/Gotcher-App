@@ -58,12 +58,12 @@ baby tracker,infant log,feeding tracker,sleep log,diaper log,baby milestone,newb
 - **Support URL**: https://cradlehq.app
 - **Marketing URL** (optional): https://cradlehq.app
 
-### 3. App Review information — NEXT UP
+### 3. App Review information ✅ DONE
 - Sign-in required: Yes
 - Demo account: demo@gotcherapp.com / DemoPass1
 - Notes to reviewer: "Demo account has a fully seeded baby profile (Lily, 3 months) with journal entries, milestones, and feeding/sleep/diaper logs."
 
-### 4. Answer the content questionnaire
+### 4. Answer the content questionnaire ✅ DONE
 - Does the app contain ads? No
 - Does the app use encryption? Yes — HTTPS for all API calls (standard)
   - This triggers an export compliance question — select "Uses standard encryption (HTTPS/TLS)"
@@ -72,9 +72,7 @@ baby tracker,infant log,feeding tracker,sleep log,diaper log,baby milestone,newb
   - Photos: journal images — uploaded by user, not shared with third parties
   - Contact Info: email address for login — not linked to third parties
 
-### 5. Submit for review
-App Store Connect → Submit for Review.
-
+### 5. Submit for review ✅ DONE — Submitted 2026-06-06
 Apple's review timeline: 24–48 hours for most apps, though first submissions can take up to a week.
 
 ### 6. After approval
