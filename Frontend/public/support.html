@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support — CradleHQ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: hsl(238, 100%, 97%);
+      color: hsl(244, 44%, 20%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid hsl(214, 32%, 91%);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header img {
+      width: 36px;
+      height: 36px;
+    }
+
+    header span {
+      font-size: 20px;
+      font-weight: 700;
+      color: hsl(244, 44%, 20%);
+    }
+
+    header span em {
+      color: hsl(239, 84%, 67%);
+      font-style: normal;
+    }
+
+    main {
+      max-width: 680px;
+      margin: 60px auto;
+      padding: 0 24px;
+      flex: 1;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: hsl(244, 20%, 50%);
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      border: 1px solid hsl(214, 32%, 91%);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .faq-item {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid hsl(214, 32%, 91%);
+    }
+
+    .faq-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .faq-item h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: hsl(244, 44%, 20%);
+    }
+
+    .faq-item p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: hsl(244, 20%, 40%);
+    }
+
+    .faq-item a {
+      color: hsl(239, 84%, 67%);
+      text-decoration: none;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .contact-row p {
+      font-size: 15px;
+      color: hsl(244, 20%, 40%);
+      line-height: 1.6;
+    }
+
+    .email-link {
+      display: inline-block;
+      background: hsl(239, 84%, 67%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .email-link:hover {
+      background: hsl(239, 84%, 58%);
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 13px;
+      color: hsl(244, 20%, 60%);
+    }
+
+    footer a {
+      color: hsl(239, 84%, 67%);
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 26px; }
+      .card { padding: 24px; }
+      main { margin: 40px auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/images/cradleVector.png" alt="CradleHQ">
+    <span>Cradle<em>HQ</em></span>
+  </header>
+
+  <main>
+    <h1>Support</h1>
+    <p class="subtitle">We're here to help. Find answers to common questions below, or reach out directly.</p>
+
+    <div class="card">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <h3>How do I reset my password?</h3>
+        <p>On the login screen, tap <strong>Forgot password?</strong> and enter your email address. You'll receive a reset link within a few minutes. Check your spam folder if it doesn't arrive.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Can I use CradleHQ on multiple devices?</h3>
+        <p>Yes — your account syncs across all devices. Sign in with the same email and password on any iPhone, iPad, or browser at <a href="https://cradlehq.app">cradlehq.app</a>.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I add a photo to a journal entry?</h3>
+        <p>Open the Memories tab, tap <strong>+</strong> to add a new entry, then tap the photo area to choose an image from your library or take a new one.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>My tracking data isn't showing up. What should I do?</h3>
+        <p>Pull to refresh on the relevant tab. If data is still missing, sign out and back in. If the issue persists, contact us at <a href="mailto:michael@cradlehq.app">michael@cradlehq.app</a>.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I delete my account?</h3>
+        <p>Open the app, tap <strong>Edit Profile</strong> in the top right, scroll to the bottom, and tap <strong>Delete Account</strong>. You'll be asked to confirm by typing DELETE. All your data is permanently removed immediately. You can also visit our <a href="/delete-account.html">account deletion page</a> for more details on what gets deleted.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Is my data private and secure?</h3>
+        <p>Yes. Your data is stored securely and is never sold or shared with third parties. See our <a href="/privacy.html">Privacy Policy</a> for full details.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Contact Us</h2>
+      <div class="contact-row">
+        <div style="flex: 1; min-width: 200px;">
+          <p>Can't find what you're looking for? Email us and we'll get back to you within 1–2 business days.</p>
+        </div>
+        <a class="email-link" href="mailto:michael@cradlehq.app">Email Support</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CradleHQ LLC &nbsp;·&nbsp; <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms.html">Terms of Use</a></p>
+  </footer>
+</body>
+</html>

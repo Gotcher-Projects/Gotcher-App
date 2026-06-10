@@ -26,10 +26,7 @@
       gap: 12px;
     }
 
-    header img {
-      width: 36px;
-      height: 36px;
-    }
+    header img { width: 36px; height: 36px; }
 
     header span {
       font-size: 20px;
@@ -43,104 +40,148 @@
     }
 
     main {
-      max-width: 680px;
+      max-width: 520px;
       margin: 60px auto;
       padding: 0 24px;
       flex: 1;
     }
 
     h1 {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .subtitle {
-      font-size: 16px;
+      font-size: 15px;
       color: hsl(244, 20%, 50%);
-      margin-bottom: 40px;
+      margin-bottom: 32px;
+      line-height: 1.6;
     }
 
     .card {
       background: white;
       border-radius: 16px;
       padding: 32px;
-      margin-bottom: 24px;
       border: 1px solid hsl(214, 32%, 91%);
     }
 
     .card h2 {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 600;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
-    .card p {
+    .field { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: hsl(244, 44%, 20%);
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid hsl(214, 32%, 85%);
+      border-radius: 8px;
+      font-family: inherit;
       font-size: 15px;
-      line-height: 1.7;
-      color: hsl(244, 20%, 40%);
-      margin-bottom: 12px;
+      color: hsl(244, 44%, 20%);
+      outline: none;
+      transition: border-color 0.15s;
     }
 
-    .card p:last-child { margin-bottom: 0; }
+    input:focus { border-color: hsl(239, 84%, 67%); }
 
-    .steps {
-      list-style: none;
-      counter-reset: steps;
-    }
-
-    .steps li {
-      counter-increment: steps;
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      margin-bottom: 16px;
-      font-size: 15px;
-      color: hsl(244, 20%, 40%);
+    .warning-box {
+      background: hsl(0, 100%, 97%);
+      border: 1px solid hsl(0, 80%, 85%);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: hsl(0, 60%, 40%);
       line-height: 1.6;
     }
 
-    .steps li::before {
-      content: counter(steps);
-      background: hsl(239, 84%, 67%);
-      color: white;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
+    .warning-box strong { color: hsl(0, 60%, 30%); }
+
+    .tags {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .email-link {
-      display: inline-block;
-      margin-top: 16px;
-      background: hsl(239, 84%, 67%);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 15px;
-    }
-
-    .email-link:hover {
-      background: hsl(239, 84%, 58%);
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
     }
 
     .tag {
-      display: inline-block;
-      background: hsl(238, 100%, 95%);
-      color: hsl(239, 84%, 50%);
-      padding: 4px 12px;
+      background: hsl(0, 100%, 95%);
+      color: hsl(0, 60%, 40%);
+      padding: 3px 10px;
       border-radius: 20px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
-      margin: 4px 4px 4px 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-danger {
+      background: hsl(0, 72%, 51%);
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: hsl(0, 72%, 44%); }
+    .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      background: hsl(0, 100%, 97%);
+      border: 1px solid hsl(0, 80%, 85%);
+      color: hsl(0, 60%, 40%);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      border: 1px solid hsl(214, 32%, 91%);
+      text-align: center;
+      display: none;
+    }
+
+    .success-card .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .success-card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .success-card p {
+      font-size: 14px;
+      color: hsl(244, 20%, 50%);
+      line-height: 1.6;
     }
 
     footer {
@@ -150,9 +191,12 @@
       color: hsl(244, 20%, 60%);
     }
 
-    footer a {
-      color: hsl(239, 84%, 67%);
-      text-decoration: none;
+    footer a { color: hsl(239, 84%, 67%); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 22px; }
+      .card, .success-card { padding: 24px; }
+      main { margin: 32px auto; }
     }
   </style>
 </head>
@@ -164,45 +208,134 @@
 
   <main>
     <h1>Delete Your Account</h1>
-    <p class="subtitle">We're sorry to see you go. You can request deletion of your CradleHQ account and all associated data at any time.</p>
+    <p class="subtitle">Permanently remove your CradleHQ account and all associated data. This cannot be undone.</p>
 
-    <div class="card">
-      <h2>How to request account deletion</h2>
-      <ol class="steps">
-        <li>Send an email to <strong>michael@cradlehq.app</strong> with the subject line <strong>"Account Deletion Request"</strong>.</li>
-        <li>Include the email address associated with your CradleHQ account.</li>
-        <li>We will process your request within <strong>30 days</strong> and send a confirmation email when complete.</li>
-      </ol>
-      <a class="email-link" href="mailto:michael@cradlehq.app?subject=Account Deletion Request">Email us to delete your account</a>
-    </div>
+    <div class="card" id="form-card">
+      <h2>Sign in to confirm deletion</h2>
 
-    <div class="card">
-      <h2>What gets deleted</h2>
-      <p>Upon deletion, the following data will be permanently removed from our systems:</p>
-      <div>
-        <span class="tag">Account & login info</span>
-        <span class="tag">Baby profile</span>
-        <span class="tag">Feeding logs</span>
-        <span class="tag">Sleep logs</span>
-        <span class="tag">Diaper logs</span>
-        <span class="tag">Growth records</span>
-        <span class="tag">Vaccine records</span>
-        <span class="tag">Appointments</span>
-        <span class="tag">Journal entries</span>
-        <span class="tag">First times</span>
-        <span class="tag">Milestones</span>
-        <span class="tag">Photos</span>
+      <div class="warning-box">
+        <strong>The following data will be permanently deleted:</strong>
+        <div class="tags">
+          <span class="tag">Account &amp; login</span>
+          <span class="tag">Baby profile</span>
+          <span class="tag">Feeding logs</span>
+          <span class="tag">Sleep logs</span>
+          <span class="tag">Diaper logs</span>
+          <span class="tag">Growth records</span>
+          <span class="tag">Vaccine records</span>
+          <span class="tag">Appointments</span>
+          <span class="tag">Journal entries</span>
+          <span class="tag">First times</span>
+          <span class="tag">Milestones</span>
+          <span class="tag">Photos</span>
+        </div>
       </div>
+
+      <div id="error-msg" class="error-msg"></div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <div class="field">
+        <label for="confirm-input">Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="confirm-input" placeholder="DELETE" autocomplete="off" />
+      </div>
+
+      <button class="btn btn-danger" id="delete-btn" disabled onclick="handleDelete()">
+        Delete My Account
+      </button>
     </div>
 
-    <div class="card">
-      <h2>Retention period</h2>
-      <p>All personal data is permanently deleted within 30 days of your request. Anonymized, non-identifiable analytics data may be retained.</p>
+    <div class="success-card" id="success-card">
+      <div class="icon">✓</div>
+      <h2>Account deleted</h2>
+      <p>Your account and all associated data have been permanently removed from CradleHQ.</p>
     </div>
   </main>
 
   <footer>
     <p>&copy; 2026 CradleHQ LLC &nbsp;·&nbsp; <a href="/privacy.html">Privacy Policy</a></p>
   </footer>
+
+  <script>
+    const API = '';  // same origin in production; update if needed
+
+    const emailEl   = document.getElementById('email');
+    const passEl    = document.getElementById('password');
+    const confirmEl = document.getElementById('confirm-input');
+    const deleteBtn = document.getElementById('delete-btn');
+    const errorEl   = document.getElementById('error-msg');
+
+    function updateBtn() {
+      deleteBtn.disabled = confirmEl.value !== 'DELETE' || !emailEl.value || !passEl.value;
+    }
+
+    emailEl.addEventListener('input', updateBtn);
+    passEl.addEventListener('input', updateBtn);
+    confirmEl.addEventListener('input', updateBtn);
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    function hideError() {
+      errorEl.style.display = 'none';
+    }
+
+    async function handleDelete() {
+      hideError();
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting…';
+
+      try {
+        // Step 1: log in to get auth cookies
+        const loginRes = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailEl.value, password: passEl.value }),
+        });
+
+        if (!loginRes.ok) {
+          const data = await loginRes.json().catch(() => ({}));
+          showError(data.error || 'Incorrect email or password.');
+          deleteBtn.textContent = 'Delete My Account';
+          updateBtn();
+          return;
+        }
+
+        // Step 2: delete the account
+        const deleteRes = await fetch(`${API}/auth/account`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+
+        if (!deleteRes.ok) {
+          const data = await deleteRes.json().catch(() => ({}));
+          showError(data.error || 'Deletion failed. Please try again or contact support.');
+          deleteBtn.textContent = 'Delete My Account';
+          updateBtn();
+          return;
+        }
+
+        // Success
+        document.getElementById('form-card').style.display = 'none';
+        document.getElementById('success-card').style.display = 'block';
+
+      } catch (err) {
+        showError('Network error. Please check your connection and try again.');
+        deleteBtn.textContent = 'Delete My Account';
+        updateBtn();
+      }
+    }
+  </script>
 </body>
 </html>
