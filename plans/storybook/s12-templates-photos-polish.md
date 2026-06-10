@@ -39,6 +39,13 @@ generically from the boxes (`TemplateThumb` in `ScrapbookBuilder`).
 **Open questions for Michael:** which specific templates feel wrong today, and what should they
 become? Bring examples/screenshots if possible.
 
+### Decisions (2026-06-07)
+
+- **Template picker UI:** Filter pills (Option B) — pills: "1 Memory", "Multiple Memories" (covers 2 and 3), "Photo Only". Not grouped headers, not a flat sorted list.
+- **Auto-suggest parity:** Deferred to tech debt — multiple templates share identical constraints and the suggester always picks the first match. Tracked in `tech-debt.md` item 4.
+- **Final template set:** 15 templates (was 16). See `template-proposals.html` for the full visual spec. Cuts: Gallery, Memory Gallery, Three Short, Two + Both Photos. Adds: Photo First, Spotlight, L-Wrap, Staggered.
+- **Proportions (L-Wrap, Spotlight):** To be nailed down in the next discussion before implementation.
+
 ### Notes from Michael (2026-06-04)
 
 - **All templates are "boxy" and fill the full space.** Every layout tiles slots edge-to-edge with
@@ -83,21 +90,40 @@ become? Bring examples/screenshots if possible.
 **Related debt (from memory):** First Times photo uploads still have no cropping UI
 (`project_first_times_followup`); decide whether to fold that in here.
 
-**Open questions for Michael:** do you want true per-slot crop (control the frame), or just consistent
-upload cropping? Should an existing placed photo be re-croppable from the slot's camera button?
+### Decisions (2026-06-07)
+
+**Phase 1 — Fix the inconsistency (must do):**
+Make `PhotoTray` run every selected file through the same `openCropModal(file, onComplete, onCancel)`
+path that the wizard already uses. Crops to `4/3` landscape or `3/4` portrait based on orientation.
+After this, every photo entering the builder is cropped consistently regardless of where it came from.
+
+**Phase 2 — Crop to slot (follow-up, if needed):**
+When a photo is placed into a slot, open a crop modal using that slot's actual aspect ratio rather
+than the fixed `4/3`/`3/4`. Requires persisting crop data on the block (extend block shape to include
+`cropRect` or `objectPosition`). Deferred until Phase 1 is live and we can see if it's still needed.
+
+**Approach:** implement and verify Phase 1 first. Phase 2 gets its own session if Phase 1 leaves
+slot-fit issues that users notice.
 
 ---
 
 ## Area 3 — General changes
 
-Placeholder for Michael's other adjustments — to be enumerated at session start. Candidate buckets
-to prompt on:
-- Builder UX (slot affordances, selected/placed states, page nav, empty states).
-- Wizard copy / step flow tweaks now that Scrapbook vs Quick Build are the two paths.
-- Theme / typography / spacing on the page canvas.
-- Anything noted while using S8–S10 that felt rough.
+### Decision (2026-06-07)
 
-**Open question for Michael:** list the specific "general changes" you have in mind so we can scope them.
+No builder UX, wizard, or canvas changes in scope for S12.
+
+Two items captured for later:
+
+**Deferred — Generate from everything (Phase 2):**
+Replace the chapter-based generation model with a single flow that generates from all of a user's
+content at once. Significant rethink of the grouping/wizard flow. Not needed until the chapter model
+has been used enough to validate the pain point.
+
+**Deferred — Chapter title page:**
+A dedicated page at the start of each chapter showing the chapter name/date range — like a section
+divider. Wanted, but should come after the deferred print/share pieces are resolved so we're not
+designing around a format that may change.
 
 ---
 

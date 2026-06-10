@@ -1,27 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, Upload } from "lucide-react";
 import { apiUpload } from "@/lib/api";
+import { openCropModal } from "@/lib/imageUtils";
 
 // Bottom-sheet photo picker — choose from already-added photos or upload a new
 // one to the chapter. Used by the ScrapbookBuilder.
 export default function PhotoTray({ photos, chapterId, onSelect, onUploadDone, onClose }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const cancelCropRef = useRef(null);
+
+  useEffect(() => () => cancelCropRef.current?.(), []);
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    setUploadError(null);
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const data = await apiUpload(`/storybook/${chapterId}/chapter-photos`, form);
-      onUploadDone({ sourceKey: data.key, url: data.url, label: data.label || '' });
-    } catch {
-      setUploadError('Upload failed. Please try again.');
-      setUploading(false);
-    }
+    e.target.value = '';
+    cancelCropRef.current = openCropModal(
+      file,
+      async ({ blob }) => {
+        cancelCropRef.current = null;
+        setUploading(true);
+        setUploadError(null);
+        try {
+          const form = new FormData();
+          form.append('file', blob, 'photo.jpg');
+          const data = await apiUpload(`/storybook/${chapterId}/chapter-photos`, form);
+          onUploadDone({ sourceKey: data.key, url: data.url, label: data.label || '' });
+        } catch {
+          setUploadError('Upload failed. Please try again.');
+          setUploading(false);
+        }
+      },
+      () => { cancelCropRef.current = null; },
+    );
   }
 
   return (

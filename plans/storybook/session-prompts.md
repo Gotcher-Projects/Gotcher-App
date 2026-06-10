@@ -607,6 +607,70 @@ Read lib/storybookTemplates.js, PhotoTray.jsx, lib/imageUtils.jsx, lib/bookCanva
 
 ---
 
+### Session 14 — L-Wrap: True Float Layout
+```
+Session 14 of storybook — L-Wrap as a single float-based block type.
+Plan: plans/storybook/s14-l-wrap.md
+Depends on: S12.1 complete.
+
+Replace the current three-block L-Wrap (two text + one photo) with a single `type: 'l-wrap'`
+block that uses CSS float internally. The photo sits top-right, body text wraps around it in
+a true L-shape. One font size, one cohesive reading block.
+
+This session has a mandatory PDF testing procedure — do not mark complete without running all
+test cases in the plan's "PDF Testing Procedure" section. The fallback plan (if html2canvas
+breaks floats) is documented in the plan.
+
+Resolve the two open questions at session start before writing code (RenderedText vs LWrapBlock
+in the builder; photo drag from memory card confirmation).
+
+Implementation order (follow exactly):
+1. storybookTemplates.js — replace 3-block l-wrap with 1-block l-wrap
+2. bookCanvas.jsx — add LWrapBlock component + l-wrap branch in renderBlocks
+3. ScrapbookBuilder.jsx:
+   a. Slot — l-wrap sub-zone rendering (photo float top-right, text below/around)
+   b. Drag matching — accept both 'text' and 'photo' drags for l-wrap
+   c. placeIntoSlot — handle type === 'l-wrap' (updates content OR url + photoSourceKey)
+   d. usedTextKeys / usedPhotoKeys — include l-wrap.sourceKey and l-wrap.photoSourceKey
+   e. TemplateThumb — l-wrap special-case thumbnail
+
+Read plans/storybook/s14-l-wrap.md fully before writing any code.
+Read bookCanvas.jsx, ScrapbookBuilder.jsx, storybookTemplates.js before touching those files.
+Run the PDF test cases (TC1–TC6) before declaring complete.
+```
+
+---
+
+### Session 13 — Moment-Hero Chapter Type
+```
+Session 13 of storybook — Moment-Hero chapter type for the scrapbook.
+Plan: plans/storybook/s13-moment-hero.md
+Depends on: S12 complete.
+Research context: plans/storybook-v2/research.md (Moment-Hero Technical Research section)
+
+Full-stack. Resolve the chapter_type migration question at session start (Option A: new
+chapter_type column + source_first_time_id column on storybook_chapters; Option B: encode in
+anchor_type — prefer A).
+
+Build in this order:
+1. Backend migration — add chapter_type VARCHAR(20) DEFAULT 'scrapbook' + source_first_time_id
+   to storybook_chapters
+2. Update StorybookChapter record + service to handle moment_hero type
+3. New endpoint: POST /storybook/generate-hero-note — takes { firstTimeId }, returns { note }
+4. Frontend: MomentHeroPage.jsx — fixed-layout React component (no canvas), takes first +
+   generatedNote + theme props. Fixed zones: category badge + title + date subtitle, hero photo
+   with white card frame, cream note card with AI text.
+5. StorybookWizard.jsx — add "From a First Time" chapter creation option (shows First Times list)
+6. StorybookTab.jsx — render MomentHeroPage for moment_hero chapters; "Regenerate note" button
+7. storybookPdf.js — handle moment_hero chapter type in PDF export
+
+Read StorybookWizard.jsx, StorybookTab.jsx, storybookPdf.js, bookCanvas.jsx, and the
+first_times backend before writing any code.
+Open questions in the plan — resolve before coding.
+```
+
+---
+
 ## Deferred — Print-on-Demand
 **Note:** Needs its own planning session before implementation — see `plans/storybook/sDeferred-print.md` for open questions that must be resolved first.
 

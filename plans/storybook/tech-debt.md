@@ -29,6 +29,14 @@ Items deliberately deferred. Revisit when there's more user feedback or a clear 
 
 ---
 
+## 4. Auto-Suggest Template Logic — Doesn't Distinguish Between Same-Constraint Templates
+
+**What:** `autoSuggestGroups` / `pickTemplate` selects templates by matching `memoryCount`, `minPhotos`, and `maxPhotos` only. When multiple templates share identical constraints (e.g. Classic, Photo First, Spotlight, and L-Wrap all require 1 memory + 1 photo), whichever appears first in the `TEMPLATES` array wins every time. New templates added in S12 will never be auto-suggested.
+**Why deferred:** Not user-visible until the template set is finalized. Suggestion quality is a nice-to-have; users can always swap manually.
+**When to revisit:** After S12 template set is locked. Options: add a `weight`/`priority` field, mark certain templates as `manualOnly`, or introduce simple heuristics (e.g. prefer Spotlight for entries tagged as milestones).
+
+---
+
 ## 3. Temporary Claude Request/Response Logging  →  scheduled for removal in S9
 
 **What:** S5.46 adds `[CLAUDE-DEBUG]` logging in `ClaudeClient` that prints the full system

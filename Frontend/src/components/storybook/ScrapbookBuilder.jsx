@@ -33,6 +33,26 @@ function cleanBody(body) {
   return (body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// Split text into n parts at natural boundaries (paragraph → sentence → word).
+function splitTextParts(text, n) {
+  if (n <= 1) return [text];
+  const paras = text.split(/\n\n+/).filter(Boolean);
+  if (paras.length >= n) {
+    const mid = Math.ceil(paras.length / n);
+    return [paras.slice(0, mid).join('\n\n'), paras.slice(mid).join('\n\n')];
+  }
+  const mid = Math.floor(text.length / 2);
+  const sentenceEnd = text.indexOf('. ', mid);
+  if (sentenceEnd > 0 && sentenceEnd < text.length - 2) {
+    return [text.slice(0, sentenceEnd + 1).trim(), text.slice(sentenceEnd + 2).trim()];
+  }
+  const wordBound = text.indexOf(' ', mid);
+  if (wordBound > 0) {
+    return [text.slice(0, wordBound).trim(), text.slice(wordBound).trim()];
+  }
+  return [text, ''];
+}
+
 // Ensure every block has an id; migrate plain-string text content to Tiptap JSON.
 function migrateBlock(b) {
   const block = { ...b, id: b.id || makeId() };
@@ -162,7 +182,10 @@ function TemplateThumb({ template }) {
       {template.blocks.map((b, i) => (
         <div
           key={i}
-          className={`absolute rounded-[1px] ${b.type === 'photo' ? 'bg-color-highlight/45' : 'bg-color-highlight/20'}`}
+          className={`absolute rounded-[1px] ${
+            b.overlay ? 'bg-black/60' :
+            b.type === 'photo' ? 'bg-color-highlight/45' : 'bg-color-highlight/20'
+          }`}
           style={{
             left: `${b.x * 100}%`, top: `${b.y * 100}%`,
             width: `${b.width * 100}%`, height: `${b.height * 100}%`,
@@ -173,7 +196,18 @@ function TemplateThumb({ template }) {
   );
 }
 
+const FILTER_PILLS = [
+  { id: 'all',      label: 'All',               match: () => true },
+  { id: '1-memory', label: '1 Memory',           match: t => t.memoryCount === 1 },
+  { id: 'multi',    label: 'Multiple Memories',  match: t => t.memoryCount >= 2 },
+  { id: 'photo',    label: 'Photo Only',         match: t => t.memoryCount === 0 },
+];
+
 function TemplateSheet({ currentTemplateId, onSelect, onClose }) {
+  const [filter, setFilter] = useState('all');
+  const activeFilter = FILTER_PILLS.find(p => p.id === filter);
+  const visible = TEMPLATES.filter(activeFilter.match);
+
   return (
     <div
       className="fixed inset-0 z-[60] bg-black/40 flex items-end md:items-center md:justify-center"
@@ -189,8 +223,23 @@ function TemplateSheet({ currentTemplateId, onSelect, onClose }) {
             <X className="w-4 h-4" />
           </button>
         </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {FILTER_PILLS.map(pill => (
+            <button
+              key={pill.id}
+              onClick={() => setFilter(pill.id)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                filter === pill.id
+                  ? 'bg-color-highlight text-white'
+                  : 'bg-color-warm/20 text-muted-foreground hover:bg-color-warm/40'
+              }`}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-3 gap-3">
-          {TEMPLATES.map(t => (
+          {visible.map(t => (
             <button
               key={t.id}
               onClick={() => onSelect(t)}
@@ -444,26 +493,54 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
 
   // Fill a slot from a memory piece (text) or its photo. Records the owning
   // sourceKey so re-renders and later edits stay consistent.
+  // Blocks with a matching contentSource.splitGroup are all filled simultaneously,
+  // with the source text split across them at a natural boundary.
   function placeIntoSlot(blockId, kind, sourceKey) {
-    setCurrentBlocks(blocks => blocks.map(b => {
-      if (b.id !== blockId) return b;
-      if (kind === 'text' && b.type === 'text') {
+    setCurrentBlocks(blocks => {
+      const target = blocks.find(b => b.id === blockId);
+      if (!target) return blocks;
+
+      if (kind === 'text' && target.type === 'text') {
         const gc = chapter.generatedContent?.[sourceKey];
-        const piece = b.contentSource?.piece || 'body';
-        let text = extractPieceText(gc, piece);
-        if (!text) {
-          // No AI content yet — fall back to the memory's own title / raw text.
+        const piece = target.contentSource?.piece || 'body';
+        let fullText = extractPieceText(gc, piece);
+        if (!fullText) {
           const mem = memories.find(m => m.sourceKey === sourceKey);
-          text = piece === 'title' ? (mem?.label || '') : cleanBody(mem?.rawText || '');
+          fullText = piece === 'title' ? (mem?.label || '') : cleanBody(mem?.rawText || '');
         }
-        return { ...b, content: toTiptapDoc(text), sourceKey, suppressDropCap: true };
+
+        const splitGroup = target.contentSource?.splitGroup;
+        if (splitGroup) {
+          const groupBlocks = blocks
+            .filter(b => b.type === 'text' && b.contentSource?.splitGroup === splitGroup)
+            .sort((a, b) => a.y - b.y);
+          const parts = splitTextParts(fullText, groupBlocks.length);
+          const groupMap = new Map(groupBlocks.map((b, i) => [b.id, parts[i] ?? '']));
+          return blocks.map(b =>
+            groupMap.has(b.id)
+              ? { ...b, content: toTiptapDoc(groupMap.get(b.id)), sourceKey, suppressDropCap: true }
+              : b
+          );
+        }
+
+        return blocks.map(b =>
+          b.id === blockId
+            ? { ...b, content: toTiptapDoc(fullText), sourceKey, suppressDropCap: true }
+            : b
+        );
       }
-      if (kind === 'photo' && b.type === 'photo') {
+
+      if (kind === 'photo' && target.type === 'photo') {
         const mem = memories.find(m => m.sourceKey === sourceKey);
-        return { ...b, url: mem?.photoUrl || null, sourceKey, label: mem?.label || '' };
+        return blocks.map(b =>
+          b.id === blockId
+            ? { ...b, url: mem?.photoUrl || null, sourceKey, label: mem?.label || '' }
+            : b
+        );
       }
-      return b;
-    }));
+
+      return blocks;
+    });
   }
 
   function assignPhotoToSlot(blockId, photo) {

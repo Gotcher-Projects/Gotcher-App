@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CradleHQ — Template Proposals (S12)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: #f2f0eb;
+      color: #1a1a1a;
+      padding: 44px 40px;
+    }
+
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
+    header p  { font-size: 13px; color: #777; }
+
+    /* ---- legend ---- */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      margin-bottom: 40px;
+      align-items: center;
+      font-size: 12px;
+      color: #555;
+    }
+    .legend-item { display: flex; align-items: center; gap: 7px; }
+    .swatch {
+      width: 22px; height: 14px; border-radius: 3px; border: 1px solid;
+      flex-shrink: 0;
+    }
+    .swatch-text    { background: #b8d4e8; border-color: #8ab0cc; }
+    .swatch-photo   { background: #e8c4a8; border-color: #c4a080; }
+    .swatch-caption { background: #1e1e1eaa; border-color: #555; }
+    .legend-sep { width: 1px; height: 18px; background: #ccc; margin: 0 4px; }
+
+    /* ---- badges ---- */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge-new      { background: #ede8f8; color: #6b46c1; }
+    .badge-keep     { background: #efefeb; color: #555; }
+    .badge-fix      { background: #e6f4ea; color: #236e35; }
+    .badge-redesign { background: #e8f4f8; color: #1a6a80; }
+    .badge-drop     { background: #fde8e8; color: #b83030; }
+
+    /* ---- sections ---- */
+    .section { margin-bottom: 52px; }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .section-header h2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+    }
+    .section-header .count { font-size: 11px; color: #bbb; }
+    .divider { height: 1px; background: #d8d4cd; margin-bottom: 20px; }
+
+    .grid { display: flex; flex-wrap: wrap; gap: 18px; }
+
+    /* ---- cards ---- */
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 13px;
+      width: 200px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .card.is-new {
+      box-shadow: 0 0 0 2px #6b46c1, 0 1px 8px rgba(107,70,193,0.12);
+    }
+    .card.is-drop { opacity: 0.5; }
+
+    .card svg { display: block; border-radius: 4px; margin-bottom: 10px; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .card-desc  { font-size: 11px; color: #777; line-height: 1.45; }
+    .card-meta  { font-size: 10px; color: #bbb; margin-top: 4px; }
+    .card-note  { font-size: 10.5px; color: #c06020; margin-top: 5px; line-height: 1.4; }
+    .drop-reason { font-size: 10.5px; color: #b83030; margin-top: 5px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Storybook Template Proposals</h1>
+  <p>S12 discussion artifact &nbsp;·&nbsp; June 2026 &nbsp;·&nbsp; 15 proposed (was 16) &nbsp;·&nbsp; 3 cut, 3 added</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="swatch swatch-text"></div> Text block</div>
+  <div class="legend-item"><div class="swatch swatch-photo"></div> Photo block</div>
+  <div class="legend-item"><div class="swatch swatch-caption"></div> Caption overlay</div>
+  <div class="legend-sep"></div>
+  <div class="legend-item"><span class="badge badge-new">New</span> New template</div>
+  <div class="legend-item"><span class="badge badge-keep">Keep</span> Unchanged</div>
+  <div class="legend-item"><span class="badge badge-fix">Fix</span> Proportion tweak</div>
+  <div class="legend-item"><span class="badge badge-redesign">Redesign</span> Same concept, new layout</div>
+</div>
+
+<div id="app"></div>
+
+<script>
+const PW = 168, PH = 238; // page thumbnail dimensions
+
+function svg(blocks) {
+  const parts = [`<rect width="${PW}" height="${PH}" fill="#f8f6f3" stroke="#d0ccc6" stroke-width="1"/>`];
+
+  blocks.forEach(b => {
+    if (b.type === 'polygon') {
+      const pts = b.points.map(([px, py]) => `${Math.round(px*PW)},${Math.round(py*PH)}`).join(' ');
+      parts.push(`<polygon points="${pts}" fill="#b8d4e8" stroke="#8ab0cc" stroke-width="0.5"/>`);
+      (b.labels || []).forEach(([lx, ly]) => {
+        parts.push(`<text x="${Math.round(lx*PW)}" y="${Math.round(ly*PH)}" text-anchor="middle" dominant-baseline="middle" fill="#2e5e7a" font-size="8.5" font-family="system-ui,sans-serif" font-weight="600" letter-spacing="0.4">TEXT</text>`);
+      });
+      return;
+    }
+    const x  = Math.round(b.x * PW);
+    const y  = Math.round(b.y * PH);
+    const bw = Math.round(b.w * PW);
+    const bh = Math.round(b.h * PH);
+
+    let fill, stroke, labelFill, label;
+    if (b.overlay) {
+      fill = '#1e1e1e'; stroke = 'none'; labelFill = '#fff'; label = 'CAPTION';
+    } else if (b.type === 'photo') {
+      fill = '#e8c4a8'; stroke = '#c4a080'; labelFill = '#7a4f36'; label = 'PHOTO';
+    } else {
+      fill = '#b8d4e8'; stroke = '#8ab0cc'; labelFill = '#2e5e7a'; label = 'TEXT';
+    }
+
+    const rx   = b.overlay ? 0 : 2;
+    const fop  = b.overlay ? ' fill-opacity="0.65"' : '';
+    const fsize = Math.max(7, Math.min(9.5, bh * 0.22));
+
+    parts.push(`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${fill}"${fop} stroke="${stroke}" stroke-width="0.5" rx="${rx}"/>`);
+    if (bh > 14) {
+      parts.push(`<text x="${x + bw / 2}" y="${y + bh / 2}" text-anchor="middle" dominant-baseline="middle" fill="${labelFill}" font-size="${fsize}" font-family="system-ui,sans-serif" font-weight="600" letter-spacing="0.4">${label}</text>`);
+    }
+  });
+
+  return `<svg width="${PW}" height="${PH}" viewBox="0 0 ${PW} ${PH}" xmlns="http://www.w3.org/2000/svg">${parts.join('')}</svg>`;
+}
+
+function card(t, drop = false) {
+  const badgeClass = drop ? 'badge-drop' : `badge-${t.badge}`;
+  const badgeLabel = drop ? 'Drop' : t.badge;
+  const extraClass = drop ? ' is-drop' : (t.badge === 'new' ? ' is-new' : '');
+
+  const meta   = drop ? '' : `<div class="card-meta">${cap(t.memories)} · ${cap(t.photos, true)}</div>`;
+  const note   = t.note   ? `<div class="card-note">${t.note}</div>` : '';
+  const reason = t.reason ? `<div class="drop-reason">${t.reason}</div>` : '';
+
+  return `
+    <div class="card${extraClass}">
+      ${svg(t.blocks)}
+      <div class="card-title"><span class="badge ${badgeClass}">${badgeLabel}</span>${t.label}</div>
+      <div class="card-desc">${t.desc}</div>
+      ${meta}${note}${reason}
+    </div>`;
+}
+
+function cap(v, isPhoto = false) {
+  if (isPhoto) {
+    if (v === 0) return 'no photos';
+    if (typeof v === 'string') return v + ' photos';
+    return v + (v === 1 ? ' photo' : ' photos');
+  }
+  if (v === 0) return 'no text';
+  return v + (v === 1 ? ' memory' : ' memories');
+}
+
+// ─── Template definitions ──────────────────────────────────────────────────
+
+const SECTIONS = [
+  {
+    title: 'Single Memory — Text + Photo',
+    templates: [
+      {
+        id: 'classic', label: 'Classic', badge: 'fix',
+        desc: 'Text above, photo below',
+        memories: 1, photos: '0–1',
+        note: 'Breathing room improved — was 38%/50% with a 2% gap; now 36%/52% with 4% gap',
+        blocks: [
+          { type:'text',  x:0.05, y:0.04, w:0.90, h:0.36 },
+          { type:'photo', x:0.05, y:0.44, w:0.90, h:0.52 },
+        ],
+      },
+      {
+        id: 'photo-first', label: 'Photo First', badge: 'new',
+        desc: 'Large photo leads, text caption anchors below',
+        memories: 1, photos: 1,
+        note: 'Reverse of Classic — good when the photo is the hero, not the story',
+        blocks: [
+          { type:'photo', x:0.05, y:0.04, w:0.90, h:0.52 },
+          { type:'text',  x:0.05, y:0.60, w:0.90, h:0.36 },
+        ],
+      },
+      {
+        id: 'side-by-side', label: 'Side by Side', badge: 'keep',
+        desc: 'Text left, photo right — both run full height',
+        memories: 1, photos: '0–1',
+        blocks: [
+          { type:'text',  x:0.04, y:0.06, w:0.44, h:0.88 },
+          { type:'photo', x:0.52, y:0.06, w:0.44, h:0.88 },
+        ],
+      },
+      {
+        id: 'spotlight', label: 'Spotlight', badge: 'new',
+        desc: 'Photo centered on page with generous whitespace; caption below',
+        memories: 1, photos: 1,
+        note: 'First template with deliberate whitespace — editorial/polaroid feel vs the full-bleed Hero',
+        blocks: [
+          { type:'photo', x:0.10, y:0.06, w:0.80, h:0.60 },
+          { type:'text',  x:0.12, y:0.70, w:0.76, h:0.22 },
+        ],
+      },
+      {
+        id: 'l-wrap', label: 'L-Wrap', badge: 'new',
+        desc: 'Text top-left · photo top-right · text continues full-width below',
+        memories: 1, photos: 1,
+        note: 'Single entry; text wraps around the photo — asymmetric by design',
+        blocks: [
+          {
+            type: 'polygon',
+            points: [
+              [0.04, 0.04], [0.48, 0.04], [0.48, 0.48],
+              [0.96, 0.48], [0.96, 0.90], [0.04, 0.90],
+            ],
+            labels: [[0.26, 0.26], [0.50, 0.69]],
+          },
+          { type:'photo', x:0.52, y:0.04, w:0.44, h:0.44 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Single Memory — Special',
+    templates: [
+      {
+        id: 'hero', label: 'Hero', badge: 'keep',
+        desc: 'Full-bleed photo, caption overlay at bottom',
+        memories: 1, photos: 1,
+        blocks: [
+          { type:'photo', x:0,    y:0,    w:1,    h:1    },
+          { type:'text',  x:0.04, y:0.78, w:0.92, h:0.18, overlay: true },
+        ],
+      },
+      {
+        id: 'text-only', label: 'Text Only', badge: 'keep',
+        desc: 'Full-page text — for long entries with no photo',
+        memories: 1, photos: 0,
+        blocks: [
+          { type:'text', x:0.06, y:0.06, w:0.88, h:0.88 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Two Memories',
+    templates: [
+      {
+        id: 'two-up', label: 'Two Memories', badge: 'keep',
+        desc: 'Two short entries, text only',
+        memories: 2, photos: 0,
+        blocks: [
+          { type:'text', x:0.04, y:0.05, w:0.92, h:0.42 },
+          { type:'text', x:0.04, y:0.52, w:0.92, h:0.42 },
+        ],
+      },
+      {
+        id: 'story-snapshot', label: 'Story + Snapshot', badge: 'keep',
+        desc: 'Memory 1: text+photo side-by-side. Memory 2: full-width below.',
+        memories: 2, photos: 1,
+        blocks: [
+          { type:'text',  x:0.04, y:0.04, w:0.44, h:0.44 },
+          { type:'photo', x:0.52, y:0.04, w:0.44, h:0.44 },
+          { type:'text',  x:0.04, y:0.52, w:0.92, h:0.43 },
+        ],
+      },
+      {
+        id: 'staggered', label: 'Staggered', badge: 'redesign',
+        desc: 'Two memories in opposing columns — photo-over-text vs text-over-photo',
+        memories: 2, photos: 2,
+        note: 'Replaces two-up-both — fixes the 36% dead space; columns mirror each other diagonally',
+        blocks: [
+          { type:'photo', x:0.04, y:0.04, w:0.44, h:0.44 },
+          { type:'text',  x:0.04, y:0.52, w:0.44, h:0.44 },
+          { type:'text',  x:0.52, y:0.04, w:0.44, h:0.44 },
+          { type:'photo', x:0.52, y:0.52, w:0.44, h:0.44 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Three Memories',
+    templates: [
+      {
+        id: 'timeline', label: 'Timeline', badge: 'keep',
+        desc: 'Three entries, each row: thumbnail photo left + text right',
+        memories: 3, photos: '0–3',
+        blocks: [
+          { type:'photo', x:0.04, y:0.04, w:0.28, h:0.28 },
+          { type:'text',  x:0.36, y:0.04, w:0.60, h:0.28 },
+          { type:'photo', x:0.04, y:0.36, w:0.28, h:0.28 },
+          { type:'text',  x:0.36, y:0.36, w:0.60, h:0.28 },
+          { type:'photo', x:0.04, y:0.68, w:0.28, h:0.28 },
+          { type:'text',  x:0.36, y:0.68, w:0.60, h:0.28 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Photo Only',
+    templates: [
+      {
+        id: 'photo-full', label: 'Full Photo', badge: 'keep',
+        desc: 'Single full-bleed photo — no text at all',
+        memories: 0, photos: 1,
+        blocks: [{ type:'photo', x:0, y:0, w:1, h:1 }],
+      },
+      {
+        id: 'photo-pair', label: 'Photo Pair', badge: 'keep',
+        desc: 'Two tall photos side by side',
+        memories: 0, photos: 2,
+        blocks: [
+          { type:'photo', x:0.02, y:0.04, w:0.46, h:0.92 },
+          { type:'photo', x:0.52, y:0.04, w:0.46, h:0.92 },
+        ],
+      },
+      {
+        id: 'photo-three', label: 'Photo Three', badge: 'keep',
+        desc: '1 large photo + 2 smaller below — natural hierarchy',
+        memories: 0, photos: 3,
+        blocks: [
+          { type:'photo', x:0.02, y:0.04, w:0.96, h:0.52 },
+          { type:'photo', x:0.02, y:0.58, w:0.46, h:0.38 },
+          { type:'photo', x:0.52, y:0.58, w:0.46, h:0.38 },
+        ],
+      },
+      {
+        id: 'photo-grid', label: 'Photo Grid', badge: 'keep',
+        desc: '2×2 grid — four equal photos',
+        memories: 0, photos: 4,
+        blocks: [
+          { type:'photo', x:0.02, y:0.04, w:0.46, h:0.44 },
+          { type:'photo', x:0.52, y:0.04, w:0.46, h:0.44 },
+          { type:'photo', x:0.02, y:0.52, w:0.46, h:0.44 },
+          { type:'photo', x:0.52, y:0.52, w:0.46, h:0.44 },
+        ],
+      },
+    ],
+  },
+];
+
+const DROPPED = [
+  {
+    id: 'gallery', label: 'Gallery',
+    desc: 'Two equal-size square photos top + text below',
+    reason: 'Boxy and redundant — Photo Three does the same job with better hierarchy (one large + two small)',
+    blocks: [
+      { type:'photo', x:0.04, y:0.04, w:0.44, h:0.44 },
+      { type:'photo', x:0.52, y:0.04, w:0.44, h:0.44 },
+      { type:'text',  x:0.04, y:0.52, w:0.92, h:0.44 },
+    ],
+  },
+  {
+    id: 'memory-gallery', label: 'Memory Gallery',
+    desc: 'Short text + two side-by-side photos + one wide photo',
+    reason: 'Awkward three-row stack; feels like a broken Classic. Nothing here that Classic + photo-three can\'t do better.',
+    blocks: [
+      { type:'text',  x:0.04, y:0.04, w:0.92, h:0.30 },
+      { type:'photo', x:0.04, y:0.38, w:0.44, h:0.28 },
+      { type:'photo', x:0.52, y:0.38, w:0.44, h:0.28 },
+      { type:'photo', x:0.04, y:0.70, w:0.92, h:0.26 },
+    ],
+  },
+  {
+    id: 'three-short', label: 'Three Short',
+    desc: 'Three stacked text blocks, no photos',
+    reason: 'Just Text Only divided into thirds. No unique layout logic — Two Memories + Text Only cover this use case.',
+    blocks: [
+      { type:'text', x:0.04, y:0.04, w:0.92, h:0.28 },
+      { type:'text', x:0.04, y:0.36, w:0.92, h:0.28 },
+      { type:'text', x:0.04, y:0.68, w:0.92, h:0.28 },
+    ],
+  },
+  {
+    id: 'two-up-both', label: 'Two + Both Photos',
+    desc: 'Two side-by-side columns, each with text + photo',
+    reason: 'Both columns end at 64% page height — 36% blank at the bottom. Replaced by Staggered, which fills the page and adds diagonal asymmetry.',
+    blocks: [
+      { type:'text',  x:0.04, y:0.04, w:0.44, h:0.28 },
+      { type:'photo', x:0.04, y:0.36, w:0.44, h:0.28 },
+      { type:'text',  x:0.52, y:0.04, w:0.44, h:0.28 },
+      { type:'photo', x:0.52, y:0.36, w:0.44, h:0.28 },
+    ],
+  },
+];
+
+// ─── Build DOM ─────────────────────────────────────────────────────────────
+
+const app = document.getElementById('app');
+let html = '';
+
+SECTIONS.forEach(sec => {
+  html += `<div class="section">`;
+  html += `<div class="section-header"><h2>${sec.title}</h2><span class="count">${sec.templates.length}</span></div>`;
+  html += `<div class="divider"></div><div class="grid">`;
+  sec.templates.forEach(t => { html += card(t); });
+  html += `</div></div>`;
+});
+
+html += `<div class="section">`;
+html += `<div class="section-header"><h2>Cut from Current Set</h2><span class="count">${DROPPED.length} removed</span></div>`;
+html += `<div class="divider"></div><div class="grid">`;
+DROPPED.forEach(t => { html += card(t, true); });
+html += `</div></div>`;
+
+app.innerHTML = html;
+</script>
+
+</body>
+</html>
