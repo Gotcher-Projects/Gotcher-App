@@ -347,6 +347,10 @@ export default function LoginPage({ onLogin, verifiedBanner, onDismissBanner, re
           <a href="/privacy.html" className="hover:underline">Privacy Policy</a>
           {" · "}
           <a href="/terms.html" className="hover:underline">Terms of Service</a>
+          {" · "}
+          <a href="/support.html" className="hover:underline">Support</a>
+          {" · "}
+          <a href="/delete-account.html" className="hover:underline">Delete Account</a>
         </p>
       </div>
     </div>

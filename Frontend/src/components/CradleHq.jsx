@@ -47,6 +47,10 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [resending, setResending] = useState(false);
   const [appError, setAppError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -412,6 +416,19 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     if (ok) setNeedsOnboarding(false);
   }
 
+  async function handleDeleteAccount() {
+    if (deleteInput !== "DELETE") return;
+    setDeleteInProgress(true);
+    setDeleteError("");
+    try {
+      await apiRequest('/auth/account', { method: 'DELETE' });
+      onLogout();
+    } catch {
+      setDeleteError("Something went wrong. Please try again or contact support.");
+      setDeleteInProgress(false);
+    }
+  }
+
   const week = getWeek(data.profile.birthdate);
   const months = getMonths(data.profile.birthdate);
   const activities = getActivities(week);
@@ -545,6 +562,58 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
               ) : profileSaved ? 'Saved!' : 'Save Profile'}
             </Button>
+            <div className="border-t border-border pt-4 mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => { setDeleteInput(""); setDeleteError(""); setDeleteConfirmOpen(true); setProfileModalOpen(false); }}
+              >
+                Delete Account
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={open => { if (!deleteInProgress) setDeleteConfirmOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This will permanently delete your account and all associated data — baby profile, feeding logs, sleep logs, diaper logs, growth records, journal entries, photos, and more. <strong>This cannot be undone.</strong>
+            </p>
+            <div>
+              <Label className="text-sm">Type <strong>DELETE</strong> to confirm</Label>
+              <Input
+                className="mt-1"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+                placeholder="DELETE"
+                disabled={deleteInProgress}
+              />
+            </div>
+            {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleteInProgress}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDeleteAccount}
+                disabled={deleteInput !== "DELETE" || deleteInProgress}
+              >
+                {deleteInProgress ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting…</> : 'Delete My Account'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
