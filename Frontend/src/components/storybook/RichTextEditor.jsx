@@ -5,14 +5,17 @@ import { BASE_FONT } from "@/lib/bookCanvas";
 
 // Tiptap rich-text editor for a single text block. Reports the editor instance to
 // the parent (for the format toolbar) and commits content on blur.
-export default function RichTextEditor({ block, fontClass, textColor, onReady, onStopEdit }) {
+// `flow` mode drops the overflow/height wrappers so the editor does NOT establish
+// a block-formatting context — its text then wraps around a preceding float
+// (used by the l-wrap block so the photo stays visible while editing).
+export default function RichTextEditor({ block, fontClass, textColor, onReady, onStopEdit, flow = false }) {
   const editor = useEditor({
     extensions: tiptapExtensions,
     content: toTiptapDoc(block.content),
     autofocus: 'end',
     editorProps: {
       attributes: {
-        class: `book-rich book-rich--edit ${fontClass} w-full h-full p-3 overflow-y-auto outline-none`,
+        class: `book-rich book-rich--edit ${fontClass} w-full p-3 outline-none ${flow ? '' : 'h-full overflow-y-auto'}`,
         style: textColor ? `color: ${textColor}` : '',
       },
     },
@@ -27,10 +30,10 @@ export default function RichTextEditor({ block, fontClass, textColor, onReady, o
 
   return (
     <div
-      className="w-full h-full border border-color-highlight/50 rounded bg-transparent overflow-hidden"
+      className={`w-full border border-color-highlight/50 rounded bg-transparent ${flow ? '' : 'h-full overflow-hidden'}`}
       style={{ fontSize: BASE_FONT, lineHeight: 1.8 }}
     >
-      <EditorContent editor={editor} className="w-full h-full" />
+      <EditorContent editor={editor} className={flow ? 'w-full' : 'w-full h-full'} />
     </div>
   );
 }

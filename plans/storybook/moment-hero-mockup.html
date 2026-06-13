@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moment-Hero — Design Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:ital,wght@0,300;0,400;1,400&family=Dancing+Script:wght@500;600&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #DDD9D2;
+      font-family: 'Inter', sans-serif;
+      padding: 48px 24px 80px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: #777;
+    }
+
+    .style-block {
+      margin-bottom: 72px;
+    }
+
+    .style-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 28px;
+    }
+
+    .variants-row {
+      display: flex;
+      gap: 36px;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .variant-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .variant-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #AAA;
+    }
+
+    /* ────────────────────────────────────────────────
+       HERO PAGE SHELL
+    ──────────────────────────────────────────────── */
+    .hero-page {
+      width: 420px;
+      border-radius: 3px;
+      position: relative;
+      overflow: visible; /* allow polaroid shadow to breathe */
+    }
+
+
+    /* ══════════════════════════════════════════════
+       SCRAPBOOK STYLE
+    ══════════════════════════════════════════════ */
+    .hero-page.scrap {
+      background: #FDF6ED;
+      padding: 40px 32px 36px;
+      box-shadow:
+        0 6px 28px rgba(0,0,0,0.18),
+        0 1px 4px rgba(0,0,0,0.08);
+      font-family: 'Lato', sans-serif;
+    }
+
+    /* Faint ruled-paper texture */
+    .hero-page.scrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 27px,
+        rgba(180,160,130,0.07) 28px
+      );
+      border-radius: inherit;
+    }
+
+    .scrap .header-section {
+      text-align: center;
+      margin-bottom: 26px;
+      position: relative;
+    }
+
+    .scrap .badge {
+      display: inline-block;
+      background: #FBCFE8;
+      color: #9D174D;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 4px 13px;
+      border-radius: 100px;
+      margin-bottom: 13px;
+    }
+
+    .scrap .title {
+      font-family: 'Playfair Display', serif;
+      font-size: 40px;
+      font-weight: 700;
+      color: #2C1810;
+      line-height: 1.1;
+      margin-bottom: 7px;
+    }
+
+    .scrap .subtitle {
+      font-family: 'Lato', sans-serif;
+      font-style: italic;
+      font-size: 13.5px;
+      color: #A07860;
+      letter-spacing: 0.03em;
+    }
+
+    /* Polaroid */
+    .scrap .polaroid-outer {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 26px;
+    }
+
+    .scrap .polaroid {
+      background: #FFFFFF;
+      display: inline-flex;
+      flex-direction: column;
+      box-shadow:
+        0 8px 24px rgba(0,0,0,0.2),
+        0 2px 6px rgba(0,0,0,0.1),
+        inset 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .scrap .polaroid.tilt-right { transform: rotate(1.8deg); }
+    .scrap .polaroid.tilt-left  { transform: rotate(-1.4deg); }
+
+    .scrap .polaroid-photo {
+      display: block;
+      background: linear-gradient(145deg, #C5CFD6 0%, #A4B8C4 25%, #BEC5A8 60%, #C4AEA2 100%);
+      position: relative;
+    }
+    /* portrait: 220×294 ≈ 3:4 */
+    .scrap .polaroid-photo.portrait { width: 220px; height: 294px; padding: 12px 12px 0; }
+    /* landscape: 310×232 ≈ 4:3 */
+    .scrap .polaroid-photo.landscape { width: 316px; height: 237px; padding: 12px 12px 0; }
+
+    .scrap .photo-inner-frame {
+      width: 100%; height: 100%;
+      background: linear-gradient(145deg, #B8C6CE 0%, #96AABC 25%, #B2BB98 60%, #B8A296 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scrap .photo-inner-frame span {
+      font-size: 32px;
+      opacity: 0.45;
+    }
+
+    .scrap .polaroid-caption-strip {
+      padding: 10px 12px 16px;
+      text-align: center;
+    }
+    .scrap .polaroid-caption-strip span {
+      font-family: 'Dancing Script', cursive;
+      font-size: 14.5px;
+      color: #6B4F3A;
+    }
+
+    /* Note card */
+    .scrap .note-card {
+      background: #FFF8E8;
+      border: 1px solid #E5CB8A;
+      border-radius: 10px;
+      padding: 18px 20px 16px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .scrap .note-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 11px;
+    }
+    .scrap .note-header .pip {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #D4A017;
+    }
+    .scrap .note-header span {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #B8860B;
+    }
+
+    .scrap .note-body {
+      font-family: 'Lato', sans-serif;
+      font-style: italic;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #4A3728;
+      margin-bottom: 13px;
+    }
+
+    .scrap .note-attribution {
+      font-family: 'Dancing Script', cursive;
+      font-size: 17px;
+      color: #7A5C4A;
+      text-align: right;
+    }
+
+    .scrap .note-actions {
+      display: flex;
+      gap: 7px;
+      margin-top: 13px;
+    }
+    .scrap .btn-xs {
+      font-size: 10.5px;
+      padding: 5px 13px;
+      border-radius: 100px;
+      border: 1px solid #E5CB8A;
+      background: white;
+      color: #9B7B6A;
+      cursor: pointer;
+      font-family: 'Lato', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .scrap .btn-xs.accent {
+      background: #FBCFE8;
+      border-color: #F9A8D4;
+      color: #9D174D;
+    }
+
+    /* Footer heart */
+    .scrap .footer-heart {
+      text-align: right;
+      font-size: 18px;
+      color: #F9A8D4;
+      padding-right: 2px;
+    }
+
+
+    /* ══════════════════════════════════════════════
+       EDITORIAL STYLE
+    ══════════════════════════════════════════════ */
+    .hero-page.editorial {
+      background: #FFFFFF;
+      padding: 48px 40px 52px;
+      box-shadow:
+        0 2px 20px rgba(0,0,0,0.09),
+        0 1px 3px rgba(0,0,0,0.05);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .editorial .header-section {
+      margin-bottom: 32px;
+    }
+
+    .editorial .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #AAAAAA;
+      margin-bottom: 14px;
+    }
+    .editorial .badge::before {
+      content: '';
+      display: block;
+      width: 20px; height: 1px;
+      background: #CCCCCC;
+      flex-shrink: 0;
+    }
+
+    .editorial .title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 44px;
+      font-weight: 700;
+      color: #0D0D0D;
+      line-height: 1.05;
+      margin-bottom: 10px;
+      letter-spacing: -0.025em;
+    }
+
+    .editorial .subtitle {
+      font-size: 12px;
+      font-weight: 400;
+      color: #BBBBBB;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Photo */
+    .editorial .photo-wrap {
+      margin-bottom: 32px;
+    }
+
+    .editorial .photo-frame {
+      border: 1px solid #E8E8E8;
+      overflow: hidden;
+    }
+
+    .editorial .photo-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #EAEEF2 0%, #D8DFE6 40%, #E2E0D8 80%, #D8D2CC 100%);
+    }
+    .editorial .photo-placeholder.portrait  { width: 100%; aspect-ratio: 3 / 4; max-height: 360px; }
+    .editorial .photo-placeholder.landscape { width: 100%; aspect-ratio: 4 / 3; }
+
+    .editorial .photo-placeholder span {
+      font-size: 26px;
+      opacity: 0.3;
+    }
+
+    /* Note card */
+    .editorial .note-card {
+      padding-left: 20px;
+      border-left: 2px solid #0D0D0D;
+      margin-bottom: 28px;
+    }
+
+    .editorial .note-header {
+      margin-bottom: 12px;
+    }
+    .editorial .note-header span {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #0D0D0D;
+    }
+
+    .editorial .note-body {
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.85;
+      color: #444444;
+      margin-bottom: 14px;
+    }
+
+    .editorial .note-attribution {
+      font-size: 11px;
+      font-weight: 500;
+      color: #999;
+      letter-spacing: 0.06em;
+    }
+
+    .editorial .note-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .editorial .btn-xs {
+      font-size: 10.5px;
+      padding: 5px 14px;
+      border-radius: 3px;
+      border: 1px solid #E0E0E0;
+      background: white;
+      color: #666;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+    }
+    .editorial .btn-xs.accent {
+      background: #0D0D0D;
+      border-color: #0D0D0D;
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Moment-Hero — Design Mockup</h1>
+  <p>Scrapbook style · Editorial style &nbsp;·&nbsp; Portrait photo · Landscape photo</p>
+</div>
+
+
+<!-- ══════════════════════════════════
+     SCRAPBOOK
+══════════════════════════════════ -->
+<div class="style-block">
+  <div class="style-label">Scrapbook Style</div>
+  <div class="variants-row">
+
+    <!-- Scrapbook · Portrait -->
+    <div class="variant-wrap">
+      <div class="variant-tag">Portrait photo</div>
+      <div class="hero-page scrap">
+
+        <div class="header-section">
+          <span class="badge">First Time</span>
+          <div class="title">First Steps</div>
+          <div class="subtitle">Tuesday, March 4, 2026</div>
+        </div>
+
+        <div class="polaroid-outer">
+          <div class="polaroid tilt-right">
+            <div class="polaroid-photo portrait">
+              <div class="photo-inner-frame"><span>📷</span></div>
+            </div>
+            <div class="polaroid-caption-strip">
+              <span>Lily's first steps ✨</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-header">
+            <div class="pip"></div>
+            <span>Note</span>
+          </div>
+          <div class="note-body">
+            Today was the day everything changed — those tiny, wobbly legs finally said
+            "enough of crawling!" Lily took three whole steps across the living room
+            floor and looked back at us like she'd just conquered the world. In a way,
+            she had. We'll never forget this moment.
+          </div>
+          <div class="note-attribution">— Mom &amp; Dad xx</div>
+          <div class="note-actions">
+            <button class="btn-xs accent">✦ Generate note</button>
+            <button class="btn-xs">✏ Edit</button>
+          </div>
+        </div>
+
+        <div class="footer-heart">♥</div>
+      </div>
+    </div>
+
+    <!-- Scrapbook · Landscape -->
+    <div class="variant-wrap">
+      <div class="variant-tag">Landscape photo</div>
+      <div class="hero-page scrap">
+
+        <div class="header-section">
+          <span class="badge">First Time</span>
+          <div class="title">First Steps</div>
+          <div class="subtitle">Tuesday, March 4, 2026</div>
+        </div>
+
+        <div class="polaroid-outer">
+          <div class="polaroid tilt-left">
+            <div class="polaroid-photo landscape">
+              <div class="photo-inner-frame"><span>📷</span></div>
+            </div>
+            <div class="polaroid-caption-strip">
+              <span>Lily's first steps ✨</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-header">
+            <div class="pip"></div>
+            <span>Note</span>
+          </div>
+          <div class="note-body">
+            Today was the day everything changed — those tiny, wobbly legs finally said
+            "enough of crawling!" Lily took three whole steps across the living room
+            floor and looked back at us like she'd just conquered the world. In a way,
+            she had. We'll never forget this moment.
+          </div>
+          <div class="note-attribution">— Mom &amp; Dad xx</div>
+          <div class="note-actions">
+            <button class="btn-xs accent">✦ Generate note</button>
+            <button class="btn-xs">✏ Edit</button>
+          </div>
+        </div>
+
+        <div class="footer-heart">♥</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     EDITORIAL
+══════════════════════════════════ -->
+<div class="style-block">
+  <div class="style-label">Editorial Style</div>
+  <div class="variants-row">
+
+    <!-- Editorial · Portrait -->
+    <div class="variant-wrap">
+      <div class="variant-tag">Portrait photo</div>
+      <div class="hero-page editorial">
+
+        <div class="header-section">
+          <div class="badge">First Time</div>
+          <div class="title">First Steps</div>
+          <div class="subtitle">Tuesday, March 4, 2026</div>
+        </div>
+
+        <div class="photo-wrap">
+          <div class="photo-frame">
+            <div class="photo-placeholder portrait"><span>📷</span></div>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-header"><span>Note</span></div>
+          <div class="note-body">
+            Today was the day everything changed — those tiny, wobbly legs finally said
+            "enough of crawling!" Lily took three whole steps across the living room
+            floor and looked back at us like she'd just conquered the world. In a way,
+            she had. We'll never forget this moment.
+          </div>
+          <div class="note-attribution">— Mom &amp; Dad</div>
+          <div class="note-actions">
+            <button class="btn-xs accent">Generate note</button>
+            <button class="btn-xs">Edit</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Editorial · Landscape -->
+    <div class="variant-wrap">
+      <div class="variant-tag">Landscape photo</div>
+      <div class="hero-page editorial">
+
+        <div class="header-section">
+          <div class="badge">First Time</div>
+          <div class="title">First Steps</div>
+          <div class="subtitle">Tuesday, March 4, 2026</div>
+        </div>
+
+        <div class="photo-wrap">
+          <div class="photo-frame">
+            <div class="photo-placeholder landscape"><span>📷</span></div>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-header"><span>Note</span></div>
+          <div class="note-body">
+            Today was the day everything changed — those tiny, wobbly legs finally said
+            "enough of crawling!" Lily took three whole steps across the living room
+            floor and looked back at us like she'd just conquered the world. In a way,
+            she had. We'll never forget this moment.
+          </div>
+          <div class="note-attribution">— Mom &amp; Dad</div>
+          <div class="note-actions">
+            <button class="btn-xs accent">Generate note</button>
+            <button class="btn-xs">Edit</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

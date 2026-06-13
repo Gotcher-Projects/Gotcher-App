@@ -1,8 +1,28 @@
 # S14 — L-Wrap: True Float Layout
 
-**Status: Not started**
+**Status: Complete**
 **Branch:** journal-updates
 **Depends on:** S12.1 complete (template overhaul)
+
+> **Completed (2026-06-13, user-confirmed):** Single `type: 'l-wrap'` block implemented across
+> `storybookTemplates.js`, `bookCanvas.jsx` (`LWrapBlock` + `renderBlocks` branch), and
+> `ScrapbookBuilder.jsx`. **TC1 confirmed passing** — the CSS float renders correctly in the
+> html2canvas PDF export, so the fallback plan was NOT needed. User confirmed the layout works.
+>
+> **Design decisions / deviations from the plan as written:**
+> - **Single droppable, not two (§3a):** Used one droppable on the l-wrap block routing by
+>   `data.kind`. dnd-kit collision with overlapping float rects is unreliable; the session
+>   prompt's "accept both 'text' and 'photo' drags" framing was followed instead.
+> - **Open Q1:** The builder renders the real `LWrapBlock` component for its display (single
+>   source of truth) — gives fitted-font + crop parity with the published/PDF view. (Not
+>   `RenderedText`, whose `overflow:hidden` BFC would block float wrapping.)
+> - **Inline text editing un-deferred (vs Decision 5):** Clicking the text area opens a Tiptap
+>   editor in new `flow` mode (no BFC) so the photo stays floated and text wraps while editing.
+>   Photo sub-zone click opens the tray / re-frame.
+> - **Crop kept for l-wrap photos:** photos run the standard crop-to-slot modal (3:4) and the
+>   stored `crop` renders via a fixed-size `overflow:hidden` float box in `LWrapBlock`.
+> - `storybookGrouping.js` left untouched — `pickTemplate` returns `classic` before `l-wrap`,
+>   so l-wrap is manual-only and never hits the auto-generate path.
 
 ---
 

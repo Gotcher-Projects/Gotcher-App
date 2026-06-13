@@ -65,6 +65,63 @@ export function RenderedText({ block, fontClass, textColor }) {
   );
 }
 
+// L-Wrap block: a single cohesive text body that flows around a photo floated
+// into the top-right corner, producing a true L-shape. One container, one fitted
+// font size — unlike the old two-rectangle approach where each block fitted
+// independently and the sizes diverged.
+export function LWrapBlock({ block, fontClass, textColor }) {
+  const ref = useRef(null);
+  const rawHtml = useMemo(() => renderContentHTML(block.content), [block.content]);
+  // l-wrap suppresses the drop cap by default; honor an explicit override anyway.
+  const html = useMemo(
+    () => (!block.suppressDropCap && rawHtml ? injectDropCap(rawHtml) : rawHtml),
+    [rawHtml, block.suppressDropCap]
+  );
+  const w = block.width * CANVAS_W;
+  const h = block.height * CANVAS_H;
+  // Photo occupies the top-right ~47% of the block; gap to the wrapping text.
+  const photoW = Math.round(w * 0.47);
+  const photoH = Math.round(h * 0.47);
+  const marginL = Math.round(w * 0.03);
+  const marginB = Math.round(h * 0.03);
+
+  // overflow:hidden makes this container a block-formatting context, so it
+  // contains the float and scrollHeight reflects both float and text height —
+  // which lets useFittedFontSize converge correctly.
+  const fontSize = useFittedFontSize(ref, BASE_FONT, 8, [html, fontClass, w, h], BASE_FONT * 1.7);
+
+  return (
+    <div
+      ref={ref}
+      className={`book-rich--edit ${fontClass} w-full h-full p-3 overflow-hidden`}
+      style={{ fontSize, lineHeight: 1.8, color: textColor || undefined, boxSizing: 'border-box' }}
+    >
+      {/* Float MUST come before the text in DOM order — float wrapping only
+          applies to content that follows the float in source order. The fixed-size
+          floated box clips its image so a stored crop (cropStyle) renders correctly. */}
+      {block.url && (
+        <div
+          style={{
+            float: 'right',
+            width: photoW,
+            height: photoH,
+            marginLeft: marginL,
+            marginBottom: marginB,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {block.crop
+            ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
+            : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
+          }
+        </div>
+      )}
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}
+
 // Absolute box style positioning a block on the virtual canvas.
 export function blockBoxStyle(block) {
   return {
@@ -77,6 +134,19 @@ export function blockBoxStyle(block) {
   };
 }
 
+// Compute absolute positioning style that shows only the stored crop region.
+// Works with overflow:hidden on the parent (provided by blockBoxStyle).
+export function cropStyle(crop) {
+  return {
+    position: 'absolute',
+    left: `${-crop.x / crop.width * 100}%`,
+    top: `${-crop.y / crop.height * 100}%`,
+    width: `${100 / crop.width}%`,
+    height: 'auto',
+    maxWidth: 'none',
+  };
+}
+
 // Render a list of blocks (text / photo). Empty slots draw nothing —
 // callers that want placeholders (e.g. the builder) render their own slot view.
 export function renderBlocks(blocks, theme) {
@@ -86,13 +156,13 @@ export function renderBlocks(blocks, theme) {
       <div key={block.id || i} style={blockBoxStyle(block)}>
         {block.type === 'text' ? (
           <RenderedText block={block} fontClass={fontClass} textColor={theme?.textColor} />
+        ) : block.type === 'l-wrap' ? (
+          <LWrapBlock block={block} fontClass={fontClass} textColor={theme?.textColor} />
         ) : (
           block.url && (
-            <img
-              src={block.url}
-              alt={block.label || ''}
-              className="w-full h-full object-cover"
-            />
+            block.crop
+              ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
+              : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
           )
         )}
       </div>

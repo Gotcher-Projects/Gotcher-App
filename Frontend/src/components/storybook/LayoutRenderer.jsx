@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CANVAS_W, CANVAS_H, renderBlocks } from "@/lib/bookCanvas";
+import MomentHeroCanvas from "@/components/storybook/MomentHeroCanvas";
 
 export default function LayoutRenderer({ layout, theme }) {
   const containerRef = useRef(null);
@@ -49,7 +50,14 @@ export default function LayoutRenderer({ layout, theme }) {
               transform: `scale(${scale})`, transformOrigin: 'top left',
               backgroundColor: pageBg,
             }}>
-              {renderBlocks(blocks, theme)}
+              {page.templateId?.startsWith('moment-hero') ? (
+                <MomentHeroCanvas
+                  blocks={blocks}
+                  orientation={page.templateId === 'moment-hero-landscape' ? 'landscape' : 'portrait'}
+                />
+              ) : (
+                renderBlocks(blocks, theme)
+              )}
             </div>
           )}
         </div>

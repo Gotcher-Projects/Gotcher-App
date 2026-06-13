@@ -1,6 +1,6 @@
 # S13 — Moment-Hero Chapter Type
 
-**Status: Not started**
+**Status: Complete**
 **Branch:** same as S7 (or new branch off main post-S12)
 **Depends on:** S12 complete
 **Roadmap:** V1 storybook; pulled forward from sv2-s5 as a self-contained addition
@@ -10,100 +10,88 @@
 
 ## Goal
 
-Add a **Moment-Hero** chapter type to the existing scrapbook. When a user creates a new chapter, they can choose "From a First Time" — this creates a hero page for that specific First Time entry instead of the standard scrapbook canvas. The renderer is a purpose-built fixed-layout component (not the virtual canvas), which also forms the foundation for the guided book in sv2.
+Add **Moment-Hero** as a template type in the scrapbook builder. It appears in the template picker alongside the existing 15 templates and uses the same drag-and-drop builder — no special wizard, no AI, no new DB columns. The user picks the template, drags a photo into the polaroid slot and text into the note card, and edits the title/date inline.
 
-The moment-hero layout has three fixed zones:
-1. Category badge + title + subtitle
-2. Hero photo with white card frame
-3. AI-generated note card (cream box, italic text, attribution)
+Two variants live in `storybookTemplates.js`: `moment-hero-portrait` and `moment-hero-landscape`. The renderer (`MomentHeroCanvas.jsx`) applies a purpose-built scrapbook aesthetic to the blocks rather than the generic `renderBlocks` path.
+
+The moment-hero layout has four fixed slots:
+1. Badge text (pre-filled "FIRST TIME", editable)
+2. Title text + date text
+3. Hero photo in a polaroid frame (portrait or landscape)
+4. Note card (cream box, italic, attribution line)
 
 ---
 
 ## Background
 
-First Times already store everything needed:
-- `first_times.label` → title (e.g. "First Steps")
-- `first_times.occurred_date` → subtitle (formatted date)
-- `first_times.image_url` → hero photo
-- `first_times.notes` → note card body (or AI-generated from label + date + notes)
+Originally scoped as a special First-Times-linked chapter type with AI note generation. Both of those were cut in the design session (2026-06-11):
 
-The component is pure React HTML/CSS — no virtual canvas, no react-rnd, no fractional coordinates. Simpler to build, simpler to style precisely, and cleaner to extend for the guided book.
+- **No AI** — the note card is a text slot the user fills by dragging a memory piece in and editing inline, same as any text block.
+- **No First Times integration** — the left panel stays as-is (memories only). First Times as drag sources is deferred; see Tech Debt.
+- **No DB migration** — `layout_data.templateId` already tells the renderer which component to use. No new columns needed.
+
+The Moment-Hero renderer is pure React HTML/CSS, not the virtual canvas. It applies the scrapbook aesthetic (polaroid frame, cream note card, Playfair Display, Dancing Script) to the stored block data.
 
 ---
 
 ## Scope
 
-### 1. `MomentHeroPage.jsx` component
-New file: `Frontend/src/components/storybook/MomentHeroPage.jsx`
+### 1. Template definitions — `storybookTemplates.js`
 
-Fixed layout component. Props:
+Add two new entries with a `renderer: 'moment_hero'` flag so the builder knows to use the custom canvas:
+
 ```js
 {
-  first: { label, occurred_date, image_url, notes },
-  generatedNote: String,   // AI-generated note text (nullable — shows placeholder if null)
-  theme: BookTheme,        // standard book theme object
-  categoryLabel: String,   // e.g. "FIRST TIME" (default) or overrideable
+  id: 'moment-hero-portrait',
+  name: 'Moment Hero',
+  renderer: 'moment_hero',
+  orientation: 'portrait',   // photo slot is 3:4
+  memoryCount: 1,
+  minPhotos: 1, maxPhotos: 1,
+  blocks: [
+    { id: 'badge',    type: 'text',  ... },  // small caps badge
+    { id: 'title',    type: 'text',  ... },  // large serif title
+    { id: 'date',     type: 'text',  ... },  // italic subtitle
+    { id: 'photo',    type: 'photo', ... },  // portrait polaroid slot
+    { id: 'note',     type: 'text',  ... },  // note card body
+    { id: 'attrib',   type: 'text',  ... },  // attribution line
+  ]
 }
+// moment-hero-landscape: same structure, photo slot is 4:3
 ```
 
-Layout (top to bottom):
-- Small caps category label (pink/accent color)
-- Large bold title (`first.label`)
-- Italic subtitle (formatted `occurred_date`)
-- Hero photo — full-width, white card frame + drop shadow, caption below
-- Note card — cream/ivory rounded box, "NOTE" label, italic body text, attribution "— [parent_name] xx"
-- Small decorative heart in lower corner
+Block positions/sizes to be nailed at implementation time, matching the mockup proportions.
 
-No drag-and-drop. No editable regions in read mode. Static HTML/CSS only.
+### 2. `MomentHeroCanvas.jsx` — purpose-built renderer
 
-### 2. Chapter type support
+New file: `Frontend/src/components/storybook/MomentHeroCanvas.jsx`
 
-**Option A (preferred):** Add a `chapter_type` column to `storybook_chapters`:
-```sql
--- V35 migration (or next available)
-ALTER TABLE storybook_chapters ADD COLUMN chapter_type VARCHAR(20) NOT NULL DEFAULT 'scrapbook';
--- existing chapters are 'scrapbook'; new moment-hero chapters are 'moment_hero'
-```
+Props: `{ blocks, orientation, theme }` — same shape that `LayoutRenderer` receives, but renders the scrapbook-specific aesthetic instead of generic `renderBlocks`.
 
-Also add `source_first_time_id BIGINT REFERENCES first_times(id) ON DELETE SET NULL` — stores which First Time this chapter is based on.
+Layout matches the mockup (see `plans/storybook/moment-hero-mockup.html`):
+- Pink pill badge (small caps)
+- Playfair Display title + italic date
+- Polaroid frame — white card, drop shadow, tilt, Dancing Script caption
+- Photo crop applied via `cropStyle` from `bookCanvas.jsx` (same as S12.3 slots)
+- Cream note card (`#FFF8E8`, `#E5CB8A` border, italic Lato body)
+- Dancing Script attribution
+- Pink `♥` in lower-right corner
 
-**Option B (if we want to avoid a migration now):** Encode the type in `anchor_type` (e.g. `anchor_type = 'first_time'`). Less clean but zero schema change.
+### 3. Builder wiring
 
-Decide at session start. Option A is preferred for long-term clarity.
+**Template picker** — the two Moment-Hero templates appear as regular cards in the existing grid with `memoryCount: 1`. No new pill or category — they show up under "All" and "1 Memory" naturally.
 
-### 3. Chapter creation wizard: "From a First Time" option
+**Canvas routing in `ScrapbookBuilder.jsx`** — when `template.renderer === 'moment_hero'`, render `MomentHeroCanvas` instead of the standard slot grid. The drag-and-drop source panel and slot-fill mechanics remain identical.
 
-In `StorybookWizard.jsx` (or wherever the "New Chapter" flow lives), add a new entry point:
-- "From a First Time" alongside existing options
-- Shows a list of the user's First Times (label + date + thumbnail)
-- Selecting one creates a moment-hero chapter linked to that First Time
-- The chapter title = the First Time label
+**Photo crop** — the photo slot uses the same `openSlotCropModal` flow from S12.3. Slot AR = portrait (3:4) or landscape (4:3) depending on the template variant.
 
-### 4. AI note generation
+### 4. Published view — `StorybookTab.jsx` / `LayoutRenderer.jsx`
 
-The note card body is AI-generated. Endpoint options:
-- New endpoint: `POST /storybook/generate-hero-note` — takes `{ firstTimeId }`, returns `{ note: "..." }`
-- Or reuse the existing generation pipeline with a hero-note-specific prompt
+When a saved chapter's `layoutData.templateId` starts with `moment-hero`, render `MomentHeroCanvas` instead of `LayoutRenderer`. No other tab changes needed.
 
-Prompt sketch: *"Write a warm, brief (2–3 sentence) note about [baby name]'s [label] on [date]. Tone: heartfelt, personal, written from the parent's perspective. End with a short attribution."*
+### 5. PDF export — `storybookPdf.js`
 
-Note is stored in `storybook_chapters.body` (reusing existing column).
-
-### 5. Rendering in StorybookTab
-
-In `StorybookTab.jsx`, when rendering a chapter with `chapter_type = 'moment_hero'`:
-- Show `MomentHeroPage` instead of `LayoutRenderer`
-- No "Edit layout" button (no canvas for this type)
-- "Regenerate note" button (re-calls generate-hero-note endpoint)
-
-### 6. PDF export
-
-In `storybookPdf.js`, handle `chapter_type = 'moment_hero'`:
-- Render `MomentHeroPage` off-screen at 600px wide (matching existing PDF capture approach)
-- Capture with html2canvas
-- Append to PDF as a full page
-
-No pseudo-elements in `MomentHeroPage` (drop cap not needed here) — html2canvas should capture cleanly.
+Same html2canvas capture pattern. Render `MomentHeroCanvas` off-screen at 600px wide, capture, append as a page. No pseudo-elements in the hero canvas so html2canvas captures cleanly.
 
 ---
 
@@ -111,31 +99,38 @@ No pseudo-elements in `MomentHeroPage` (drop cap not needed here) — html2canva
 
 | File | Change |
 |---|---|
-| `Backend/db/migration/V3x__...sql` | Add `chapter_type` + `source_first_time_id` to storybook_chapters |
-| `Backend/.../storybook/StorybookChapter.java` | Add `chapterType`, `sourceFirstTimeId` fields |
-| `Backend/.../storybook/StorybookService.java` | Handle moment_hero chapter creation + note generation |
-| `Backend/.../storybook/StorybookController.java` | New endpoint for hero note generation |
-| `Frontend/src/components/storybook/MomentHeroPage.jsx` | New — fixed-layout hero renderer |
-| `Frontend/src/components/storybook/StorybookWizard.jsx` | Add "From a First Time" chapter creation option |
-| `Frontend/src/components/tabs/StorybookTab.jsx` | Render MomentHeroPage for moment_hero chapter type |
-| `Frontend/src/lib/storybookPdf.js` | Handle moment_hero in PDF export |
+| `Frontend/src/lib/storybookTemplates.js` | Add `moment-hero-portrait` + `moment-hero-landscape` template definitions |
+| `Frontend/src/components/storybook/MomentHeroCanvas.jsx` | **New** — scrapbook-aesthetic renderer for moment-hero blocks |
+| `Frontend/src/components/storybook/ScrapbookBuilder.jsx` | Route `renderer === 'moment_hero'` to `MomentHeroCanvas`; add filter pill |
+| `Frontend/src/components/tabs/StorybookTab.jsx` | Route saved moment-hero chapters to `MomentHeroCanvas` in published view |
+| `Frontend/src/lib/storybookPdf.js` | Capture `MomentHeroCanvas` off-screen for PDF pages |
+
+No backend changes. No DB migration.
 
 ---
 
-## Open questions (resolve at session start)
+## Decisions (2026-06-11)
 
-1. **Migration or anchor_type encoding?** Prefer migration (Option A) but decide based on risk appetite at the time.
-2. **Edit mode?** Should the hero page have any editable fields (photo replace, note text edit), or is "Regenerate note" + First Times edit flow sufficient?
-3. **Chapter status flow?** Does a moment-hero chapter go through the same unlocked→generating→published states, or does it skip straight to published once the note is generated?
-4. **First Times not yet in the book vs already used indicator?** S11 added used-indicators for scrapbook pieces — does that need to extend to moment-hero chapters?
+1. **No AI** — note card is a user-filled text slot, same as any text block in the builder.
+2. **No First Times integration yet** — left panel stays as memories only. Deferred; see Tech Debt.
+3. **No DB migration** — `layoutData.templateId` already persisted in `layout_data` JSON; frontend detects renderer from that.
+4. **Style** — scrapbook (warm parchment, polaroid, cream note card). See `plans/storybook/moment-hero-mockup.html`.
+5. **Photo crop** — same `openSlotCropModal` flow from S12.3, slot AR = portrait (3:4) or landscape (4:3).
+
+---
+
+## Tech Debt
+
+- **First Times as drag sources** — when a Moment-Hero template is active, the left panel should switch to show the user's First Times list (photo piece, title piece, notes piece per entry) so they can drag directly from a First Time rather than typing manually. Deferred until First Times usage of Moment-Hero is validated.
 
 ---
 
 ## Verification
 
-1. Create a new chapter via "From a First Time" — it appears as a moment-hero card in the chapter list.
-2. The hero page shows the First Time's photo, label, date, and AI-generated note.
-3. "Regenerate note" produces a different note without changing the photo or title.
-4. PDF export includes the moment-hero page at correct dimensions.
-5. Existing scrapbook chapters are unaffected (`chapter_type = 'scrapbook'` by default).
-6. If the linked First Time is deleted, the chapter still renders (source_first_time_id goes to NULL; falls back to stored data).
+1. Moment-Hero Portrait and Landscape templates appear in the template picker.
+2. Selecting one opens the builder with the correct fixed slots.
+3. Dragging a photo into the polaroid slot opens the crop modal at the correct AR.
+4. Filling in title, date, note, attribution slots and saving persists correctly.
+5. Published view renders the scrapbook aesthetic (polaroid, cream note card, pink heart).
+6. PDF export captures the hero page at correct dimensions.
+7. Existing scrapbook chapters are unaffected.

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Template Picker — Moment Hero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #2D2926;
+      font-family: 'Inter', sans-serif;
+      padding: 48px 32px 80px;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .page-header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #E8E0D5;
+      margin-bottom: 6px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .panels {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .panel-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .panel-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    /* ── Sheet ── */
+    .sheet {
+      width: 340px;
+      background: #FDFAF6;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sheet-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1A1A1A;
+    }
+    .sheet-close {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #E8E0D0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      color: #888;
+      font-weight: 700;
+    }
+
+    /* ── Pills ── */
+    .pills {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 10.5px;
+      font-weight: 500;
+      background: rgba(210,180,140,0.18);
+      color: #7A6A58;
+      white-space: nowrap;
+    }
+    .pill.active {
+      background: #D97B8A;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* ── Grid ── */
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .t-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 5px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .t-card:hover {
+      background: rgba(217,123,138,0.05);
+    }
+    .t-card.hero {
+      border-color: rgba(217,123,138,0.3);
+      background: rgba(217,123,138,0.04);
+    }
+
+    .t-name {
+      font-size: 9.5px;
+      font-weight: 500;
+      color: #5A4A3A;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .t-name.hero {
+      color: #B05468;
+      font-weight: 600;
+    }
+
+    /* ── Generic template thumb ── */
+    .thumb {
+      width: 58px; height: 77px;
+      background: #FDF9F2;
+      border: 1px solid #DDD0B8;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .b {
+      position: absolute;
+      background: #C8B898;
+      border-radius: 1px;
+    }
+    .b.p { background: #B0BEC5; } /* photo block */
+
+    /* ── Moment Hero thumb ── */
+    .mh-thumb {
+      width: 58px; height: 77px;
+      background: #FDF6ED;
+      border: 1px solid #DDD0B8;
+      border-radius: 3px;
+      overflow: visible;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .mh-thumb .badge {
+      position: absolute;
+      top: 5px; left: 50%; transform: translateX(-50%);
+      width: 24px; height: 3.5px;
+      background: #FBCFE8;
+      border-radius: 100px;
+    }
+    .mh-thumb .title {
+      position: absolute;
+      top: 11px; left: 50%; transform: translateX(-50%);
+      width: 34px; height: 4.5px;
+      background: #3C2010;
+      border-radius: 1px;
+      opacity: 0.45;
+    }
+    .mh-thumb .polaroid {
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+      background: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+    }
+    .mh-thumb .polaroid .photo-area {
+      position: absolute;
+      top: 2px; left: 2px; right: 2px;
+      background: linear-gradient(135deg, #B0BEC5, #A5C4B0);
+    }
+    /* portrait variant */
+    .mh-thumb.portrait .polaroid {
+      top: 18px;
+      width: 30px; height: 37px;
+      transform: translateX(-50%) rotate(1.5deg);
+    }
+    .mh-thumb.portrait .polaroid .photo-area { height: 27px; }
+
+    /* landscape variant */
+    .mh-thumb.landscape .polaroid {
+      top: 19px;
+      width: 42px; height: 30px;
+      transform: translateX(-50%) rotate(-1.2deg);
+    }
+    .mh-thumb.landscape .polaroid .photo-area { height: 21px; }
+
+    .mh-thumb .note {
+      position: absolute;
+      bottom: 5px; left: 4px; right: 4px;
+      height: 13px;
+      background: #FFF8E8;
+      border: 1px solid #E5CB8A;
+      border-radius: 2px;
+    }
+    .mh-thumb .heart {
+      position: absolute;
+      bottom: 6px; right: 5px;
+      font-size: 5px;
+      color: #FBCFE8;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Template Picker — Moment Hero</h1>
+  <p>Moment Hero sits in the existing grid as two 1-Memory templates</p>
+</div>
+
+<div class="panels">
+
+  <!-- "All" view -->
+  <div class="panel-wrap">
+    <div class="panel-label">All templates</div>
+    <div class="sheet">
+      <div class="sheet-header">
+        <span class="sheet-title">Choose a layout</span>
+        <div class="sheet-close">✕</div>
+      </div>
+
+      <div class="pills">
+        <span class="pill active">All</span>
+        <span class="pill">1 Memory</span>
+        <span class="pill">Multiple</span>
+        <span class="pill">Photo Only</span>
+      </div>
+
+      <div class="template-grid">
+        <!-- Regular templates -->
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;height:46px;"></div>
+            <div class="b" style="left:3px;top:52px;right:3px;height:22px;"></div>
+          </div>
+          <span class="t-name">Classic</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b" style="left:3px;top:3px;right:3px;height:27px;"></div>
+            <div class="b p" style="left:3px;top:33px;width:23px;bottom:3px;"></div>
+            <div class="b p" style="left:29px;top:33px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Side by Side</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;height:38px;"></div>
+            <div class="b" style="left:3px;top:44px;width:23px;bottom:3px;"></div>
+            <div class="b" style="left:29px;top:44px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Photo First</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b" style="left:3px;top:3px;right:3px;height:34px;"></div>
+            <div class="b p" style="left:3px;top:40px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Story</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;width:23px;bottom:3px;"></div>
+            <div class="b" style="left:29px;top:3px;right:3px;height:34px;"></div>
+            <div class="b" style="left:29px;top:40px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">L-Wrap</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b" style="left:3px;top:3px;right:3px;height:20px;"></div>
+            <div class="b p" style="left:3px;top:26px;width:23px;bottom:3px;"></div>
+            <div class="b p" style="left:29px;top:26px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Staggered</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Spotlight</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;height:33px;"></div>
+            <div class="b p" style="left:3px;top:37px;width:23px;bottom:3px;"></div>
+            <div class="b" style="left:29px;top:37px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Two Photos</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b" style="left:3px;top:3px;right:3px;height:22px;"></div>
+            <div class="b p" style="left:3px;top:28px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Title + Photo</span>
+        </div>
+
+        <!-- Moment Hero cards — same grid, no special treatment -->
+        <div class="t-card hero">
+          <div class="mh-thumb portrait">
+            <div class="badge"></div>
+            <div class="title"></div>
+            <div class="polaroid"><div class="photo-area"></div></div>
+            <div class="note"></div>
+            <div class="heart">♥</div>
+          </div>
+          <span class="t-name hero">Moment Hero<br>Portrait</span>
+        </div>
+        <div class="t-card hero">
+          <div class="mh-thumb landscape">
+            <div class="badge"></div>
+            <div class="title"></div>
+            <div class="polaroid"><div class="photo-area"></div></div>
+            <div class="note"></div>
+            <div class="heart">♥</div>
+          </div>
+          <span class="t-name hero">Moment Hero<br>Landscape</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- "1 Memory" view -->
+  <div class="panel-wrap">
+    <div class="panel-label">1 Memory filter active</div>
+    <div class="sheet">
+      <div class="sheet-header">
+        <span class="sheet-title">Choose a layout</span>
+        <div class="sheet-close">✕</div>
+      </div>
+
+      <div class="pills">
+        <span class="pill">All</span>
+        <span class="pill active">1 Memory</span>
+        <span class="pill">Multiple</span>
+        <span class="pill">Photo Only</span>
+      </div>
+
+      <div class="template-grid">
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;height:46px;"></div>
+            <div class="b" style="left:3px;top:52px;right:3px;height:22px;"></div>
+          </div>
+          <span class="t-name">Classic</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b" style="left:3px;top:3px;right:3px;height:34px;"></div>
+            <div class="b p" style="left:3px;top:40px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Story</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;width:23px;bottom:3px;"></div>
+            <div class="b" style="left:29px;top:3px;right:3px;height:34px;"></div>
+            <div class="b" style="left:29px;top:40px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">L-Wrap</span>
+        </div>
+        <div class="t-card">
+          <div class="thumb">
+            <div class="b p" style="left:3px;top:3px;right:3px;bottom:3px;"></div>
+          </div>
+          <span class="t-name">Spotlight</span>
+        </div>
+
+        <!-- Moment Hero — natural part of this category -->
+        <div class="t-card hero">
+          <div class="mh-thumb portrait">
+            <div class="badge"></div>
+            <div class="title"></div>
+            <div class="polaroid"><div class="photo-area"></div></div>
+            <div class="note"></div>
+            <div class="heart">♥</div>
+          </div>
+          <span class="t-name hero">Moment Hero<br>Portrait</span>
+        </div>
+        <div class="t-card hero">
+          <div class="mh-thumb landscape">
+            <div class="badge"></div>
+            <div class="title"></div>
+            <div class="polaroid"><div class="photo-area"></div></div>
+            <div class="note"></div>
+            <div class="heart">♥</div>
+          </div>
+          <span class="t-name hero">Moment Hero<br>Landscape</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

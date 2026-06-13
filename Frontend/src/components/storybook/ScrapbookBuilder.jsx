@@ -5,10 +5,11 @@ import {
 } from "@dnd-kit/core";
 import {
   ChevronLeft, ChevronRight, ArrowLeft, ArrowRight,
-  X, Plus, GripVertical, Type, Image as ImageIcon, LayoutTemplate, Camera,
+  X, Plus, GripVertical, Type, Image as ImageIcon, LayoutTemplate, Camera, Crop,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TEMPLATES } from "@/lib/storybookTemplates";
+import MomentHeroCanvas from "@/components/storybook/MomentHeroCanvas";
 import PhotoTray from "@/components/storybook/PhotoTray";
 import RichTextEditor from "@/components/storybook/RichTextEditor";
 import FormatToolbar from "@/components/storybook/FormatToolbar";
@@ -16,8 +17,10 @@ import FontPicker from "@/components/storybook/FontPicker";
 import { buildMemoryList, extractPieceText } from "@/lib/storybookGrouping";
 import { toTiptapDoc, contentToPlainText } from "@/lib/tiptap";
 import {
-  CANVAS_W, CANVAS_H, FONT_MAP, REVERSE_FONT_MAP, RenderedText, blockBoxStyle,
+  CANVAS_W, CANVAS_H, FONT_MAP, REVERSE_FONT_MAP,
+  RenderedText, LWrapBlock, blockBoxStyle, cropStyle,
 } from "@/lib/bookCanvas";
+import { openSlotCropModal } from "@/lib/imageUtils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -56,7 +59,7 @@ function splitTextParts(text, n) {
 // Ensure every block has an id; migrate plain-string text content to Tiptap JSON.
 function migrateBlock(b) {
   const block = { ...b, id: b.id || makeId() };
-  if (block.type === 'text') block.content = toTiptapDoc(block.content);
+  if (block.type === 'text' || block.type === 'l-wrap') block.content = toTiptapDoc(block.content);
   return block;
 }
 
@@ -174,9 +177,70 @@ function MemoryCard({ memory, selectedSource, usedText, usedPhoto, onSelect }) {
 
 // ── Template thumbnail + picker ───────────────────────────────────────────────
 
+function MomentHeroThumb({ template }) {
+  const isLandscape = template.id === 'moment-hero-landscape';
+  return (
+    <div style={{ width: 58, height: 77, background: '#FDF6ED', border: '1px solid #DDD0B8', borderRadius: 3, position: 'relative', overflow: 'visible', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3.5, background: '#FBCFE8', borderRadius: 100 }} />
+      <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 34, height: 4.5, background: '#3C2010', borderRadius: 1, opacity: 0.45 }} />
+      {isLandscape ? (
+        <div style={{ position: 'absolute', top: 19, left: '50%', transform: 'translateX(-50%) rotate(-1.2deg)', width: 42, height: 30, background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.22)' }}>
+          <div style={{ position: 'absolute', top: 2, left: 2, right: 2, height: 21, background: 'linear-gradient(135deg, #B0BEC5, #A5C4B0)' }} />
+        </div>
+      ) : (
+        <div style={{ position: 'absolute', top: 18, left: '50%', transform: 'translateX(-50%) rotate(1.5deg)', width: 30, height: 37, background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.22)' }}>
+          <div style={{ position: 'absolute', top: 2, left: 2, right: 2, height: 27, background: 'linear-gradient(135deg, #B0BEC5, #A5C4B0)' }} />
+        </div>
+      )}
+      <div style={{ position: 'absolute', bottom: 5, left: 4, right: 4, height: 13, background: '#FFF8E8', border: '1px solid #E5CB8A', borderRadius: 2 }} />
+      <div style={{ position: 'absolute', bottom: 6, right: 5, fontSize: 5, color: '#FBCFE8', lineHeight: 1 }}>♥</div>
+    </div>
+  );
+}
+
 // Generic preview built from a template's normalized block boxes — works for any
 // template without per-id markup.
 function TemplateThumb({ template }) {
+  if (template.renderer === 'moment_hero') return <MomentHeroThumb template={template} />;
+
+  // l-wrap is a single block; the generic box renderer would show one flat
+  // rectangle. Draw the float shape instead: photo top-right, text bars wrapping.
+  if (template.blocks.length === 1 && template.blocks[0].type === 'l-wrap') {
+    const b = template.blocks[0];
+    const pad = 0.04;
+    return (
+      <div className="relative bg-[#fdf9f2] border border-[#ddd0b8] rounded overflow-hidden" style={{ width: 58, height: 77 }}>
+        {/* Photo — top-right, 47% of the block */}
+        <div
+          className="absolute rounded-[1px] bg-color-highlight/45"
+          style={{
+            left: `${(b.x + b.width * 0.53) * 100}%`, top: `${b.y * 100}%`,
+            width: `${b.width * 0.47 * 100}%`, height: `${b.height * 0.47 * 100}%`,
+          }}
+        />
+        {/* Text bars beside the photo (left column) */}
+        {[0, 1, 2].map(i => (
+          <div key={`l${i}`} className="absolute rounded-[1px] bg-color-highlight/30"
+            style={{
+              left: `${(b.x + pad) * 100}%`, top: `${(b.y + pad + i * 0.06) * 100}%`,
+              width: `${b.width * 0.40 * 100}%`, height: '2.5%',
+            }}
+          />
+        ))}
+        {/* Full-width text bars below the photo */}
+        {[0, 1, 2, 3].map(i => (
+          <div key={`f${i}`} className="absolute rounded-[1px] bg-color-highlight/30"
+            style={{
+              left: `${(b.x + pad) * 100}%`,
+              top: `${(b.y + b.height * 0.47 + pad + i * 0.06) * 100}%`,
+              width: `${(b.width - pad * 2) * 100}%`, height: '2.5%',
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="relative bg-[#fdf9f2] border border-[#ddd0b8] rounded overflow-hidden" style={{ width: 58, height: 77 }}>
       {template.blocks.map((b, i) => (
@@ -281,17 +345,108 @@ function SlotPlaceholder({ kind, armed }) {
 // photo slots open the photo tray.
 function Slot({
   block, theme, selectedSource, isEditing,
-  onActivate, onStopEdit, onFontChange, onEditorReady, onOpenTray,
+  onActivate, onStopEdit, onFontChange, onEditorReady, onOpenTray, onReCrop,
 }) {
   const { setNodeRef, isOver, active } = useDroppable({ id: block.id, data: { type: block.type } });
   const draggingKind = active?.data?.current?.kind;
-  const dragMatches = draggingKind === block.type;
+  // l-wrap is a single droppable that accepts BOTH text and photo drags.
+  const dragMatches = block.type === 'l-wrap'
+    ? (draggingKind === 'text' || draggingKind === 'photo')
+    : draggingKind === block.type;
   const clickMatches = selectedSource?.kind === block.type;
   const fontClass = FONT_MAP[block.fontFamily] ?? theme?.fontClass ?? 'font-serif';
   const activeFontKey = block.fontFamily ?? REVERSE_FONT_MAP[theme?.fontClass ?? 'font-serif'] ?? 'serif';
 
   let inner;
-  if (block.type === 'text') {
+  if (block.type === 'l-wrap') {
+    const bw = block.width * CANVAS_W;
+    const bh = block.height * CANVAS_H;
+    const photoW = Math.round(bw * 0.47);
+    const photoH = Math.round(bh * 0.47);
+    const marginL = Math.round(bw * 0.03);
+    const marginB = Math.round(bh * 0.03);
+    const PAD = 12; // matches p-3
+    const hasText = contentToPlainText(block.content).trim().length > 0;
+
+    if (isEditing) {
+      // Inline text edit. The photo stays floated (read-only) and the editor runs
+      // in `flow` mode so its text wraps around the float, just like the result.
+      inner = (
+        <div className="relative w-full h-full p-3 overflow-hidden" style={{ boxSizing: 'border-box' }}>
+          {block.url && (
+            <div
+              style={{ float: 'right', width: photoW, height: photoH, marginLeft: marginL, marginBottom: marginB, position: 'relative', overflow: 'hidden', pointerEvents: 'none' }}
+              className="rounded"
+            >
+              {block.crop
+                ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
+                : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
+              }
+            </div>
+          )}
+          <RichTextEditor
+            block={block}
+            fontClass={fontClass}
+            textColor={theme?.textColor}
+            onReady={onEditorReady}
+            onStopEdit={(content) => onStopEdit(block.id, content)}
+            flow
+          />
+          <FontPicker
+            activeFontKey={activeFontKey}
+            hasOverride={!!block.fontFamily}
+            onChange={(key) => onFontChange(block.id, key)}
+          />
+        </div>
+      );
+    } else {
+      // Display the published render (fitted font + float + crop), then layer
+      // interaction zones: photo top-right (tray/re-crop), text elsewhere (edit).
+      inner = (
+        <div className="relative w-full h-full">
+          <LWrapBlock block={block} fontClass={fontClass} textColor={theme?.textColor} />
+
+          {/* Empty-state text placeholder */}
+          {!hasText && (
+            <div
+              className="absolute pointer-events-none"
+              style={{ left: PAD, top: PAD, bottom: PAD, right: block.url ? photoW + marginL + PAD : PAD }}
+            >
+              <SlotPlaceholder kind="text" armed={selectedSource?.kind === 'text'} />
+            </div>
+          )}
+
+          {/* Photo interaction zone — top-right float position */}
+          <div
+            onClick={(e) => { e.stopPropagation(); onActivate(block.id + ':photo'); }}
+            className="absolute cursor-pointer rounded"
+            style={{ top: PAD, right: PAD, width: photoW, height: photoH }}
+          >
+            {block.url ? (
+              <div className="absolute top-1 left-1 z-20 flex gap-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOpenTray(block.id); }}
+                  className="p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
+                  title="Replace photo"
+                >
+                  <Camera className="w-3.5 h-3.5 text-foreground/70" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReCrop(block.id); }}
+                  className="p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
+                  title="Re-frame"
+                >
+                  <Crop className="w-3.5 h-3.5 text-foreground/70" />
+                </button>
+              </div>
+            ) : (
+              <SlotPlaceholder kind="photo" armed={selectedSource?.kind === 'photo'} />
+            )}
+          </div>
+        </div>
+      );
+    }
+  } else if (block.type === 'text') {
     if (isEditing) {
       inner = (
         <div className="relative w-full h-full">
@@ -317,14 +472,27 @@ function Slot({
     }
   } else {
     inner = block.url ? (
-      <div className="relative w-full h-full">
-        <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
-        <button
-          onClick={(e) => { e.stopPropagation(); onOpenTray(block.id); }}
-          className="absolute top-1.5 left-1.5 z-20 p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
-        >
-          <Camera className="w-3.5 h-3.5 text-foreground/70" />
-        </button>
+      <div className="relative w-full h-full overflow-hidden">
+        {block.crop
+          ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
+          : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
+        }
+        <div className="absolute top-1.5 left-1.5 z-20 flex gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenTray(block.id); }}
+            className="p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
+            title="Replace photo"
+          >
+            <Camera className="w-3.5 h-3.5 text-foreground/70" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onReCrop(block.id); }}
+            className="p-1 rounded-full bg-white/80 shadow-sm hover:bg-white transition-colors"
+            title="Re-frame"
+          >
+            <Crop className="w-3.5 h-3.5 text-foreground/70" />
+          </button>
+        </div>
       </div>
     ) : (
       <SlotPlaceholder kind="photo" armed={clickMatches} />
@@ -362,6 +530,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   const [saveStatus, setSaveStatus] = useState('saved');       // saved | unsaved | saving
   const [publishing, setPublishing] = useState(false);
   const saveTimerRef = useRef(null);
+  const cancelSlotCropRef = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -379,6 +548,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   }, []);
 
   useEffect(() => () => clearTimeout(saveTimerRef.current), []);
+  useEffect(() => () => cancelSlotCropRef.current?.(), []);
 
   const scale = containerSize > 0 ? containerSize / CANVAS_W : 1;
   const currentPage = pages[currentPageIndex];
@@ -420,11 +590,14 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     const photoKeys = new Set();
     for (const page of pages) {
       for (const b of page.blocks || []) {
-        if (!b.sourceKey) continue;
         if (b.type === 'text') {
-          if (contentToPlainText(b.content).trim()) textKeys.add(b.sourceKey);
+          if (b.sourceKey && contentToPlainText(b.content).trim()) textKeys.add(b.sourceKey);
         } else if (b.type === 'photo') {
-          if (b.url) photoKeys.add(b.sourceKey);
+          if (b.sourceKey && b.url) photoKeys.add(b.sourceKey);
+        } else if (b.type === 'l-wrap') {
+          // l-wrap tracks text and photo provenance on separate keys.
+          if (b.sourceKey && contentToPlainText(b.content).trim()) textKeys.add(b.sourceKey);
+          if (b.photoSourceKey && b.url) photoKeys.add(b.photoSourceKey);
         }
       }
     }
@@ -500,6 +673,23 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
       const target = blocks.find(b => b.id === blockId);
       if (!target) return blocks;
 
+      // l-wrap text only — photos go through placePhotoIntoSlot (crop modal).
+      if (target.type === 'l-wrap') {
+        if (kind !== 'text') return blocks;
+        const gc = chapter.generatedContent?.[sourceKey];
+        const piece = target.contentSource?.piece || 'body';
+        let fullText = extractPieceText(gc, piece);
+        if (!fullText) {
+          const mem = memories.find(m => m.sourceKey === sourceKey);
+          fullText = piece === 'title' ? (mem?.label || '') : cleanBody(mem?.rawText || '');
+        }
+        return blocks.map(b =>
+          b.id === blockId
+            ? { ...b, content: toTiptapDoc(fullText), sourceKey, suppressDropCap: true }
+            : b
+        );
+      }
+
       if (kind === 'text' && target.type === 'text') {
         const gc = chapter.generatedContent?.[sourceKey];
         const piece = target.contentSource?.piece || 'body';
@@ -530,21 +720,51 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
         );
       }
 
-      if (kind === 'photo' && target.type === 'photo') {
-        const mem = memories.find(m => m.sourceKey === sourceKey);
-        return blocks.map(b =>
-          b.id === blockId
-            ? { ...b, url: mem?.photoUrl || null, sourceKey, label: mem?.label || '' }
-            : b
-        );
-      }
-
       return blocks;
     });
   }
 
+  function placePhotoIntoSlot(blockId, sourceKey) {
+    const block = currentBlocks.find(b => b.id === blockId);
+    const mem = memories.find(m => m.sourceKey === sourceKey);
+    if (!block || !mem?.photoUrl) return;
+    const slotAR = block.slotAR ?? (block.width * CANVAS_W) / (block.height * CANVAS_H);
+    // l-wrap tracks the photo source separately so both used-indicators work.
+    const keyPatch = block.type === 'l-wrap' ? { photoSourceKey: sourceKey } : { sourceKey };
+    cancelSlotCropRef.current = openSlotCropModal(
+      mem.photoUrl, slotAR,
+      (crop) => {
+        cancelSlotCropRef.current = null;
+        updateBlock(blockId, { url: mem.photoUrl, label: mem.label || '', crop, ...keyPatch });
+      },
+      () => { cancelSlotCropRef.current = null; }
+    );
+  }
+
   function assignPhotoToSlot(blockId, photo) {
-    updateBlock(blockId, { url: photo.url, sourceKey: photo.sourceKey, label: photo.label || '' });
+    const block = currentBlocks.find(b => b.id === blockId);
+    if (!block) return;
+    const slotAR = block.slotAR ?? (block.width * CANVAS_W) / (block.height * CANVAS_H);
+    const keyPatch = block.type === 'l-wrap' ? { photoSourceKey: photo.sourceKey } : { sourceKey: photo.sourceKey };
+    cancelSlotCropRef.current = openSlotCropModal(
+      photo.url, slotAR,
+      (crop) => {
+        cancelSlotCropRef.current = null;
+        updateBlock(blockId, { url: photo.url, label: photo.label || '', crop, ...keyPatch });
+      },
+      () => { cancelSlotCropRef.current = null; }
+    );
+  }
+
+  function handleReCrop(blockId) {
+    const block = currentBlocks.find(b => b.id === blockId);
+    if (!block?.url) return;
+    const slotAR = block.slotAR ?? (block.width * CANVAS_W) / (block.height * CANVAS_H);
+    cancelSlotCropRef.current = openSlotCropModal(
+      block.url, slotAR,
+      (crop) => { cancelSlotCropRef.current = null; updateBlock(blockId, { crop }); },
+      () => { cancelSlotCropRef.current = null; }
+    );
   }
 
   function handleSelect(kind, sourceKey) {
@@ -555,11 +775,44 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   }
 
   // Click on a slot: place a selected memory, else edit (text) / open tray (photo).
-  function handleSlotActivate(blockId) {
+  function handleSlotActivate(slotId) {
+    // l-wrap sub-zones append ':text' / ':photo'; block ids never contain ':'.
+    const subMatch = String(slotId).match(/:(text|photo)$/);
+    const subZone = subMatch ? subMatch[1] : null;
+    const blockId = subZone ? slotId.slice(0, -(subZone.length + 1)) : slotId;
     const block = currentBlocks.find(b => b.id === blockId);
     if (!block) return;
+
+    if (block.type === 'l-wrap') {
+      // Photo sub-zone: place an armed photo (with crop), else open the tray.
+      if (subZone === 'photo') {
+        if (selectedSource?.kind === 'photo') {
+          placePhotoIntoSlot(blockId, selectedSource.sourceKey);
+          setSelectedSource(null);
+        } else {
+          setPhotoTrayFor(blockId);
+        }
+        return;
+      }
+      // Text sub-zone (or a bare click on padding): place an armed memory, else
+      // enter inline text editing.
+      if (selectedSource?.kind === 'text') {
+        placeIntoSlot(blockId, 'text', selectedSource.sourceKey);
+        setSelectedSource(null);
+      } else if (selectedSource?.kind === 'photo') {
+        placePhotoIntoSlot(blockId, selectedSource.sourceKey);
+        setSelectedSource(null);
+      } else {
+        setEditingBlockId(blockId);
+      }
+      return;
+    }
     if (selectedSource?.kind === block.type) {
-      placeIntoSlot(blockId, selectedSource.kind, selectedSource.sourceKey);
+      if (selectedSource.kind === 'photo') {
+        placePhotoIntoSlot(blockId, selectedSource.sourceKey);
+      } else {
+        placeIntoSlot(blockId, selectedSource.kind, selectedSource.sourceKey);
+      }
       setSelectedSource(null);
       return;
     }
@@ -602,18 +855,31 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     if (!over) return;
     const data = active.data.current;
     const slotType = over.data.current?.type;
-    if (!data || data.kind !== slotType) return; // reject wrong-type drops
-    placeIntoSlot(over.id, data.kind, data.sourceKey);
+    if (!data) return;
+    if (slotType === 'l-wrap') {
+      // l-wrap is one droppable that accepts both kinds: text fills the body,
+      // photo opens the crop modal then floats top-right.
+      if (data.kind === 'text') placeIntoSlot(over.id, 'text', data.sourceKey);
+      else if (data.kind === 'photo') placePhotoIntoSlot(over.id, data.sourceKey);
+      return;
+    }
+    if (data.kind !== slotType) return; // reject wrong-type drops
+    if (data.kind === 'photo') {
+      placePhotoIntoSlot(over.id, data.sourceKey);
+    } else {
+      placeIntoSlot(over.id, data.kind, data.sourceKey);
+    }
   }
 
   function applyTemplate(tpl) {
     const newBlocks = tpl.blocks.map(b => ({
       ...b,
-      id: makeId(),
-      content: b.type === 'text' ? toTiptapDoc('') : undefined,
-      sourceKey: b.type === 'photo' ? null : undefined,
-      url: b.type === 'photo' ? null : undefined,
-      label: b.type === 'photo' ? null : undefined,
+      id: b.id || makeId(), // preserve explicit template IDs (e.g. moment-hero role IDs)
+      content: (b.type === 'text' || b.type === 'l-wrap') ? toTiptapDoc('') : undefined,
+      sourceKey: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+      url: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+      label: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+      photoSourceKey: b.type === 'l-wrap' ? null : undefined,
     }));
     commitPages(prev => {
       const next = [...prev];
@@ -765,20 +1031,36 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                 }}
                 onClick={(e) => { if (e.target === e.currentTarget) { setEditingBlockId(null); setSelectedSource(null); } }}
               >
-                {currentBlocks.map(block => (
-                  <Slot
-                    key={block.id}
-                    block={block}
-                    theme={theme}
+                {currentTemplate?.renderer === 'moment_hero' ? (
+                  <MomentHeroCanvas
+                    blocks={currentBlocks}
+                    orientation={currentTemplate.id === 'moment-hero-landscape' ? 'landscape' : 'portrait'}
+                    editingBlockId={editingBlockId}
                     selectedSource={selectedSource}
-                    isEditing={editingBlockId === block.id}
                     onActivate={handleSlotActivate}
                     onStopEdit={handleStopEdit}
                     onFontChange={handleFontChange}
                     onEditorReady={setActiveEditor}
                     onOpenTray={setPhotoTrayFor}
+                    onReCrop={handleReCrop}
                   />
-                ))}
+                ) : (
+                  currentBlocks.map(block => (
+                    <Slot
+                      key={block.id}
+                      block={block}
+                      theme={theme}
+                      selectedSource={selectedSource}
+                      isEditing={editingBlockId === block.id}
+                      onActivate={handleSlotActivate}
+                      onStopEdit={handleStopEdit}
+                      onFontChange={handleFontChange}
+                      onEditorReady={setActiveEditor}
+                      onOpenTray={setPhotoTrayFor}
+                      onReCrop={handleReCrop}
+                    />
+                  ))
+                )}
               </div>
             )}
             {currentBlocks.length === 0 && (

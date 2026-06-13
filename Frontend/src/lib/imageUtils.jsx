@@ -132,6 +132,102 @@ function CropModal({ file, onComplete, onCancel }) {
   )
 }
 
+function SlotCropModal({ url, slotAspect, onComplete, onCancel }) {
+  const [crop, setCrop] = useState()
+  const [completedCrop, setCompletedCrop] = useState()
+  const imgRef = useRef(null)
+
+  function onImageLoad(e) {
+    const { naturalWidth, naturalHeight } = e.currentTarget
+    setCrop(centerAspectCrop(naturalWidth, naturalHeight, slotAspect))
+  }
+
+  function handleConfirm() {
+    if (!completedCrop || !imgRef.current) return
+    const image = imgRef.current
+    const nx = completedCrop.x / image.width
+    const ny = completedCrop.y / image.height
+    const nw = completedCrop.width / image.width
+    const nh = completedCrop.height / image.height
+    // Clamp to valid range so floating-point dust doesn't produce out-of-bounds values
+    const x = Math.max(0, Math.min(nx, 1))
+    const y = Math.max(0, Math.min(ny, 1))
+    const w = Math.max(0.01, Math.min(nw, 1 - x))
+    const h = Math.max(0.01, Math.min(nh, 1 - y))
+    onComplete({ x, y, width: w, height: h })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 className="font-bold text-lg text-slate-800">Frame Photo</h2>
+        <p className="text-sm text-slate-500">Drag to choose what shows in this slot.</p>
+
+        <div className="flex justify-center overflow-auto" style={{ maxHeight: '320px' }}>
+          <ReactCrop
+            crop={crop}
+            onChange={c => setCrop(c)}
+            onComplete={c => setCompletedCrop(c)}
+            aspect={slotAspect}
+          >
+            <img
+              ref={imgRef}
+              src={url}
+              onLoad={onImageLoad}
+              alt="crop preview"
+              style={{ maxHeight: '320px', maxWidth: '100%', display: 'block' }}
+            />
+          </ReactCrop>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={handleConfirm}
+            disabled={!completedCrop}
+            className="flex-1 py-2 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50 transition-colors"
+          >
+            Use This Frame
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function openSlotCropModal(url, slotAspect, onComplete, onCancel) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = ReactDOM.createRoot(container)
+
+  function close() {
+    root.unmount()
+    container.remove()
+  }
+
+  root.render(
+    <SlotCropModal
+      url={url}
+      slotAspect={slotAspect}
+      onComplete={result => { close(); onComplete(result) }}
+      onCancel={() => { close(); onCancel?.() }}
+    />
+  )
+
+  return close
+}
+
 export function openCropModal(file, onComplete, onCancel) {
   const container = document.createElement('div')
   document.body.appendChild(container)

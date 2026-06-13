@@ -3,6 +3,7 @@ import React from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import LayoutRenderer from '@/components/storybook/LayoutRenderer';
+import MomentHeroCanvas from '@/components/storybook/MomentHeroCanvas';
 
 // Virtual canvas size — must match LayoutRenderer constants.
 const CANVAS_W = 600;
@@ -226,11 +227,17 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
         const pageBg = page.backgroundColor || theme?.bg || '#fdf9f2';
         // Render the actual LayoutRenderer at 600px wide (scale=1, no CSS transform).
         // At this size LayoutRenderer renders identically to what the user sees on screen.
+        const isMomentHero = page.templateId?.startsWith('moment-hero');
         const dataUrl = await captureComponent(
-          React.createElement(LayoutRenderer, {
-            layout: { version: 2, pages: [page] },
-            theme,
-          }),
+          isMomentHero
+            ? React.createElement(MomentHeroCanvas, {
+                blocks: page.blocks || [],
+                orientation: page.templateId === 'moment-hero-landscape' ? 'landscape' : 'portrait',
+              })
+            : React.createElement(LayoutRenderer, {
+                layout: { version: 2, pages: [page] },
+                theme,
+              }),
           pageBg,
           theme?.accent
         );

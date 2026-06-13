@@ -80,12 +80,54 @@ export const TEMPLATES = [
   {
     id: 'l-wrap',
     label: 'L-Wrap',
-    description: 'Text top-left · photo top-right · text continues below',
+    description: 'Text flows around a top-right photo in an L-shape',
     memoryCount: 1, minPhotos: 1, maxPhotos: 1,
     blocks: [
-      { type: 'text',  x: 0.04, y: 0.04, width: 0.44, height: 0.44, content: '', contentSource: { memoryIndex: 0, piece: 'body', splitGroup: 'lw0' } },
-      { type: 'photo', x: 0.52, y: 0.04, width: 0.44, height: 0.44, contentSource: { memoryIndex: 0, photoIndex: 0 } },
-      { type: 'text',  x: 0.04, y: 0.52, width: 0.92, height: 0.42, content: '', contentSource: { memoryIndex: 0, piece: 'body', splitGroup: 'lw0' } },
+      {
+        type: 'l-wrap',
+        x: 0.04, y: 0.04, width: 0.92, height: 0.92,
+        content: '',
+        url: null,
+        label: '',
+        sourceKey: null,
+        photoSourceKey: null,
+        suppressDropCap: true,
+        contentSource: { memoryIndex: 0, piece: 'body', photoIndex: 0 },
+      },
+    ],
+  },
+
+  // ── Moment Hero ─────────────────────────────────────────────────────────────
+
+  {
+    id: 'moment-hero-portrait',
+    label: 'Moment Hero',
+    description: 'Polaroid portrait photo with note card — scrapbook hero page',
+    renderer: 'moment_hero',
+    memoryCount: 1, minPhotos: 1, maxPhotos: 1,
+    blocks: [
+      { id: 'badge',  type: 'text',  x: 0.22, y: 0.03, width: 0.56, height: 0.05, content: '' },
+      { id: 'title',  type: 'text',  x: 0.08, y: 0.09, width: 0.84, height: 0.10, content: '' },
+      { id: 'date',   type: 'text',  x: 0.15, y: 0.20, width: 0.70, height: 0.05, content: '' },
+      { id: 'photo',  type: 'photo', x: 0.20, y: 0.26, width: 0.60, height: 0.60, slotAR: 3 / 4, contentSource: { memoryIndex: 0, photoIndex: 0 } },
+      { id: 'note',   type: 'text',  x: 0.06, y: 0.88, width: 0.88, height: 0.08, content: '', contentSource: { memoryIndex: 0, piece: 'body' } },
+      { id: 'attrib', type: 'text',  x: 0.06, y: 0.94, width: 0.88, height: 0.04, content: '' },
+    ],
+  },
+
+  {
+    id: 'moment-hero-landscape',
+    label: 'Moment Hero',
+    description: 'Polaroid landscape photo with note card — scrapbook hero page',
+    renderer: 'moment_hero',
+    memoryCount: 1, minPhotos: 1, maxPhotos: 1,
+    blocks: [
+      { id: 'badge',  type: 'text',  x: 0.22, y: 0.03, width: 0.56, height: 0.05, content: '' },
+      { id: 'title',  type: 'text',  x: 0.08, y: 0.09, width: 0.84, height: 0.10, content: '' },
+      { id: 'date',   type: 'text',  x: 0.15, y: 0.20, width: 0.70, height: 0.05, content: '' },
+      { id: 'photo',  type: 'photo', x: 0.10, y: 0.26, width: 0.80, height: 0.45, slotAR: 4 / 3, contentSource: { memoryIndex: 0, photoIndex: 0 } },
+      { id: 'note',   type: 'text',  x: 0.06, y: 0.74, width: 0.88, height: 0.16, content: '', contentSource: { memoryIndex: 0, piece: 'body' } },
+      { id: 'attrib', type: 'text',  x: 0.06, y: 0.92, width: 0.88, height: 0.05, content: '' },
     ],
   },
 
