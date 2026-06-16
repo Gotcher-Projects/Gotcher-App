@@ -30,7 +30,9 @@ describe('apiUpload', () => {
     expect(url).toContain('/upload');
     expect(options.method).toBe('POST');
     expect(options.body).toBe(form);
-    expect(options.headers).toBeUndefined();
+    // FormData uploads must not set Content-Type so the browser adds the
+    // multipart boundary. (headers may carry a native Bearer token, but never Content-Type.)
+    expect(options.headers?.['Content-Type']).toBeUndefined();
     expect(result).toEqual({ url: 'https://res.cloudinary.com/img.jpg' });
   });
 
