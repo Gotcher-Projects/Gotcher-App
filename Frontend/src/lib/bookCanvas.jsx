@@ -98,25 +98,27 @@ export function LWrapBlock({ block, fontClass, textColor }) {
     >
       {/* Float MUST come before the text in DOM order — float wrapping only
           applies to content that follows the float in source order. The fixed-size
-          floated box clips its image so a stored crop (cropStyle) renders correctly. */}
-      {block.url && (
-        <div
-          style={{
-            float: 'right',
-            width: photoW,
-            height: photoH,
-            marginLeft: marginL,
-            marginBottom: marginB,
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {block.crop
-            ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
-            : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
-          }
-        </div>
-      )}
+          floated box clips its image so a stored crop (cropStyle) renders correctly.
+          The box is ALWAYS rendered (even with no photo) so a text-first l-wrap still
+          reserves the corner and the text wraps into the L-shape; a photo-less box is
+          transparent in the published view + PDF (no frame). A constant-size reserved
+          box also means adding/removing a photo never reflows the text or re-fits. */}
+      <div
+        style={{
+          float: 'right',
+          width: photoW,
+          height: photoH,
+          marginLeft: marginL,
+          marginBottom: marginB,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {block.url && (block.crop
+          ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
+          : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
+        )}
+      </div>
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );

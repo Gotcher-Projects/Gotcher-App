@@ -607,6 +607,33 @@ Read lib/storybookTemplates.js, PhotoTray.jsx, lib/imageUtils.jsx, lib/bookCanva
 
 ---
 
+### Session 15 — L-Wrap Follow-up: Text-First Wrap
+```
+Session 15 of storybook — L-Wrap text-first fix.
+Plan: plans/storybook/s15-lwrap-followup.md
+Depends on: S14 complete.
+
+Text-first L-Wrap (Approach A — always render the float box so text wraps into the L before a
+photo is placed). Today the float box is gated on block.url, so placing text first gives no
+L-shape, and adding a photo later reflows + re-fits the font. Fix: always render the fixed-size
+float <div>; render the <img> inside it only when block.url exists. Apply to LWrapBlock
+(bookCanvas.jsx) and the builder edit branch (ScrapbookBuilder.jsx ~line 376). Design decisions
+confirmed by Michael are in the plan (transparent empty corner; dashed "Add a photo" builder-only
+placeholder; steer photo-less pages to convert to the text-only template).
+
+NOT in scope: relanding the reverted 2026-06-14 code-review fixes — that effort is being restarted
+from scratch separately, not resurrected.
+
+HARD CONSTRAINT: the builder L-Wrap render and LWrapBlock have NO automated coverage. Any change
+there MUST be verified in-app (edit an l-wrap page → confirm bottom full-width text renders) and
+via a PDF export. Do not trust a behavior-identical diff — that is what regressed a prior refactor.
+
+Read plans/storybook/s15-lwrap-followup.md fully before writing code.
+Read bookCanvas.jsx and ScrapbookBuilder.jsx before touching those files.
+```
+
+---
+
 ### Session 14 — L-Wrap: True Float Layout
 ```
 Session 14 of storybook — L-Wrap as a single float-based block type.
