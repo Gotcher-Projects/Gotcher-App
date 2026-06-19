@@ -29,9 +29,10 @@ public class UploadController {
             return ApiError.badRequest("No file provided");
         }
         String folder = switch (context) {
-            case "journal"     -> "journal";
-            case "marketplace" -> "marketplace";
-            default            -> "misc";
+            case "journal"      -> "journal";
+            case "marketplace"  -> "marketplace";
+            case "bump_photos"  -> "bump_photos";
+            default             -> "misc";
         };
         try {
             String url = imageUploadService.upload(file, folder, principal.userId());

@@ -9,5 +9,7 @@ public record BabyProfileResponse(
     String sex,
     String bookTheme,
     String coverPhotoUrl,
-    String coverSubtitle
+    String coverSubtitle,
+    String dueDate,
+    String phase
 ) {}

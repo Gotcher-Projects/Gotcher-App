@@ -12,6 +12,7 @@ import { shareFirstTime } from "@/lib/share";
 import { openCropModal } from "@/lib/imageUtils.jsx";
 import { pickPhoto } from "@/lib/camera";
 import StorybookTab from "@/components/tabs/StorybookTab";
+import BumpDiary from "@/components/pregnancy/BumpDiary";
 
 export default function MemoriesTab({
   data, week, onAdd, onEdit, onDelete, onUpdateImage,
@@ -22,8 +23,12 @@ export default function MemoriesTab({
   bookTheme, onUpdateBookTheme,
   coverPhotoUrl, coverSubtitle,
   onNavigate,
+  dueDate, bumpPhotos, onAddBump, onUpdateBump, onDeleteBump, onBumpUpload,
 }) {
   const [view, setView] = useState('journal');
+
+  // Bump pill is data-gated: shown only once a profile has pregnancy data (a due date).
+  const hasPregnancy = Boolean(dueDate);
 
   return (
     <>
@@ -31,6 +36,7 @@ export default function MemoriesTab({
         options={[
           { value: 'journal', label: 'Journal' },
           { value: 'firsts',  label: 'Firsts'  },
+          ...(hasPregnancy ? [{ value: 'bump', label: 'Bump' }] : []),
           { value: 'book',    label: 'Book'    },
         ]}
         active={view}
@@ -39,6 +45,17 @@ export default function MemoriesTab({
       />
       {view === 'journal' && <JournalTab data={data} week={week} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
       {view === 'firsts'  && <FirstTimesTab firsts={firsts} babyName={babyName} onAdd={onAddFirst} onUpdate={onUpdateFirst} onDelete={onDeleteFirst} onUpload={onUpload} onError={onError} />}
+      {view === 'bump' && hasPregnancy && (
+        <BumpDiary
+          photos={bumpPhotos}
+          currentWeek={null}
+          onAdd={onAddBump}
+          onUpdate={onUpdateBump}
+          onDelete={onDeleteBump}
+          onUpload={onBumpUpload}
+          onError={onError}
+        />
+      )}
       {view === 'book'    && (
         <StorybookTab
           chapters={chapters}

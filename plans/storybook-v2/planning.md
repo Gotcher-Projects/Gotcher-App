@@ -41,14 +41,15 @@ The pregnancy chapter is a long-term track (separate user onboarding flow, signi
 | **Firsts chapter** | Auto-generated chapter that pulls all First Times as moment-hero pairs | Moment-Hero from Group A |
 | **Gallery pages** | "More from [Moment]" 2×2 grids (needs multi-photo Firsts) | Moment-Hero + first_time_photos schema |
 
-### Group C — Pregnancy track (long-term, separate planning)
+### Group C — Pregnancy track (data layer SHIPPED; guided chapter remains → `pregnancy-track.md`)
 
-| Feature | What it is | Notes |
+| Feature | What it is | Status |
 |---|---|---|
-| **Due date + pregnancy mode** | User registers expected due date; app shifts into "before baby" mode | Requires new onboarding consideration |
-| **Bump diary** | Weekly photo uploads with week labels, organized by trimester | New `pregnancy_photos` table |
-| **Pregnancy journal** | Notes/entries during pregnancy | Could reuse journal_entries with a flag |
-| **Pre-birth letter** | Letter to unborn baby specifically — different AI prompt | Subset of Letter to Baby |
+| **Due date + pregnancy mode** | User registers due date; app shifts into "before baby" mode | ✅ Shipped (pregnancy S1–S2: `due_date` + `phase`, V35) |
+| **Bump diary** | Weekly photo uploads paired with size, week labels | ✅ Shipped (pregnancy S3: `bump_photos` V36, `BumpCard`/`BumpDiary`) |
+| **Pregnancy journal** | Notes/entries during pregnancy | 🟡 Pregnancy S5 — bump diary *becomes* the journal (phase-flagged, photo optional) |
+| **Pre-birth letter** | "A letter before you arrived" | ↪ Already **sv2-s1** v1 letter type |
+| **"Before You Arrived" guided chapter** | Derives bump pages + letter + pre-birth entries into the guided book | ⬜ Remaining v2 work — `pregnancy-track.md` (depends on sv2-s6) |
 
 ### Group D — Deferred
 
@@ -69,9 +70,13 @@ sv2-s6  Guided Book shell          ← book arc UI, chapter divider pages (in Bo
 sv2-s7  Firsts chapter in book     ← auto-generated Firsts chapter + gallery pages
 sv2-s8  Polish + PDF integration   ← all new page types export correctly
 sv2-s9  Family Tree visualizer     ← DEFERRED — renders Your People data as a tree (substantial)
+sv2-sP  "Before You Arrived" chapter ← pregnancy guided chapter; data layer shipped (pregnancy S1–S3),
+                                       derivation remains. Depends on sv2-s6 + sv2-s1. → pregnancy-track.md
 ```
 
-Pregnancy track gets its own planning file when ready: `plans/storybook-v2/pregnancy-track.md`
+Pregnancy track now has its planning file: `plans/storybook-v2/pregnancy-track.md` (data layer
+shipped via `plans/pregnancy/` S1–S3; the remaining guided-book chapter rides along with the v2
+re-discussion).
 
 ---
 
@@ -208,27 +213,32 @@ When LULU lands, what specifically does v2 inherit from it?
 
 ---
 
-## 5. Pregnancy Track — Brief (full plan in separate file)
+## 5. Pregnancy Track — Brief
+
+> **UPDATE (2026-06-18): the data layer described below has SHIPPED — full plan now in
+> `plans/storybook-v2/pregnancy-track.md`.** The pregnancy mode (S1–S3 of `plans/pregnancy/`) was
+> built *after* this planning doc, so the schema sketch here is **superseded**:
+> - `baby_profiles.due_date` **and** a user-controlled `phase` column already exist (migration V35) —
+>   not just `due_date`.
+> - `pregnancy_photos` already exists as **`bump_photos`** (migration V36): `week`, `image_url`,
+>   `note`, `taken_date`, `image_orientation`. Backend `com.gotcherapp.api.bump`,
+>   `GET/POST/PATCH/DELETE /bump-photos`.
+> - Reusable `BumpCard.jsx` (photo + size caption + date + note), `BumpDiary`, the 37-row size
+>   dataset, and `PregnancyHome` are all built.
+> - Pregnancy **S5** (next) turns the bump diary into the pregnancy journal (photo optional,
+>   phase-flagged, week-derived-from-date) — producing the pre-birth journal data the guided chapter
+>   consumes.
+>
+> **What remains is only the guided-book layer:** a front-of-book "Before You Arrived" chapter that
+> derives bump pages (reuse `BumpCard`) + the pre-birth letter (already sv2-s1) + phase-flagged
+> journal entries — mirroring the Firsts chapter. Depends on sv2-s6. See pregnancy-track.md for the
+> approach, the journal-reframing rationale, and open questions.
+
+Original brief (kept for context — schema is superseded above):
 
 Pregnancy is a bigger UX commitment than any of the above because it requires:
 1. A pre-baby user state (app currently assumes baby has already arrived)
 2. New data collection (due_date, weekly photo uploads, pregnancy notes)
 3. A new "Pregnancy" chapter in the guided book that can be filled in retroactively
-
-**Minimum schema additions:**
-```sql
-ALTER TABLE baby_profiles ADD COLUMN due_date DATE;
--- or if retroactive only, due_date can be computed from birthdate + 40 weeks (approximate)
-
-CREATE TABLE pregnancy_photos (
-  id              BIGSERIAL PRIMARY KEY,
-  baby_profile_id BIGINT NOT NULL REFERENCES baby_profiles(id) ON DELETE CASCADE,
-  week_number     INT NOT NULL,           -- e.g. 8, 12, 20, 28, 36
-  taken_date      DATE,
-  image_url       TEXT NOT NULL,
-  caption         VARCHAR(200),
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
 
 **User value:** Parents who are currently pregnant could use CradleHQ from day 1 (before birth), significantly expanding the addressable audience. Worth planning for but scoped as a separate track.

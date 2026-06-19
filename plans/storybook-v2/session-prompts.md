@@ -265,3 +265,31 @@ Show only if family_members has at least 2 parents/grandparents.
 
 Read FamilyMember data model, GuidedBook.jsx, feedback_html2canvas_limitations.md first.
 ```
+
+---
+
+## SV2-SP — "Before You Arrived" Pregnancy Chapter
+
+```
+Session SV2-SP — pregnancy guided chapter ("Before You Arrived").
+Plan: plans/storybook-v2/pregnancy-track.md
+Depends on: sv2-s6 (guided book shell + ChapterDividerPage), sv2-s1 (Letter component).
+Pattern-after: sv2-s5 / sv2-s7 (Firsts chapter derivation).
+
+⚠️ Re-discuss as part of the v2 re-talk before speccing — open questions in pregnancy-track.md.
+
+The pregnancy DATA layer is already shipped (plans/pregnancy/ S1–S3 + S5): due_date + phase (V35),
+bump_photos (V36), BumpCard/BumpDiary, 37-row size dataset, and (S5) bump-as-journal that makes
+pre-birth entries phase-flagged and date-driven. So this session is derivation + a thin page wrapper,
+NOT new schema.
+
+Build (validate against current code first):
+1. A front-of-book "Before You Arrived" chapter in GUIDED_BOOK_ARC.
+2. A fixed-layout 600×800 BumpPage wrapper around the existing BumpCard (photo + size caption +
+   date + note; text-only variant for photo-less S5 entries).
+3. Open the chapter with the pre-birth letter (reuse sv2-s1 LetterPage) ± a ChapterDividerPage.
+4. Route phase-flagged pre-birth journal entries in by FLAG, not birthdate-relative week.
+5. storybookPdf.js: bump pages export (verify BumpCard's Twemoji <img> survives html2canvas).
+
+Read pregnancy-track.md, GuidedBook.jsx, BumpCard.jsx, the Firsts-chapter wiring before coding.
+```
