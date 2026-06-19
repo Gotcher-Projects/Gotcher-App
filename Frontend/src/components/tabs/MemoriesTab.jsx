@@ -49,6 +49,7 @@ export default function MemoriesTab({
         <BumpDiary
           photos={bumpPhotos}
           currentWeek={null}
+          weekRefDate={dueDate || data.profile?.birthdate || null}
           onAdd={onAddBump}
           onUpdate={onUpdateBump}
           onDelete={onDeleteBump}

@@ -8,9 +8,10 @@ export function profilePhase(profile) {
 }
 
 // Whole weeks pregnant today, from the due date. Clamp to [0, 42].
+// LMP is derived by plain millisecond subtraction (not setDate) so it's DST-/timezone-stable.
 export function weeksPregnant(dueDate, today = new Date()) {
   const due = new Date(dueDate);
-  const lmp = new Date(due); lmp.setDate(lmp.getDate() - GESTATION_DAYS);
+  const lmp = new Date(due.getTime() - GESTATION_DAYS * 86400000);
   const days = Math.floor((today - lmp) / 86400000);
   return Math.max(0, Math.min(42, Math.floor(days / 7)));
 }

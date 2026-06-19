@@ -37,8 +37,12 @@ public class BumpPhotoService {
         if (req.week() == null) {
             throw new IllegalArgumentException("week is required");
         }
-        if (req.imageUrl() == null || req.imageUrl().isBlank()) {
-            throw new IllegalArgumentException("imageUrl is required");
+        // S5: the bump diary is also the pregnancy journal, so a photo is optional — but an entry
+        // must carry at least a photo OR a note (mirrors the journal's "title or story" guard).
+        boolean hasImage = req.imageUrl() != null && !req.imageUrl().isBlank();
+        boolean hasNote = req.note() != null && !req.note().isBlank();
+        if (!hasImage && !hasNote) {
+            throw new IllegalArgumentException("a photo or a note is required");
         }
         Map<String, Object> row = jdbc.queryForMap("""
             INSERT INTO bump_photos (baby_profile_id, week, image_url, note, taken_date, image_orientation)

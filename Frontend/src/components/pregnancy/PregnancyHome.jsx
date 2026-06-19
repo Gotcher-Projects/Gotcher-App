@@ -5,12 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LoadingButton } from "@/components/ui/LoadingButton";
-import { CalendarDays, Baby, Camera } from "lucide-react";
+import { Baby } from "lucide-react";
 import { weeksPregnant, daysUntilDue, trimester } from "../../lib/pregnancy";
 import { sizeForWeek, formatLength, formatWeight } from "../../lib/pregnancySizes";
 import { twemojiSrc } from "../../lib/twemoji";
-import AppointmentTab from "../tabs/AppointmentTab";
-import BumpDiary from "./BumpDiary";
 
 const TRIMESTER_LABEL = { 1: "1st", 2: "2nd", 3: "3rd" };
 
@@ -104,17 +102,10 @@ function MarkBornDialog({ open, onOpenChange, currentSex, babyName, onMarkBorn, 
   );
 }
 
+// Home-tab content for pregnancy mode: countdown, the weekly size card, "this week", and the
+// mark-as-born card. Appointments and the bump diary live in their own tabs (see PregnancyShell).
 export default function PregnancyHome({
   profile,
-  appointments,
-  onAddAppointment,
-  onUpdateAppointment,
-  onDeleteAppointment,
-  bumpPhotos,
-  onAddBump,
-  onUpdateBump,
-  onDeleteBump,
-  onBumpUpload,
   onMarkBorn,
   onError,
 }) {
@@ -202,39 +193,7 @@ export default function PregnancyHome({
         </CardContent>
       </Card>
 
-      {/* 4. Prenatal appointments — reuses the baby-mode appointments feature */}
-      <div>
-        <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-          <CalendarDays className="w-5 h-5 text-color-success" />
-          Prenatal appointments
-        </h3>
-        <AppointmentTab
-          appointments={appointments}
-          onAdd={onAddAppointment}
-          onUpdate={onUpdateAppointment}
-          onDelete={onDeleteAppointment}
-          onError={onError}
-        />
-      </div>
-
-      {/* 5. Bump diary */}
-      <div>
-        <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Camera className="w-5 h-5 text-color-highlight" />
-          Bump diary
-        </h3>
-        <BumpDiary
-          photos={bumpPhotos}
-          currentWeek={week}
-          onAdd={onAddBump}
-          onUpdate={onUpdateBump}
-          onDelete={onDeleteBump}
-          onUpload={onBumpUpload}
-          onError={onError}
-        />
-      </div>
-
-      {/* 6. Mark as born */}
+      {/* 4. Mark as born */}
       <Card className="shadow-xl rounded-2xl border-primary/30">
         <CardContent className="p-6 text-center">
           <h3 className="font-display font-semibold text-foreground mb-1">Baby's here?</h3>

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { firstEmptyWeek, groupByWeek } from '../lib/bumpDiary.js';
+import { firstEmptyWeek, groupByWeek, deriveWeek } from '../lib/bumpDiary.js';
+
+// UTC-based so the offsets are timezone-stable regardless of the test machine.
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 describe('firstEmptyWeek', () => {
   it('returns 4 when there are no photos', () => {
@@ -47,5 +54,40 @@ describe('groupByWeek', () => {
 
   it('returns an empty array for no photos', () => {
     expect(groupByWeek([])).toEqual([]);
+  });
+});
+
+describe('deriveWeek', () => {
+  const due = '2026-12-01';
+
+  it('returns null without a reference date', () => {
+    expect(deriveWeek(null, '2026-06-01')).toBeNull();
+    expect(deriveWeek(undefined, '2026-06-01')).toBeNull();
+  });
+
+  it('returns null without a valid date', () => {
+    expect(deriveWeek(due, '')).toBeNull();
+    expect(deriveWeek(due, null)).toBeNull();
+    expect(deriveWeek(due, 'not-a-date')).toBeNull();
+  });
+
+  it('derives the gestational week from a mid-pregnancy date', () => {
+    // 137 days before the due date = 143 gestational days ≈ 20.4 weeks → week 20
+    // (off a 7-day boundary, so the result is stable).
+    expect(deriveWeek(due, addDays(due, -137))).toBe(20);
+  });
+
+  it('clamps very early dates to 0', () => {
+    expect(deriveWeek(due, addDays(due, -400))).toBe(0);
+  });
+
+  it('clamps past-term dates to 42', () => {
+    expect(deriveWeek(due, addDays(due, 30))).toBe(42);
+  });
+
+  it('falls back to the birthdate as reference (≈ due date)', () => {
+    // Baby mode has no dueDate; birthdate stands in. A date 137 days before birth → week 20.
+    const birthdate = '2026-12-01';
+    expect(deriveWeek(birthdate, addDays(birthdate, -137))).toBe(20);
   });
 });

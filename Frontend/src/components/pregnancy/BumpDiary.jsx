@@ -8,7 +8,7 @@ import { LoadingButton } from "@/components/ui/LoadingButton";
 import { Camera, Trash2, Pencil, Baby } from "lucide-react";
 import { openCropModal } from "@/lib/imageUtils.jsx";
 import { pickPhoto } from "@/lib/camera";
-import { firstEmptyWeek, groupByWeek } from "@/lib/bumpDiary";
+import { firstEmptyWeek, groupByWeek, deriveWeek } from "@/lib/bumpDiary";
 import BumpCard from "./BumpCard";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -57,7 +57,7 @@ function PhotoPicker({ cancelCropRef, onCropped, children }) {
 }
 
 // ── Add form ─────────────────────────────────────────────────────────────────
-function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
+function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
   const cancelCropRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
@@ -68,33 +68,48 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Keep the week field in step with the suggested default until the user edits the form.
+  // Keep the week field in step with the suggested default until the user starts an entry.
   const pristine = !cropped && !note;
   useEffect(() => { if (pristine) setWeek(defaultWeek); }, [defaultWeek]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Date → Week: deriving the week from the entry's date keeps backfilled photos labelled
+  // correctly. Overridable — the user can still hand-edit the Week field afterward.
+  function handleDateChange(newDate) {
+    setDate(newDate);
+    const derived = deriveWeek(weekRefDate, newDate);
+    if (derived != null) setWeek(derived);
+  }
+
+  const hasNote = note.trim().length > 0;
+  const canSave = !!week && (!!cropped || hasNote);
+
   async function handleSave() {
     if (!week) { onError("Week is required"); return; }
-    if (!cropped) { onError("Add a photo to save a bump entry"); return; }
+    if (!cropped && !hasNote) { onError("Add a photo or a note to save an entry"); return; }
     setSaving(true);
     try {
-      setUploading(true);
-      const form = new FormData();
-      form.append("file", cropped.blob, "photo.jpg");
-      const res = await onUpload(form);
-      setUploading(false);
+      let imageUrl = null;
+      let imageOrientation = null;
+      if (cropped) {
+        setUploading(true);
+        const form = new FormData();
+        form.append("file", cropped.blob, "photo.jpg");
+        const res = await onUpload(form);
+        setUploading(false);
+        imageUrl = res.url;
+        imageOrientation = cropped.orientation || "portrait";
+      }
       await onAdd({
         week: Number(week),
-        imageUrl: res.url,
+        imageUrl,
         note: note.trim() || null,
         takenDate: date || null,
-        imageOrientation: cropped.orientation || "portrait",
+        imageOrientation,
       });
       setCropped(null);
       setNote("");
-      // Advance to the next week for sequential capture / backfill (capped at 40).
-      setWeek(w => Math.min(40, Number(w) + 1));
     } catch {
-      onError("Failed to save bump photo");
+      onError("Failed to save entry");
       setUploading(false);
     }
     setSaving(false);
@@ -104,8 +119,9 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
     <Card className="bg-color-warm/25 rounded-2xl">
       <CardContent className="p-5 space-y-4">
         <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-          <Camera className="w-5 h-5 text-color-highlight" /> New bump photo
+          <Camera className="w-5 h-5 text-color-highlight" /> New entry
         </h3>
+        <p className="text-xs text-muted-foreground -mt-2">Add a photo, a note, or both.</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Week</Label>
@@ -119,13 +135,13 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
             <Label className="text-xs text-muted-foreground">Date</Label>
             <Input
               type="date" value={date} max={today()}
-              onChange={e => setDate(e.target.value)}
+              onChange={e => handleDateChange(e.target.value)}
               className="bg-white focus-visible:ring-color-highlight"
             />
           </div>
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Photo <span className="text-red-500">*</span></Label>
+          <Label className="text-xs text-muted-foreground">Photo (optional)</Label>
           <PhotoPicker cancelCropRef={cancelCropRef} onCropped={setCropped}>
             {cropped ? `Photo ready (${cropped.orientation})` : "Add a photo"}
           </PhotoPicker>
@@ -134,10 +150,10 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
           )}
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Note (optional)</Label>
+          <Label className="text-xs text-muted-foreground">Note</Label>
           <Textarea
             rows={2} value={note} onChange={e => setNote(e.target.value)}
-            placeholder="How are you feeling this week?"
+            placeholder="How are you feeling? What happened this week?"
             className="bg-white focus-visible:ring-color-highlight"
           />
         </div>
@@ -145,10 +161,10 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
           onClick={handleSave}
           loading={saving}
           loadingText={uploading ? "Uploading photo…" : "Saving…"}
-          disabled={saving || !cropped || !week}
+          disabled={saving || !canSave}
           className="w-full bg-color-highlight hover:bg-color-highlight/90"
         >
-          Save bump photo
+          Save entry
         </LoadingButton>
       </CardContent>
     </Card>
@@ -156,7 +172,7 @@ function AddBumpForm({ defaultWeek, onAdd, onUpload, onError }) {
 }
 
 // ── Single entry: BumpCard display + inline edit ──────────────────────────────
-function BumpEntry({ photo, onUpdate, onDelete, onUpload, onError }) {
+function BumpEntry({ photo, weekRefDate, onUpdate, onDelete, onUpload, onError }) {
   const cancelCropRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
@@ -179,8 +195,20 @@ function BumpEntry({ photo, onUpdate, onDelete, onUpload, onError }) {
     setEditing(true);
   }
 
+  // Date → Week (overridable), one-directional — mirrors the add form.
+  function handleDateChange(newDate) {
+    setDate(newDate);
+    const derived = deriveWeek(weekRefDate, newDate);
+    if (derived != null) setWeek(derived);
+  }
+
   async function saveEdit() {
     if (!week) { onError("Week is required"); return; }
+    // An entry must keep at least a photo (existing or new) or a note.
+    if (!cropped && !photo.imageUrl && !note.trim()) {
+      onError("Add a photo or a note to save an entry");
+      return;
+    }
     setSaving(true);
     try {
       const patch = { week: Number(week), note: note.trim() || null, takenDate: date || null };
@@ -223,7 +251,7 @@ function BumpEntry({ photo, onUpdate, onDelete, onUpload, onError }) {
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Date</Label>
-              <Input type="date" value={date} max={today()} onChange={e => setDate(e.target.value)} className="bg-white focus-visible:ring-color-highlight" />
+              <Input type="date" value={date} max={today()} onChange={e => handleDateChange(e.target.value)} className="bg-white focus-visible:ring-color-highlight" />
             </div>
           </div>
           <div>
@@ -234,7 +262,7 @@ function BumpEntry({ photo, onUpdate, onDelete, onUpload, onError }) {
               <img src={URL.createObjectURL(cropped.blob)} alt="new preview" className="w-full max-w-[200px] rounded-lg object-cover mb-2" />
             )}
             <PhotoPicker cancelCropRef={cancelCropRef} onCropped={setCropped}>
-              {cropped ? `Photo ready (${cropped.orientation})` : "Replace photo"}
+              {cropped ? `Photo ready (${cropped.orientation})` : photo.imageUrl ? "Replace photo" : "Add a photo"}
             </PhotoPicker>
           </div>
           <Textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Note" className="bg-white focus-visible:ring-color-highlight" />
@@ -281,14 +309,14 @@ function BumpEntry({ photo, onUpdate, onDelete, onUpload, onError }) {
 }
 
 // ── Diary (add form + week-divider timeline) ──────────────────────────────────
-export default function BumpDiary({ photos = [], currentWeek, onAdd, onUpdate, onDelete, onUpload, onError }) {
+export default function BumpDiary({ photos = [], currentWeek, weekRefDate, onAdd, onUpdate, onDelete, onUpload, onError }) {
   // Pregnancy mode passes a valid currentWeek; baby mode passes null → default to first empty week.
   const defaultWeek = currentWeek && currentWeek >= 1 && currentWeek <= 42 ? currentWeek : firstEmptyWeek(photos);
   const groups = groupByWeek(photos);
 
   return (
     <div className="space-y-6">
-      <AddBumpForm defaultWeek={defaultWeek} onAdd={onAdd} onUpload={onUpload} onError={onError} />
+      <AddBumpForm defaultWeek={defaultWeek} weekRefDate={weekRefDate} onAdd={onAdd} onUpload={onUpload} onError={onError} />
 
       {photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -305,7 +333,7 @@ export default function BumpDiary({ photos = [], currentWeek, onAdd, onUpdate, o
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map(p => (
-                <BumpEntry key={p.id} photo={p} onUpdate={onUpdate} onDelete={onDelete} onUpload={onUpload} onError={onError} />
+                <BumpEntry key={p.id} photo={p} weekRefDate={weekRefDate} onUpdate={onUpdate} onDelete={onDelete} onUpload={onUpload} onError={onError} />
               ))}
             </div>
           </div>

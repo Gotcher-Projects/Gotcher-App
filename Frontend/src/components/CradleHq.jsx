@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
 import { profilePhase } from "../lib/pregnancy";
-import PregnancyHome from "./pregnancy/PregnancyHome";
+import PregnancyShell from "./pregnancy/PregnancyShell";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
 import TrackTab from "./tabs/TrackTab";
@@ -694,7 +694,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
         )}
 
         {needsOnboarding === false && phase === 'pregnancy' && (
-          <PregnancyHome
+          <PregnancyShell
             profile={data.profile}
             appointments={appointments}
             onAddAppointment={addAppointment}

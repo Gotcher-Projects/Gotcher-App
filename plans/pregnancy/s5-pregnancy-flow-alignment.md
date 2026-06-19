@@ -1,6 +1,6 @@
 # S5 — Pregnancy Flow Alignment + Polish
 
-**Status: Not started**
+**Status: Complete** (implemented + verified in-app 2026-06-18)
 **Branch:** `pregnancy-updates`
 **Depends on:** S3 complete (pregnancy home + bump diary exist). Independent of S4 (storybook tie-in)
 — can run before or after it.
