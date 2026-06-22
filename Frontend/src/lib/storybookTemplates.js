@@ -98,6 +98,10 @@ export const TEMPLATES = [
   },
 
   // ── Moment Hero ─────────────────────────────────────────────────────────────
+  // CONTRACT: the moment_hero renderer (MomentHeroCanvas) looks blocks up by these
+  // exact role `id`s — `badge`, `title`, `date`, `photo`, `note`, `attrib` — via
+  // blk('badge') etc., NOT by position/order. Renaming/removing an id silently drops
+  // that zone from the page. Keep these ids in sync with MomentHeroCanvas.
 
   {
     id: 'moment-hero-portrait',

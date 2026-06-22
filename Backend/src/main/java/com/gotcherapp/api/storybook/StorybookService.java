@@ -183,6 +183,9 @@ public class StorybookService {
             );
         }
 
+        // Charge-then-refund: credits were debited above before any external work. Every failure
+        // path from here on (the Claude call AND the JSON parse below) must refund the full
+        // `totalEntries` so a failed generate never costs the user a credit. Keep both catches in sync.
         String raw;
         try {
             String prompt = buildBatchPagesPrompt(profileId.get(), journalIds, firstTimeIds, entryNotes, babyName, multiGroupKeys);

@@ -215,7 +215,10 @@ function SlotCropModal({ url, slotAspect, onComplete, onCancel }) {
   )
 }
 
-export function openSlotCropModal(url, slotAspect, onComplete, onCancel) {
+// Mount a transient modal on a throwaway DOM node and return its `close()`.
+// `render(close)` receives the close fn so the modal can dismiss itself, and
+// owns the createRoot/append/unmount/remove lifecycle every crop modal repeats.
+function mountModal(render) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = ReactDOM.createRoot(container)
@@ -225,16 +228,19 @@ export function openSlotCropModal(url, slotAspect, onComplete, onCancel) {
     container.remove()
   }
 
-  root.render(
+  root.render(render(close))
+  return close
+}
+
+export function openSlotCropModal(url, slotAspect, onComplete, onCancel) {
+  return mountModal(close => (
     <SlotCropModal
       url={url}
       slotAspect={slotAspect}
       onComplete={result => { close(); onComplete(result) }}
       onCancel={() => { close(); onCancel?.() }}
     />
-  )
-
-  return close
+  ))
 }
 
 // Upload a cropped-photo blob through the caller's upload function and return the resulting URL.
@@ -258,22 +264,11 @@ export function openCropModal(file, onComplete, onCancel) {
     return () => {}
   }
 
-  const container = document.createElement('div')
-  document.body.appendChild(container)
-  const root = ReactDOM.createRoot(container)
-
-  function close() {
-    root.unmount()
-    container.remove()
-  }
-
-  root.render(
+  return mountModal(close => (
     <CropModal
       file={file}
       onComplete={result => { close(); onComplete(result) }}
       onCancel={() => { close(); onCancel?.() }}
     />
-  )
-
-  return close
+  ))
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { contentToPlainText } from '@/lib/tiptap';
-import { cropStyle } from '@/lib/bookCanvas';
+import { SlotImage } from '@/lib/bookCanvas';
 import RichTextEditor from '@/components/storybook/RichTextEditor';
 import { Camera, Crop, Image as ImageIcon } from 'lucide-react';
 
@@ -73,6 +73,9 @@ export default function MomentHeroCanvas({
   const isBuilder  = !!onActivate;
   const isPortrait = orientation !== 'landscape';
 
+  // CONTRACT: this layout is keyed to fixed role ids defined on the moment_hero
+  // templates in storybookTemplates.js. Each blk('<role>') must match a block id
+  // there — keep the two lists in sync (renaming an id silently drops its zone).
   function blk(id) { return blocks.find(b => b.id === id); }
 
   const badge  = blk('badge');
@@ -94,10 +97,8 @@ export default function MomentHeroCanvas({
     <>
       {photo?.url ? (
         <>
-          {photo.crop
-            ? <img src={photo.url} alt="" style={cropStyle(photo.crop)} />
-            : <img src={photo.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          }
+          <SlotImage url={photo.url} crop={photo.crop} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+
           {isBuilder && (
             <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 20, display: 'flex', gap: 4 }}>
               <button

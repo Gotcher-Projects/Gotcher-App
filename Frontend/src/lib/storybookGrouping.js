@@ -11,6 +11,14 @@ function wordCount(text) {
 
 // ── Memory list builder ───────────────────────────────────────────────────────
 
+// sourceKey grammar (the string that ties a memory to its blocks / generated content):
+//   `journal:<id>`      — a journal entry
+//   `first_time:<id>`   — a first-time memory
+//   `upload:<uuid>`     — a standalone chapter photo (minted by the backend on upload)
+//   `slot:<N>`          — a photo-only template slot with no owning memory
+// l-wrap blocks carry the photo provenance on a SEPARATE `photoSourceKey` (the text
+// keeps `sourceKey`), because one l-wrap mixes text from one memory + a photo from another.
+// The backend mirrors `journal:`/`first_time:` in buildBatchPagesPrompt (StorybookService).
 export function buildMemoryList({ journalIds, firstTimeIds, journalEntries, firsts, photoOverrides, entryNotes }) {
   const memories = [];
 

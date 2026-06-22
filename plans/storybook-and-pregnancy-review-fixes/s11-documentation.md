@@ -1,6 +1,6 @@
 # s11 — Documentation Refresh
 
-**Status: Not started**
+**Status: Complete**
 **Branch:** pregnancy-updates
 **Depends on:** ideally last (so docs describe the post-refactor code)
 **Source:** `branch-review.html` → Pass 4

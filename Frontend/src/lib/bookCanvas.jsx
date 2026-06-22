@@ -132,10 +132,7 @@ export function LWrapBlock({ block, fontClass, textColor }) {
           overflow: 'hidden',
         }}
       >
-        {block.url && (block.crop
-          ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
-          : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
-        )}
+        <SlotImage url={block.url} crop={block.crop} label={block.label} className="w-full h-full object-cover" />
       </div>
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
@@ -167,6 +164,18 @@ export function cropStyle(crop) {
   };
 }
 
+// Render a slot's photo: a stored crop region (via cropStyle, needs an
+// overflow:hidden positioned parent) or a plain cover fill. Single source of truth
+// for the `crop ? cropStyle : cover` ternary repeated across the book canvases.
+// Cover callers pass their own fill style — Tailwind `object-cover` sites pass
+// `className`; MomentHeroCanvas passes an inline `style` (it needs display:block) —
+// so each call site keeps its exact markup.
+export function SlotImage({ url, crop, label, className, style }) {
+  if (!url) return null;
+  if (crop) return <img src={url} alt={label || ''} style={cropStyle(crop)} />;
+  return <img src={url} alt={label || ''} className={className} style={style} />;
+}
+
 // Render a list of blocks (text / photo). Empty slots draw nothing —
 // callers that want placeholders (e.g. the builder) render their own slot view.
 export function renderBlocks(blocks, theme) {
@@ -179,11 +188,7 @@ export function renderBlocks(blocks, theme) {
         ) : block.type === 'l-wrap' ? (
           <LWrapBlock block={block} fontClass={fontClass} textColor={theme?.textColor} />
         ) : (
-          block.url && (
-            block.crop
-              ? <img src={block.url} alt={block.label || ''} style={cropStyle(block.crop)} />
-              : <img src={block.url} alt={block.label || ''} className="w-full h-full object-cover" />
-          )
+          <SlotImage url={block.url} crop={block.crop} label={block.label} className="w-full h-full object-cover" />
         )}
       </div>
     );

@@ -35,13 +35,13 @@ The IDOR (s3) is the only ship-blocker; do it early.
 | s2 | Backend dead code & API surface removal (sharing, unlock) | Complete |
 | s3 | Security: page-generation IDOR fix | Complete |
 | s4 | Atomic credit decrement + controller error handling | Complete |
-| s5 | Image upload validation + storage cleanup taxonomy | Not started |
-| s6 | Backend test coverage (storybook + bump) | Not started |
-| s7 | Shared utilities / de-duplication | Not started |
-| s8 | Frontend lib test coverage | Not started |
+| s5 | Image upload validation + storage cleanup taxonomy | Complete |
+| s6 | Backend test coverage (storybook + bump) | Complete |
+| s7 | Shared utilities / de-duplication | Complete |
+| s8 | Frontend lib test coverage | Complete |
 | s9 | ScrapbookBuilder — extract testable helpers | Complete |
-| s10 | ScrapbookBuilder — component split + low-pri dedup | Not started |
-| s11 | Documentation refresh | Not started |
+| s10 | ScrapbookBuilder — component split + low-pri dedup | Complete |
+| s11 | Documentation refresh | Complete |
 | s12 | Polish — a11y / consistency / vestigial (optional) | Not started |
 
 ## Per CLAUDE.md

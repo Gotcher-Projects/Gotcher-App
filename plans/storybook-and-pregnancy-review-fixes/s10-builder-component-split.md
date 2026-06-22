@@ -1,6 +1,6 @@
 # s10 — ScrapbookBuilder: Component Split + Low-Priority Dedup
 
-**Status: Not started**
+**Status: Complete**
 **Branch:** pregnancy-updates
 **Depends on:** s9 (helpers extracted), s7 (`useCanvasScale`)
 **Source:** `branch-review.html` → Pass 5 (P2 maintainability) + Pass 2 (LOW)
