@@ -22,10 +22,11 @@ s2 (BE dead code) ─┼─▶ s3 (IDOR) ─┐
 s1 ─▶ s7 (utilities) ─┬─▶ s8 (FE lib tests)
                       └─▶ s9 (extract helpers) ─▶ s10 (builder split)
 (everything) ─▶ s11 (docs)
-s12 (polish) — optional, anytime
+s12 (polish) — deferred to plans/tech-debt/storybook-pregnancy-polish.md
 ```
 
-**Recommended sequence:** s1 → s2 → s3 → s4 → s5 → s6 → s7 → s8 → s9 → s10 → s11, then s12 if desired.
+**Recommended sequence:** s1 → s2 → s3 → s4 → s5 → s6 → s7 → s8 → s9 → s10 → s11 (all complete).
+s12 (polish) was deferred to `plans/tech-debt/storybook-pregnancy-polish.md`.
 The IDOR (s3) is the only ship-blocker; do it early.
 
 ## Sessions
@@ -42,7 +43,7 @@ The IDOR (s3) is the only ship-blocker; do it early.
 | s9 | ScrapbookBuilder — extract testable helpers | Complete |
 | s10 | ScrapbookBuilder — component split + low-pri dedup | Complete |
 | s11 | Documentation refresh | Complete |
-| s12 | Polish — a11y / consistency / vestigial (optional) | Not started |
+| s12 | Polish — a11y / consistency / vestigial (optional) | Deferred → `plans/tech-debt/storybook-pregnancy-polish.md` |
 
 ## Per CLAUDE.md
 Check each plan's **Status** before working it. Mark **Needs Verification** after
