@@ -1,8 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Camera, Pencil, Check, X } from "lucide-react";
-import { openCropModal } from "@/lib/imageUtils";
+import { openCropModal, uploadCroppedPhoto } from "@/lib/imageUtils";
 import { pickPhoto } from "@/lib/camera";
 import { apiUpload, apiRequest } from "@/lib/api";
+import { formatDate } from "@/lib/formatting";
 
 export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSubtitle, theme, onCoverPhotoChange, onCoverSubtitleChange, onError }) {
   const [editingSubtitle, setEditingSubtitle] = useState(false);
@@ -12,7 +13,7 @@ export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSub
   const cancelCropRef = useRef(null);
 
   const defaultSubtitle = birthdate
-    ? `A memory book · Born ${new Date(birthdate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    ? `A memory book · Born ${formatDate(birthdate)}`
     : 'A memory book';
   const displaySubtitle = coverSubtitle ?? defaultSubtitle;
 
@@ -58,10 +59,8 @@ export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSub
       file,
       async ({ blob }) => {
         try {
-          const form = new FormData();
-          form.append('file', blob, 'cover.jpg');
-          const res = await apiUpload('/baby-profile/cover-photo', form);
-          onCoverPhotoChange?.(res.url);
+          const url = await uploadCroppedPhoto(f => apiUpload('/baby-profile/cover-photo', f), blob);
+          onCoverPhotoChange?.(url);
         } catch {
           onError?.('Failed to upload cover photo');
         } finally {

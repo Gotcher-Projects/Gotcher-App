@@ -1,4 +1,6 @@
 import { TEMPLATES } from '@/lib/storybookTemplates';
+import { toTiptapDoc } from '@/lib/tiptap';
+import { cleanBodyText } from '@/lib/storybookText';
 
 // ── Word counting ─────────────────────────────────────────────────────────────
 
@@ -156,21 +158,7 @@ export function extractPieceText(gc, piece = 'body') {
   if (piece === 'pullQuote') return gc.pullQuote || '';
   if (piece === 'title') return gc.title || '';
   if (piece === 'caption') return gc.caption || '';
-  return (gc.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function toTiptapDoc(text) {
-  if (!text || !text.trim()) {
-    return { type: 'doc', content: [{ type: 'paragraph', content: [] }] };
-  }
-  const paras = text.trim().split(/\n{2,}/).filter(Boolean);
-  return {
-    type: 'doc',
-    content: paras.map(p => ({
-      type: 'paragraph',
-      content: [{ type: 'text', text: p.trim() }],
-    })),
-  };
+  return cleanBodyText(gc.body);
 }
 
 export function buildGroupedLayoutData(pageGroups, generatedPages) {

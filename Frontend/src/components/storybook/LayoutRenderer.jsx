@@ -1,25 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { CANVAS_W, CANVAS_H, renderBlocks } from "@/lib/bookCanvas";
+import { CANVAS_W, CANVAS_H, renderBlocks, useCanvasScale } from "@/lib/bookCanvas";
 import MomentHeroCanvas from "@/components/storybook/MomentHeroCanvas";
 
 export default function LayoutRenderer({ layout, theme }) {
   const containerRef = useRef(null);
-  const [containerSize, setContainerSize] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const touchStartX = useRef(null);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      setContainerSize(entries[0].contentRect.width);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const scale = containerSize > 0 ? containerSize / CANVAS_W : 1;
+  const { containerSize, scale } = useCanvasScale(containerRef);
 
   if (layout?.version === 2) {
     const pages = layout.pages || [];

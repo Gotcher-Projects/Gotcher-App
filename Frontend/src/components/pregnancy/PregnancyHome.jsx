@@ -8,23 +8,19 @@ import { LoadingButton } from "@/components/ui/LoadingButton";
 import { Baby } from "lucide-react";
 import { weeksPregnant, daysUntilDue, trimester } from "../../lib/pregnancy";
 import { sizeForWeek, formatLength, formatWeight } from "../../lib/pregnancySizes";
-import { twemojiSrc } from "../../lib/twemoji";
+import { formatDate } from "@/lib/formatting";
+import TwemojiImage from "@/components/ui/TwemojiImage";
 
 const TRIMESTER_LABEL = { 1: "1st", 2: "2nd", 3: "3rd" };
 
-// Renders the bundled Twemoji SVG for consistency across devices; falls back to the OS emoji
-// glyph if the asset is ever missing.
+// Hero size icon — bundled Twemoji SVG with native-glyph fallback (see TwemojiImage).
 function SizeIcon({ emoji, label }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return <div className="text-7xl mb-4" role="img" aria-label={label}>{emoji}</div>;
-  }
   return (
-    <img
-      src={twemojiSrc(emoji)}
-      alt={label}
+    <TwemojiImage
+      emoji={emoji}
+      label={label}
       className="mx-auto mb-4 h-28 w-28"
-      onError={() => setFailed(true)}
+      fallbackClassName="text-7xl mb-4 block"
     />
   );
 }
@@ -124,9 +120,7 @@ export default function PregnancyHome({
   // The length nearly doubles at week 21 because measurement switches to head-to-toe — explain it.
   const showHeadToToeNote = size.week === 20 || size.week === 21;
 
-  const dueDisplay = dueDate
-    ? new Date(dueDate + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-    : null;
+  const dueDisplay = dueDate ? formatDate(dueDate) : null;
 
   const countdownLine =
     daysLeft > 0 ? `${daysLeft} ${daysLeft === 1 ? "day" : "days"} to go`

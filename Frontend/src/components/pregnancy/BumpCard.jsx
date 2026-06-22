@@ -1,28 +1,19 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { sizeForWeek } from "../../lib/pregnancySizes";
-import { twemojiSrc } from "../../lib/twemoji";
+import { formatDate } from "@/lib/formatting";
+import TwemojiImage from "@/components/ui/TwemojiImage";
 
-// Small inline size emoji — bundled Twemoji SVG with native-glyph fallback (matches PregnancyHome).
+// Small inline size emoji — bundled Twemoji SVG with native-glyph fallback (see TwemojiImage).
 function SizeEmoji({ emoji, label }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <span role="img" aria-label={label}>{emoji}</span>;
   return (
-    <img
-      src={twemojiSrc(emoji)}
-      alt=""
-      aria-hidden="true"
+    <TwemojiImage
+      emoji={emoji}
+      label={label}
       className="inline-block w-5 h-5 align-text-bottom"
-      onError={() => setFailed(true)}
+      decorative
     />
   );
-}
-
-function formatDate(takenDate) {
-  if (!takenDate) return "";
-  const d = new Date(takenDate + "T12:00:00");
-  if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
 /**

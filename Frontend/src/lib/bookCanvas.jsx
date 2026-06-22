@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useFittedFontSize } from "@/lib/fitText";
 import { renderContentHTML } from "@/lib/tiptap";
 
@@ -32,6 +32,24 @@ export const REVERSE_FONT_MAP = Object.fromEntries(
 export const CANVAS_W = 600;
 export const CANVAS_H = 800;
 export const BASE_FONT = Math.max(9, CANVAS_W * 0.025);
+
+// Track a container's rendered width via ResizeObserver and derive the canvas scale factor.
+// Shared by ScrapbookBuilder (editor) and LayoutRenderer (published view) so both CSS-scale the
+// fixed 600px virtual page to the available width identically.
+export function useCanvasScale(ref) {
+  const [containerSize, setContainerSize] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      setContainerSize(entries[0].contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  const scale = containerSize > 0 ? containerSize / CANVAS_W : 1;
+  return { containerSize, scale };
+}
 
 export function injectDropCap(html) {
   // Wrap the first letter in an explicit span so html2canvas renders it

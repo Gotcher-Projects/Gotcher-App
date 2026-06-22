@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,61 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/LoadingButton";
 import { Camera, Trash2, Pencil, Baby } from "lucide-react";
-import { openCropModal } from "@/lib/imageUtils.jsx";
-import { pickPhoto } from "@/lib/camera";
+import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
+import PhotoPickerButton from "@/components/ui/PhotoPickerButton";
 import { firstEmptyWeek, groupByWeek, deriveWeek } from "@/lib/bumpDiary";
 import BumpCard from "./BumpCard";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Reusable photo picker button (web file-input fallback when the native camera picker is unavailable).
-function PhotoPicker({ cancelCropRef, onCropped, children }) {
-  const inputRef = useRef(null);
-  const open = async () => {
-    const file = await pickPhoto();
-    if (file) {
-      cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => {
-        cancelCropRef.current = null;
-        onCropped({ blob, orientation });
-      });
-    } else {
-      inputRef.current?.click();
-    }
-  };
-  return (
-    <>
-      <button
-        type="button"
-        onClick={open}
-        className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
-      >
-        <Camera className="w-4 h-4" />
-        {children}
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={e => {
-          const file = e.target.files[0];
-          if (!file) return;
-          e.target.value = "";
-          cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => {
-            cancelCropRef.current = null;
-            onCropped({ blob, orientation });
-          });
-        }}
-      />
-    </>
-  );
-}
+const PICKER_CLASS = "mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors";
 
 // ── Add form ─────────────────────────────────────────────────────────────────
 function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
-  const cancelCropRef = useRef(null);
-  useEffect(() => () => cancelCropRef.current?.(), []);
-
   const [week, setWeek] = useState(defaultWeek);
   const [date, setDate] = useState(today());
   const [note, setNote] = useState("");
@@ -92,11 +48,8 @@ function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
       let imageOrientation = null;
       if (cropped) {
         setUploading(true);
-        const form = new FormData();
-        form.append("file", cropped.blob, "photo.jpg");
-        const res = await onUpload(form);
+        imageUrl = await uploadCroppedPhoto(onUpload, cropped.blob);
         setUploading(false);
-        imageUrl = res.url;
         imageOrientation = cropped.orientation || "portrait";
       }
       await onAdd({
@@ -142,9 +95,9 @@ function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Photo (optional)</Label>
-          <PhotoPicker cancelCropRef={cancelCropRef} onCropped={setCropped}>
+          <PhotoPickerButton onPicked={setCropped} className={PICKER_CLASS}>
             {cropped ? `Photo ready (${cropped.orientation})` : "Add a photo"}
-          </PhotoPicker>
+          </PhotoPickerButton>
           {cropped && (
             <img src={URL.createObjectURL(cropped.blob)} alt="preview" className="mt-2 w-full max-w-[200px] rounded-lg object-cover" />
           )}
@@ -173,9 +126,6 @@ function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
 
 // ── Single entry: BumpCard display + inline edit ──────────────────────────────
 function BumpEntry({ photo, weekRefDate, onUpdate, onDelete, onUpload, onError }) {
-  const cancelCropRef = useRef(null);
-  useEffect(() => () => cancelCropRef.current?.(), []);
-
   const [editing, setEditing] = useState(false);
   const [week, setWeek] = useState(photo.week);
   const [date, setDate] = useState(photo.takenDate || "");
@@ -214,11 +164,8 @@ function BumpEntry({ photo, weekRefDate, onUpdate, onDelete, onUpload, onError }
       const patch = { week: Number(week), note: note.trim() || null, takenDate: date || null };
       if (cropped) {
         setUploading(true);
-        const form = new FormData();
-        form.append("file", cropped.blob, "photo.jpg");
-        const res = await onUpload(form);
+        patch.imageUrl = await uploadCroppedPhoto(onUpload, cropped.blob);
         setUploading(false);
-        patch.imageUrl = res.url;
         patch.imageOrientation = cropped.orientation;
       }
       await onUpdate(photo.id, patch);
@@ -261,9 +208,9 @@ function BumpEntry({ photo, weekRefDate, onUpdate, onDelete, onUpload, onError }
             {cropped && (
               <img src={URL.createObjectURL(cropped.blob)} alt="new preview" className="w-full max-w-[200px] rounded-lg object-cover mb-2" />
             )}
-            <PhotoPicker cancelCropRef={cancelCropRef} onCropped={setCropped}>
+            <PhotoPickerButton onPicked={setCropped} className={PICKER_CLASS}>
               {cropped ? `Photo ready (${cropped.orientation})` : photo.imageUrl ? "Replace photo" : "Add a photo"}
-            </PhotoPicker>
+            </PhotoPickerButton>
           </div>
           <Textarea rows={2} value={note} onChange={e => setNote(e.target.value)} placeholder="Note" className="bg-white focus-visible:ring-color-highlight" />
           <div className="flex gap-2">

@@ -3,6 +3,7 @@ package com.gotcherapp.api.baby;
 import com.gotcherapp.api.baby.dto.BabyProfileRequest;
 import com.gotcherapp.api.baby.dto.BabyProfileResponse;
 import com.gotcherapp.api.upload.ImageUploadService;
+import com.gotcherapp.api.upload.UploadFolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -127,7 +128,7 @@ public class BabyProfileService {
     }
 
     public String uploadCoverPhoto(Long userId, MultipartFile file) throws IOException {
-        String url = imageUploadService.upload(file, "babies", userId);
+        String url = imageUploadService.upload(file, UploadFolder.BABIES.folderName(), userId);
         jdbc.update(
             "UPDATE baby_profiles SET cover_photo_url = ?, updated_at = NOW() WHERE user_id = ?",
             url, userId

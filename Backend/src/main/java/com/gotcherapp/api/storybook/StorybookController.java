@@ -2,10 +2,10 @@ package com.gotcherapp.api.storybook;
 
 import com.gotcherapp.api.common.ApiError;
 import com.gotcherapp.api.security.AuthPrincipal;
+import com.gotcherapp.api.upload.ImageUploadService;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
 import com.gotcherapp.api.storybook.dto.GenerateGroupsRequest;
 import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
-import com.gotcherapp.api.storybook.dto.UnlockRequest;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
 import org.springframework.http.ResponseEntity;
@@ -45,19 +45,6 @@ public class StorybookController {
         List<Long> orderedIds = rawIds.stream().map(Number::longValue).toList();
         storybookService.reorderChapters(principal.userId(), orderedIds);
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/storybook/unlock")
-    public ResponseEntity<?> unlock(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody UnlockRequest req
-    ) {
-        try {
-            ChapterResponse chapter = storybookService.unlock(principal.userId(), req);
-            return ResponseEntity.status(201).body(chapter);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ApiError.badRequest(e.getMessage());
-        }
     }
 
     @PostMapping("/storybook/wizard")
@@ -118,6 +105,10 @@ public class StorybookController {
         @PathVariable Long id,
         @RequestParam("file") MultipartFile file
     ) {
+        String validationError = ImageUploadService.imageValidationError(file);
+        if (validationError != null) {
+            return ApiError.badRequest(validationError);
+        }
         try {
             Map<String, Object> entry = storybookService.uploadChapterPhoto(id, file, principal.userId());
             return ResponseEntity.status(201).body(entry);
@@ -138,32 +129,5 @@ public class StorybookController {
         boolean deleted = storybookService.delete(principal.userId(), id);
         if (!deleted) return ApiError.notFound("Chapter not found");
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/storybook/share")
-    public ResponseEntity<?> getShareToken(@AuthenticationPrincipal AuthPrincipal principal) {
-        try {
-            String token = storybookService.getOrCreateShareToken(principal.userId());
-            return ResponseEntity.ok(Map.of("token", token));
-        } catch (StorybookService.ForbiddenException e) {
-            return ApiError.forbidden(e.getMessage());
-        } catch (IllegalStateException e) {
-            return ApiError.badRequest(e.getMessage());
-        }
-    }
-
-    @DeleteMapping("/storybook/share")
-    public ResponseEntity<?> revokeShareToken(@AuthenticationPrincipal AuthPrincipal principal) {
-        storybookService.revokeShareToken(principal.userId());
-        return ResponseEntity.noContent().build();
-    }
-
-    // ── Public endpoint (no auth) ─────────────────────────────────────────────
-
-    @GetMapping("/book/public/{token}")
-    public ResponseEntity<?> getPublicBook(@PathVariable String token) {
-        Optional<StorybookService.PublicBookResponse> book = storybookService.getPublicBook(token);
-        if (book.isEmpty()) return ApiError.notFound("Book not found");
-        return ResponseEntity.ok(book.get());
     }
 }

@@ -64,11 +64,9 @@ export default function MomentHeroCanvas({
   orientation = 'portrait',
   // Builder-only props — all undefined in read-only (StorybookTab / PDF).
   editingBlockId,
-  selectedSource,
   onActivate,
   onStopEdit,
   onEditorReady,
-  onFontChange,
   onOpenTray,
   onReCrop,
 }) {

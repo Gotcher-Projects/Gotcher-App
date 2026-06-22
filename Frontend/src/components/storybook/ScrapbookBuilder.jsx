@@ -16,80 +16,17 @@ import FormatToolbar from "@/components/storybook/FormatToolbar";
 import FontPicker from "@/components/storybook/FontPicker";
 import { buildMemoryList, extractPieceText } from "@/lib/storybookGrouping";
 import { toTiptapDoc, contentToPlainText } from "@/lib/tiptap";
+import { cleanBodyText } from "@/lib/storybookText";
 import {
   CANVAS_W, CANVAS_H, FONT_MAP, REVERSE_FONT_MAP,
-  RenderedText, LWrapBlock, blockBoxStyle, cropStyle,
+  RenderedText, LWrapBlock, blockBoxStyle, cropStyle, useCanvasScale,
 } from "@/lib/bookCanvas";
 import { openSlotCropModal } from "@/lib/imageUtils";
+import {
+  makeId, makePageId, splitTextParts, initPages, buildLayoutData,
+} from "@/lib/storybookLayout";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function makeId() {
-  return `b-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function makePageId() {
-  return `p-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
-}
-
-function cleanBody(body) {
-  return (body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-// Split text into n parts at natural boundaries (paragraph → sentence → word).
-function splitTextParts(text, n) {
-  if (n <= 1) return [text];
-  const paras = text.split(/\n\n+/).filter(Boolean);
-  if (paras.length >= n) {
-    const mid = Math.ceil(paras.length / n);
-    return [paras.slice(0, mid).join('\n\n'), paras.slice(mid).join('\n\n')];
-  }
-  const mid = Math.floor(text.length / 2);
-  const sentenceEnd = text.indexOf('. ', mid);
-  if (sentenceEnd > 0 && sentenceEnd < text.length - 2) {
-    return [text.slice(0, sentenceEnd + 1).trim(), text.slice(sentenceEnd + 2).trim()];
-  }
-  const wordBound = text.indexOf(' ', mid);
-  if (wordBound > 0) {
-    return [text.slice(0, wordBound).trim(), text.slice(wordBound).trim()];
-  }
-  return [text, ''];
-}
-
-// Ensure every block has an id; migrate plain-string text content to Tiptap JSON.
-function migrateBlock(b) {
-  const block = { ...b, id: b.id || makeId() };
-  if (block.type === 'text' || block.type === 'l-wrap') block.content = toTiptapDoc(block.content);
-  return block;
-}
-
-function initPages(chapter) {
-  if (chapter.layoutData?.version === 2) {
-    return (chapter.layoutData.pages || []).map(p => ({
-      id: p.id || makePageId(),
-      sourceKeys: p.sourceKeys || (p.sourceKey ? [p.sourceKey] : []),
-      templateId: p.templateId || null,
-      backgroundColor: p.backgroundColor || null,
-      blocks: (p.blocks || []).map(migrateBlock),
-    }));
-  }
-  // v1 / empty — fold into a single page.
-  const blocks = (chapter.layoutData?.blocks || []).map(migrateBlock);
-  return [{ id: makePageId(), sourceKeys: [], templateId: null, backgroundColor: null, blocks }];
-}
-
-function buildLayoutData(thePages) {
-  return {
-    version: 2,
-    pages: thePages.map(p => ({
-      id: p.id,
-      sourceKeys: p.sourceKeys || [],
-      templateId: p.templateId || null,
-      backgroundColor: p.backgroundColor || null,
-      blocks: p.blocks,
-    })),
-  };
-}
 
 const TYPE_LABELS = { period: 'Time Period', milestone: 'Milestone', first_time: 'First Time' };
 
@@ -579,7 +516,6 @@ function Slot({
 
 export default function ScrapbookBuilder({ chapter, journalEntries, firsts, theme, onUpdate, onClose }) {
   const containerRef = useRef(null);
-  const [containerSize, setContainerSize] = useState(0);
   const [pages, setPages] = useState(() => initPages(chapter));
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
@@ -599,20 +535,10 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      setContainerSize(entries[0].contentRect.width);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   useEffect(() => () => clearTimeout(saveTimerRef.current), []);
   useEffect(() => () => cancelSlotCropRef.current?.(), []);
 
-  const scale = containerSize > 0 ? containerSize / CANVAS_W : 1;
+  const { containerSize, scale } = useCanvasScale(containerRef);
   const currentPage = pages[currentPageIndex];
   const currentBlocks = currentPage?.blocks || [];
   const currentTemplate = TEMPLATES.find(t => t.id === currentPage?.templateId) || null;
@@ -638,7 +564,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
       return {
         ...m,
         aiTitle: gc?.title || null,
-        aiBody: gc?.body ? cleanBody(gc.body) : null,
+        aiBody: gc?.body ? cleanBodyText(gc.body) : null,
         rawText,
       };
     });
@@ -743,7 +669,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
         let fullText = extractPieceText(gc, piece);
         if (!fullText) {
           const mem = memories.find(m => m.sourceKey === sourceKey);
-          fullText = piece === 'title' ? (mem?.label || '') : cleanBody(mem?.rawText || '');
+          fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
         }
         return blocks.map(b =>
           b.id === blockId
@@ -758,7 +684,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
         let fullText = extractPieceText(gc, piece);
         if (!fullText) {
           const mem = memories.find(m => m.sourceKey === sourceKey);
-          fullText = piece === 'title' ? (mem?.label || '') : cleanBody(mem?.rawText || '');
+          fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
         }
 
         const splitGroup = target.contentSource?.splitGroup;
@@ -1126,10 +1052,8 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                     blocks={currentBlocks}
                     orientation={currentTemplate.id === 'moment-hero-landscape' ? 'landscape' : 'portrait'}
                     editingBlockId={editingBlockId}
-                    selectedSource={selectedSource}
                     onActivate={handleSlotActivate}
                     onStopEdit={handleStopEdit}
-                    onFontChange={handleFontChange}
                     onEditorReady={setActiveEditor}
                     onOpenTray={setPhotoTrayFor}
                     onReCrop={handleReCrop}

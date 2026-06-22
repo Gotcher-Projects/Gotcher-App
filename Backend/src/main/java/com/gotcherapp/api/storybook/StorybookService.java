@@ -8,15 +8,14 @@ import com.gotcherapp.api.storybook.dto.ChapterResponse;
 import com.gotcherapp.api.storybook.dto.GenerateGroupsRequest;
 import com.gotcherapp.api.storybook.dto.GeneratedPageContent;
 import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
-import com.gotcherapp.api.storybook.dto.UnlockRequest;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
 import com.gotcherapp.api.upload.ImageUploadService;
+import com.gotcherapp.api.upload.UploadFolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -70,61 +69,6 @@ public class StorybookService {
         }
     }
 
-    // ── Unlock ────────────────────────────────────────────────────────────────
-
-    public ChapterResponse unlock(Long userId, UnlockRequest req) {
-        Long profileId = babyProfileRepository.requireProfileId(userId);
-        validateUnlockRequest(req);
-
-        List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT " + CHAPTER_COLS + " FROM storybook_chapters " +
-            "WHERE baby_profile_id = ? AND anchor_type = ? AND anchor_key = ?",
-            profileId, req.anchorType(), req.anchorKey()
-        );
-        if (!existing.isEmpty()) return mapRow(existing.get(0));
-
-        String imageUrl = req.imageUrl();
-        if (imageUrl == null && "milestone".equals(req.anchorType())) {
-            int week = Integer.parseInt(req.anchorKey().split("-")[0]);
-            List<Map<String, Object>> imgRows = jdbc.queryForList(
-                "SELECT image_url FROM journal_entries WHERE baby_profile_id = ? " +
-                "AND image_url IS NOT NULL AND ABS(week - ?) <= 3 ORDER BY ABS(week - ?) LIMIT 1",
-                profileId, week, week
-            );
-            if (!imgRows.isEmpty()) imageUrl = (String) imgRows.get(0).get("image_url");
-        }
-        if (imageUrl == null && "period".equals(req.anchorType())) {
-            List<Map<String, Object>> imgRows = jdbc.queryForList(
-                "SELECT image_url FROM journal_entries WHERE baby_profile_id = ? " +
-                "AND image_url IS NOT NULL AND week >= ? AND week <= ? ORDER BY entry_date LIMIT 1",
-                profileId, req.periodStartWeeks(), req.periodEndWeeks()
-            );
-            if (!imgRows.isEmpty()) imageUrl = (String) imgRows.get(0).get("image_url");
-        }
-
-        Map<String, Object> row = jdbc.queryForMap(
-            "INSERT INTO storybook_chapters " +
-            "(baby_profile_id, anchor_type, anchor_key, anchor_label, period_start_weeks, period_end_weeks, image_url, status) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, 'unlocked') " +
-            "RETURNING " + CHAPTER_COLS,
-            profileId, req.anchorType(), req.anchorKey(), req.anchorLabel(),
-            req.periodStartWeeks(), req.periodEndWeeks(), imageUrl
-        );
-        return mapRow(row);
-    }
-
-    private void validateUnlockRequest(UnlockRequest req) {
-        if (req.anchorType() == null || req.anchorKey() == null || req.anchorLabel() == null) {
-            throw new IllegalArgumentException("anchorType, anchorKey, and anchorLabel are required");
-        }
-        if ("period".equals(req.anchorType()) && (req.periodStartWeeks() == null || req.periodEndWeeks() == null)) {
-            throw new IllegalArgumentException("periodStartWeeks and periodEndWeeks are required for period chapters");
-        }
-        if (!Set.of("milestone", "first_time", "period").contains(req.anchorType())) {
-            throw new IllegalArgumentException("anchorType must be 'milestone', 'first_time', or 'period'");
-        }
-    }
-
     // ── Wizard ────────────────────────────────────────────────────────────────
 
     // Creates or updates the period chapter row from the wizard's memory selection.
@@ -139,6 +83,9 @@ public class StorybookService {
         }
 
         Long profileId = babyProfileRepository.requireProfileId(userId);
+
+        // SECURITY: reject selections that reference another tenant's memories (s3 IDOR fix).
+        assertSelectionsOwned(profileId, req.selectedJournalIds(), req.selectedFirstTimeIds());
 
         String journalIdsCsv = serializeIds(req.selectedJournalIds());
         String firstTimeIdsCsv = serializeIds(req.selectedFirstTimeIds());
@@ -183,10 +130,9 @@ public class StorybookService {
 
     public List<GeneratedPageResponse> generatePages(Long userId, Long chapterId, GenerateGroupsRequest groupsReq) {
         Map<String, Object> user = jdbc.queryForMap(
-            "SELECT tier, ai_credits_remaining FROM users WHERE id = ?", userId
+            "SELECT tier FROM users WHERE id = ?", userId
         );
         String tier = (String) user.get("tier");
-        int credits = ((Number) user.get("ai_credits_remaining")).intValue();
 
         if ("free".equals(tier)) throw new ForbiddenException("Upgrade to Plus to generate chapters");
 
@@ -209,11 +155,6 @@ public class StorybookService {
 
         int totalEntries = journalIds.size() + firstTimeIds.size();
         if (totalEntries == 0) throw new IllegalArgumentException("No entries selected for this chapter");
-        if (credits < totalEntries) {
-            throw new InsufficientCreditsException(
-                "Not enough credits — you need " + totalEntries + " credits for " + totalEntries + " pages"
-            );
-        }
 
         Map<String, Object> baby = jdbc.queryForMap(
             "SELECT baby_name FROM baby_profiles WHERE id = ?", profileId.get()
@@ -230,13 +171,21 @@ public class StorybookService {
             }
         }
 
-        // Charge one credit per page up front; the batched call still costs per-memory.
-        jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining - ? WHERE id = ?",
-            totalEntries, userId);
+        // Charge one credit per page up front, atomically: the conditional WHERE both gates and
+        // decrements in a single statement so concurrent generates can't overspend (TOCTOU-safe).
+        int charged = jdbc.update(
+            "UPDATE users SET ai_credits_remaining = ai_credits_remaining - ? " +
+            "WHERE id = ? AND ai_credits_remaining >= ?",
+            totalEntries, userId, totalEntries);
+        if (charged == 0) {
+            throw new InsufficientCreditsException(
+                "Not enough credits — you need " + totalEntries + " credits for " + totalEntries + " pages"
+            );
+        }
 
         String raw;
         try {
-            String prompt = buildBatchPagesPrompt(journalIds, firstTimeIds, entryNotes, babyName, multiGroupKeys);
+            String prompt = buildBatchPagesPrompt(profileId.get(), journalIds, firstTimeIds, entryNotes, babyName, multiGroupKeys);
             int maxTokens = Math.min(800 + totalEntries * 320, 8000);
             raw = claudeClient.generatePagesBatch(prompt, maxTokens);
         } catch (Exception e) {
@@ -277,7 +226,9 @@ public class StorybookService {
 
     // Builds a single prompt listing every selected memory (date order) for the batched
     // page-generation call. Each memory is tagged with its sourceKey so the model echoes it back.
-    private String buildBatchPagesPrompt(List<Long> journalIds, List<Long> firstTimeIds,
+    // SECURITY: both reads are scoped by baby_profile_id so a tampered/foreign id can never pull
+    // another tenant's content into the prompt (see s3 IDOR fix).
+    private String buildBatchPagesPrompt(Long profileId, List<Long> journalIds, List<Long> firstTimeIds,
                                          Map<String, String> entryNotes, String babyName,
                                          Set<String> groupedKeys) {
         record MemItem(String date, String block) {}
@@ -285,9 +236,13 @@ public class StorybookService {
 
         if (journalIds != null && !journalIds.isEmpty()) {
             String ph = journalIds.stream().map(id -> "?").collect(Collectors.joining(","));
+            List<Object> params = new ArrayList<>();
+            params.add(profileId);
+            params.addAll(journalIds);
             jdbc.queryForList(
-                "SELECT id, title, story, week, entry_date FROM journal_entries WHERE id IN (" + ph + ")",
-                journalIds.toArray()
+                "SELECT id, title, story, week, entry_date FROM journal_entries " +
+                "WHERE baby_profile_id = ? AND id IN (" + ph + ")",
+                params.toArray()
             ).forEach(e -> {
                 long id = ((Number) e.get("id")).longValue();
                 int week = ((Number) e.get("week")).intValue();
@@ -306,9 +261,13 @@ public class StorybookService {
 
         if (firstTimeIds != null && !firstTimeIds.isEmpty()) {
             String ph = firstTimeIds.stream().map(id -> "?").collect(Collectors.joining(","));
+            List<Object> params = new ArrayList<>();
+            params.add(profileId);
+            params.addAll(firstTimeIds);
             jdbc.queryForList(
-                "SELECT id, label, notes, occurred_date FROM first_times WHERE id IN (" + ph + ")",
-                firstTimeIds.toArray()
+                "SELECT id, label, notes, occurred_date FROM first_times " +
+                "WHERE baby_profile_id = ? AND id IN (" + ph + ")",
+                params.toArray()
             ).forEach(f -> {
                 long id = ((Number) f.get("id")).longValue();
                 String date = f.get("occurred_date") != null ? f.get("occurred_date").toString() : "";
@@ -335,7 +294,8 @@ public class StorybookService {
     }
 
     // Pulls the JSON object out of a model response that may be wrapped in prose/fences.
-    private static String extractJson(String s) {
+    // Package-private so StorybookServiceTest can exercise it directly (no mocks needed).
+    static String extractJson(String s) {
         if (s == null) return "{}";
         int start = s.indexOf('{');
         int end = s.lastIndexOf('}');
@@ -393,7 +353,7 @@ public class StorybookService {
         );
         if (rows.isEmpty()) throw new NoSuchElementException("Chapter not found");
 
-        String url = imageUploadService.upload(file, "storybook", userId);
+        String url = imageUploadService.upload(file, UploadFolder.STORYBOOK.folderName(), userId);
         String key = "upload:" + UUID.randomUUID();
         Map<String, Object> entry = Map.of("key", key, "url", url, "label", "");
 
@@ -420,82 +380,37 @@ public class StorybookService {
         return rows > 0;
     }
 
-    // ── Share tokens ──────────────────────────────────────────────────────────
+    // ── Ownership validation ────────────────────────────────────────────────────
 
-    public String getOrCreateShareToken(Long userId) {
-        Map<String, Object> user = jdbc.queryForMap(
-            "SELECT tier FROM users WHERE id = ?", userId
+    // Fails loudly if any selected journal/first-time id does not belong to the caller's profile.
+    // This is the write-side boundary check; buildBatchPagesPrompt also scopes its reads as
+    // defense-in-depth (and to protect any ids stored before this check existed).
+    private void assertSelectionsOwned(Long profileId, List<Long> journalIds, List<Long> firstTimeIds) {
+        assertOwned("journal_entries", profileId, journalIds, "journal entries");
+        assertOwned("first_times", profileId, firstTimeIds, "first-time memories");
+    }
+
+    private void assertOwned(String table, Long profileId, List<Long> ids, String label) {
+        if (ids == null || ids.isEmpty()) return;
+        List<Long> distinct = ids.stream().distinct().toList();
+        String ph = distinct.stream().map(i -> "?").collect(Collectors.joining(","));
+        List<Object> params = new ArrayList<>();
+        params.add(profileId);
+        params.addAll(distinct);
+        Integer owned = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM " + table + " WHERE baby_profile_id = ? AND id IN (" + ph + ")",
+            Integer.class, params.toArray()
         );
-        if ("free".equals(user.get("tier"))) {
-            throw new ForbiddenException("Upgrade to Plus to share your book");
+        if (owned == null || owned != distinct.size()) {
+            throw new IllegalArgumentException("One or more selected " + label + " do not belong to you");
         }
-        Long profileId = babyProfileRepository.requireProfileId(userId);
-        List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT token FROM book_share_tokens WHERE baby_profile_id = ?", profileId
-        );
-        if (!existing.isEmpty()) return (String) existing.get(0).get("token");
-        String token = generateSecureToken();
-        jdbc.update(
-            "INSERT INTO book_share_tokens (baby_profile_id, token) VALUES (?, ?)",
-            profileId, token
-        );
-        return token;
-    }
-
-    public boolean revokeShareToken(Long userId) {
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) return false;
-        int rows = jdbc.update(
-            "DELETE FROM book_share_tokens WHERE baby_profile_id = ?", profileId.get()
-        );
-        return rows > 0;
-    }
-
-    public Optional<PublicBookResponse> getPublicBook(String token) {
-        List<Map<String, Object>> tokenRows = jdbc.queryForList(
-            "SELECT baby_profile_id FROM book_share_tokens WHERE token = ?", token
-        );
-        if (tokenRows.isEmpty()) return Optional.empty();
-        Long profileId = ((Number) tokenRows.get(0).get("baby_profile_id")).longValue();
-
-        Map<String, Object> baby = jdbc.queryForMap(
-            "SELECT baby_name FROM baby_profiles WHERE id = ?", profileId
-        );
-        String firstName = extractFirstName((String) baby.get("baby_name"));
-
-        List<Map<String, Object>> chapters = jdbc.queryForList(
-            "SELECT anchor_label, body, published_at FROM storybook_chapters " +
-            "WHERE baby_profile_id = ? AND status = 'published' " +
-            "ORDER BY COALESCE(sort_order, 999999), created_at",
-            profileId
-        );
-
-        List<PublicChapter> publicChapters = chapters.stream().map(r -> new PublicChapter(
-            (String) r.get("anchor_label"),
-            (String) r.get("body"),
-            r.get("published_at") != null ? r.get("published_at").toString() : null
-        )).toList();
-
-        return Optional.of(new PublicBookResponse(firstName, publicChapters));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    // These pure (or objectMapper-only) helpers are package-private so StorybookServiceTest can
+    // unit-test the parse/serialize round-trips and malformed-input fallbacks without DB mocks.
 
-    private String extractFirstName(String babyName) {
-        if (babyName == null || babyName.isBlank()) return "Baby";
-        return babyName.trim().split("\\s+")[0];
-    }
-
-    private String generateSecureToken() {
-        SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[32];
-        random.nextBytes(bytes);
-        StringBuilder hex = new StringBuilder();
-        for (byte b : bytes) hex.append(String.format("%02x", b));
-        return hex.toString();
-    }
-
-    private List<Long> parseIdsCsv(Object raw) {
+    List<Long> parseIdsCsv(Object raw) {
         if (raw == null) return null;
         String s = raw.toString().trim();
         if (s.isEmpty()) return List.of();
@@ -506,12 +421,12 @@ public class StorybookService {
             .collect(Collectors.toList());
     }
 
-    private String serializeIds(List<Long> ids) {
+    String serializeIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) return null;
         return ids.stream().map(Object::toString).collect(Collectors.joining(","));
     }
 
-    private Map<String, String> parseJsonMap(Object raw) {
+    Map<String, String> parseJsonMap(Object raw) {
         if (raw == null) return null;
         try {
             return objectMapper.readValue(raw.toString(), new TypeReference<Map<String, String>>() {});
@@ -520,7 +435,7 @@ public class StorybookService {
         }
     }
 
-    private Map<String, Object> parseJsonObject(Object raw) {
+    Map<String, Object> parseJsonObject(Object raw) {
         if (raw == null) return null;
         try {
             return objectMapper.readValue(raw.toString(), new TypeReference<Map<String, Object>>() {});
@@ -577,7 +492,7 @@ public class StorybookService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> parseJsonList(Object raw) {
+    List<Map<String, Object>> parseJsonList(Object raw) {
         if (raw == null) return List.of();
         try {
             return objectMapper.readValue(raw.toString(), new TypeReference<List<Map<String, Object>>>() {});
@@ -586,7 +501,7 @@ public class StorybookService {
         }
     }
 
-    private Map<String, GeneratedPageContent> parseGeneratedContent(Object raw) {
+    Map<String, GeneratedPageContent> parseGeneratedContent(Object raw) {
         if (raw == null) return null;
         try {
             return objectMapper.readValue(raw.toString(), new TypeReference<Map<String, GeneratedPageContent>>() {});
@@ -594,11 +509,6 @@ public class StorybookService {
             return null;
         }
     }
-
-    // ── Inner response types ──────────────────────────────────────────────────
-
-    public record PublicBookResponse(String babyFirstName, List<PublicChapter> chapters) {}
-    public record PublicChapter(String anchorLabel, String body, String publishedAt) {}
 
     // ── Custom exceptions ─────────────────────────────────────────────────────
 
