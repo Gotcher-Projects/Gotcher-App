@@ -54,9 +54,15 @@ all memories live on the one profile regardless of the active phase.
 ## Sessions
 | Session | Scope | Status |
 |---------|-------|--------|
-| S1 | Data model (`due_date` + user-controlled `phase`) + onboarding phase choice + phase swap + "mark as born" | Not started |
-| S2 | Pregnancy home: countdown + weekly size/development card + the size dataset + prenatal appointments reuse | Not started |
-| S3 | Bump photo diary (weekly photo paired with size) + storybook tie-in | Not started |
+| S1 | Data model (`due_date` + user-controlled `phase`) + onboarding phase choice + phase swap + "mark as born" | Complete |
+| S2 | Pregnancy home: countdown + weekly size/development card + the size dataset + prenatal appointments reuse | Complete |
+| S3 | Bump photo diary (weekly photo paired with size) | Complete |
+| S4 | Storybook pregnancy tie-in (bump photos + pre-birth entries flow into the book) | **Deferred → Storybook V2** (`plans/storybook-v2/pregnancy-track.md`) |
+| S5 | Pregnancy tabbed shell (Home · Appointments · Bump) + bump-diary-as-journal (photo optional) + UI parity + derive week from date | Complete |
+
+> **S4 deferred (2026-06-18):** the storybook tie-in is built against the v2 **Guided Book**, not the
+> current scrapbook wizard — see `plans/storybook-v2/pregnancy-track.md`. S5 still ships here: it
+> produces the phase-flagged, date-driven pre-birth journal data that the v2 chapter consumes.
 
 ## Out of scope (this plan)
 - Social-card image generation / sharing — see `plans/social-sharing/`.

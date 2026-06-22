@@ -13,10 +13,44 @@ Stripe checkout redirect, and subscription management link.
 
 ### 1. PaidGate component
 `Frontend/src/components/ui/PaidGate.jsx`
+
+> **Note (2026-06-19, review cleanup):** `PaidGate.jsx` previously existed as a
+> finished teaser component but was **removed** in the `storybook-and-pregnancy-review-fixes`
+> S1 dead-code pass because nothing imported it yet. This session **re-creates** it.
+> The prior implementation is preserved below as the starting point — recover it
+> verbatim from git if needed (`git log --all -- Frontend/src/components/ui/PaidGate.jsx`).
+
 - Wraps any paid-only content
 - If user tier is `free`: shows teaser UI (blurred content + upgrade prompt)
 - If user tier is `plus` or `pro`: renders children normally
 - Takes optional `feature` prop for copy customization ("Unlock the Storybook", etc.)
+
+Prior implementation (pre-removal) — wire the disabled button up to the pricing modal from task 2:
+
+```jsx
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+export default function PaidGate({ tier, children, feature = "this feature" }) {
+  if (tier !== 'free') return children;
+
+  return (
+    <div className="flex justify-center py-8">
+      <Card className="p-8 max-w-sm w-full text-center space-y-4">
+        <div className="space-y-1">
+          <h3 className="font-display font-semibold text-lg">Unlock {feature}</h3>
+          <p className="text-muted-foreground text-sm">
+            Upgrade to Plus for $5/month to generate your baby's storybook chapters and preserve every milestone as a memory.
+          </p>
+        </div>
+        <Button className="w-full" disabled>
+          Upgrade to Plus — Coming Soon
+        </Button>
+      </Card>
+    </div>
+  );
+}
+```
 
 ### 2. Pricing modal or page
 Triggered when user taps an upgrade prompt in PaidGate.

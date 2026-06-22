@@ -34,7 +34,7 @@ class AuthControllerTest {
 
     private final AuthResponse AUTH_RESPONSE = new AuthResponse(
             "access.token", REFRESH_TOKEN,
-            new UserDto(USER_ID, EMAIL, "Test User", false)
+            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0)
     );
 
     @org.junit.jupiter.api.BeforeEach
@@ -149,7 +149,7 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        var result = authController.refresh(request, response);
+        var result = authController.refresh(request, response, null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
@@ -160,7 +160,7 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        authController.refresh(request, response);
+        authController.refresh(request, response, null);
 
         verify(cookieUtil).setAccessTokenCookie(same(response), eq("access.token"), anyInt());
         verify(cookieUtil).setRefreshTokenCookie(same(response), eq(REFRESH_TOKEN), anyInt());
@@ -172,7 +172,7 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        var result = authController.refresh(request, response);
+        var result = authController.refresh(request, response, null);
 
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     }
@@ -183,11 +183,9 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        authController.refresh(request, response);
+        authController.refresh(request, response, null);
 
-        Cookie accessCookie = response.getCookie("access_token");
-        assertNotNull(accessCookie);
-        assertEquals(0, accessCookie.getMaxAge());
+        verify(cookieUtil).clearAuthCookies(response);
     }
 
     // ── POST /auth/logout ─────────────────────────────────────────────────────
@@ -197,7 +195,7 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        var result = authController.logout(request, response);
+        var result = authController.logout(request, response, null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
@@ -207,11 +205,9 @@ class AuthControllerTest {
         var request = requestWithCookie("refresh_token", REFRESH_TOKEN);
         var response = new MockHttpServletResponse();
 
-        authController.logout(request, response);
+        authController.logout(request, response, null);
 
-        Cookie accessCookie = response.getCookie("access_token");
-        assertNotNull(accessCookie);
-        assertEquals(0, accessCookie.getMaxAge());
+        verify(cookieUtil).clearAuthCookies(response);
     }
 
     @Test
@@ -219,7 +215,7 @@ class AuthControllerTest {
         var request = new MockHttpServletRequest();
         var response = new MockHttpServletResponse();
 
-        var result = authController.logout(request, response);
+        var result = authController.logout(request, response, null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verifyNoInteractions(authService);
@@ -229,6 +225,9 @@ class AuthControllerTest {
 
     @Test
     void me_returns200_withUserInfo() {
+        when(authService.getUser(USER_ID)).thenReturn(
+            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0));
+
         var result = authController.me(PRINCIPAL);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());

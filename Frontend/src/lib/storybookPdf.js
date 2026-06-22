@@ -4,10 +4,9 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import LayoutRenderer from '@/components/storybook/LayoutRenderer';
 import MomentHeroCanvas from '@/components/storybook/MomentHeroCanvas';
-
-// Virtual canvas size — must match LayoutRenderer constants.
-const CANVAS_W = 600;
-const CANVAS_H = 800;
+import { formatDate } from '@/lib/formatting';
+import { cleanBodyText } from '@/lib/storybookText';
+import { CANVAS_W, CANVAS_H } from '@/lib/bookCanvas';
 
 // PDF page size: 3:4 portrait, 150×200mm.
 const PDF_W = 150;
@@ -25,8 +24,40 @@ const FONT_CLASS_MAP = {
   'font-display': '"Poppins", system-ui, sans-serif',
 };
 
-// Render a React element off-screen at the virtual canvas size, then capture it
-// with html2canvas at 2× scale for print quality.
+// Capture an already-in-DOM element at the virtual canvas size with html2canvas at 2× scale for
+// print quality, returning a JPEG data URL. Waits for fonts and any contained images to load plus a
+// short settle for trailing paint. Shared by every capture path so the html2canvas options stay in
+// lock-step.
+async function captureElement(el, bgColor) {
+  await document.fonts.ready;
+
+  // Wait for any images inside the element to fully load.
+  const imgs = Array.from(el.querySelectorAll('img'));
+  await Promise.all(imgs.map(img =>
+    img.complete
+      ? Promise.resolve()
+      : new Promise(r => { img.onload = r; img.onerror = r; })
+  ));
+
+  // Small additional settle for any trailing paint.
+  await new Promise(r => setTimeout(r, 100));
+
+  const canvas = await html2canvas(el, {
+    useCORS: true,
+    allowTaint: false,
+    scale: 2,
+    width: CANVAS_W,
+    height: CANVAS_H,
+    backgroundColor: bgColor,
+    logging: false,
+    x: 0,
+    y: 0,
+  });
+
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+// Render a React element off-screen at the virtual canvas size, then capture it.
 //
 // Uses position:absolute (NOT position:fixed) so the element is off the visible
 // viewport without overlaying it — position:fixed at y=0 would bleed the live app
@@ -51,35 +82,13 @@ async function captureComponent(jsx, bgColor, accentColor) {
   // Wait for ResizeObserver (inside LayoutRenderer) to fire, React to re-render
   // with the correct scale, and useLayoutEffect (useFittedFontSize) to size text.
   await new Promise(r => setTimeout(r, 400));
-  await document.fonts.ready;
 
-  // Wait for any images inside the rendered component to fully load.
-  const imgs = Array.from(wrapper.querySelectorAll('img'));
-  await Promise.all(imgs.map(img =>
-    img.complete
-      ? Promise.resolve()
-      : new Promise(r => { img.onload = r; img.onerror = r; })
-  ));
-
-  // Small additional settle for any trailing paint.
-  await new Promise(r => setTimeout(r, 100));
-
-  const canvas = await html2canvas(wrapper, {
-    useCORS: true,
-    allowTaint: false,
-    scale: 2,
-    width: CANVAS_W,
-    height: CANVAS_H,
-    backgroundColor: bgColor || '#fdf9f2',
-    logging: false,
-    x: 0,
-    y: 0,
-  });
+  const dataUrl = await captureElement(wrapper, bgColor || '#fdf9f2');
 
   root.unmount();
   document.body.removeChild(wrapper);
 
-  return canvas.toDataURL('image/jpeg', 0.92);
+  return dataUrl;
 }
 
 // Build a read-only cover DOM element (no React / no edit controls).
@@ -92,7 +101,7 @@ function buildCoverElement(babyName, birthdate, coverPhotoUrl, coverSubtitle, th
   const fontFamily = FONT_CLASS_MAP[theme?.fontClass] ?? 'Georgia, serif';
 
   const defaultSubtitle = birthdate
-    ? `A memory book · Born ${new Date(birthdate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    ? `A memory book · Born ${formatDate(birthdate)}`
     : 'A memory book';
   const subtitle = coverSubtitle ?? defaultSubtitle;
 
@@ -161,28 +170,12 @@ function buildCoverElement(babyName, birthdate, coverPhotoUrl, coverSubtitle, th
   return el;
 }
 
-// Capture the cover DOM element (not React-based) with html2canvas.
+// Capture the cover DOM element (not React-based).
 async function captureCoverElement(el, bgColor) {
   document.body.appendChild(el);
-  await document.fonts.ready;
-  const imgs = Array.from(el.querySelectorAll('img'));
-  await Promise.all(imgs.map(img =>
-    img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
-  ));
-  await new Promise(r => setTimeout(r, 100));
-  const canvas = await html2canvas(el, {
-    useCORS: true,
-    allowTaint: false,
-    scale: 2,
-    width: CANVAS_W,
-    height: CANVAS_H,
-    backgroundColor: bgColor,
-    logging: false,
-    x: 0,
-    y: 0,
-  });
+  const dataUrl = await captureElement(el, bgColor);
   document.body.removeChild(el);
-  return canvas.toDataURL('image/jpeg', 0.92);
+  return dataUrl;
 }
 
 /**
@@ -270,7 +263,7 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
 
       const bodyEl = document.createElement('div');
       bodyEl.style.cssText = `font-size:15px;line-height:1.8;overflow:hidden;`;
-      const rawText = (chapter.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').trim();
+      const rawText = cleanBodyText(chapter.body);
       bodyEl.innerHTML = rawText
         .split(/\n{2,}/)
         .map(p => `<p style="margin:0 0 12px;">${p.trim()}</p>`)
@@ -278,14 +271,9 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
       wrapper.appendChild(bodyEl);
 
       document.body.appendChild(wrapper);
-      await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 100));
-      const canvas = await html2canvas(wrapper, {
-        useCORS: true, scale: 2, width: CANVAS_W, height: CANVAS_H,
-        backgroundColor: bg, logging: false, x: 0, y: 0,
-      });
+      const dataUrl = await captureElement(wrapper, bg);
       document.body.removeChild(wrapper);
-      addPage(canvas.toDataURL('image/jpeg', 0.92));
+      addPage(dataUrl);
     }
   }
 

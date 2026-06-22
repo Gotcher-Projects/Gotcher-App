@@ -1,7 +1,7 @@
 # S1 — Data Model + Onboarding Phase Choice
 
-**Status: Not started**
-**Branch:** TBD (suggest `feature/pregnancy-mode`)
+**Status: Complete**
+**Branch:** `pregnancy-updates`
 **Depends on:** nothing — this is the foundation. No pregnancy UI/content ships here.
 
 ---
@@ -21,13 +21,34 @@ screen and content come in S2. Verify by toggling a profile's phase and seeing t
 - **Phase is a stored, user-controlled field — NOT auto-derived from the birthdate.** `birthdate`
   and `due_date` are data; the active mode is whatever `phase` says.
   - `phase = 'pregnancy'` → pregnancy mode; `phase = 'baby'` → baby mode.
-  - Legacy/empty `phase` → fall back to a derived guess (`birthdate` → `baby`, else `due_date` →
-    `pregnancy`, else `incomplete`) so existing users are unaffected.
+- **`phase` is `NOT NULL`** with a `CHECK (phase IN ('pregnancy','baby'))` constraint and **no
+  default** — every INSERT must state the phase explicitly (onboarding always knows it).
+  - Migrated in three steps: add column nullable → backfill all existing rows to `'baby'` (the only
+    phase we support today) → `SET NOT NULL`.
+  - Because no row can ever have a null phase, there is **no date-derived fallback** in
+    `profilePhase`. The only "no phase" case is a brand-new user mid-onboarding (`needsOnboarding`),
+    not a saved row.
+- **`due_date` stays nullable** — a baby-mode profile has no due date; only `phase` is `NOT NULL`.
 - New-user onboarding asks "expecting" or "already have your baby", sets the initial `phase`, and
   collects the matching date.
-- A **swap control** lets the user move between modes at any time.
-- "Mark as born" sets `birthdate` (keeps `due_date`) **and** swaps `phase` to `baby` — but the swap
-  is reversible.
+- **No casual swap control.** Phase changes happen through exactly three deliberate paths:
+  onboarding, "mark as born", and a guarded settings-only undo. There is no always-visible toggle —
+  flipping phase should be hard to do, and impossible to do by accident.
+- **"Mark as born"** sets `birthdate` (keeps `due_date`) **and** swaps `phase` to `baby`. It is a
+  deliberate, confirmed milestone action, not a toggle.
+- **Switching the whole app back to pregnancy mode (baby → pregnancy) is a guarded correction, not a
+  feature.** It lives buried in settings behind its own confirmation ("Undo birth announcement? This
+  puts CradleHQ back into pregnancy mode."). It exists for mistakes (wrong date, fat-finger,
+  early/late birth), not nostalgia.
+- **Viewing/keeping up pregnancy content ≠ swapping phase.** After birth, the bump diary +
+  pregnancy journal entries stay **fully accessible and editable from inside baby mode** via a
+  dedicated pregnancy view (built in S3) — they are **not** made read-only. So "look back at (or add
+  to) my bump photos" never requires switching the whole app back to pregnancy mode. Placement is
+  decided: a **"Bump"/"Pregnancy" pill in the Memories tab**, data-gated on the profile having
+  pregnancy data (see S2). S1 only establishes the principle.
+- Both `birthdate` and `due_date` are **protected on the profile-form upsert** (`COALESCE` —
+  see Backend) so a form save in one mode never wipes the other mode's date. Clearing a date is its
+  own deliberate action, never a side effect of saving the form.
 
 ---
 
@@ -36,24 +57,66 @@ screen and content come in S2. Verify by toggling a profile's phase and seeing t
 ### Migration — `V35__add_pregnancy_fields_to_baby_profiles.sql`
 (Use the next free V-number; V34 is the latest at time of writing.)
 ```sql
-ALTER TABLE baby_profiles ADD COLUMN due_date DATE;
-ALTER TABLE baby_profiles ADD COLUMN phase    VARCHAR(16);  -- 'pregnancy' | 'baby' | NULL (legacy)
+ALTER TABLE baby_profiles ADD COLUMN due_date DATE;          -- nullable: baby profiles have no due date
+
+-- phase: add nullable, backfill every existing row to 'baby' (the only phase we support today),
+-- then lock it to NOT NULL. No default — every INSERT must state the phase explicitly.
+ALTER TABLE baby_profiles ADD COLUMN phase VARCHAR(16);
+UPDATE baby_profiles SET phase = 'baby' WHERE phase IS NULL;
+ALTER TABLE baby_profiles ALTER COLUMN phase SET NOT NULL;
+ALTER TABLE baby_profiles ADD CONSTRAINT phase_valid CHECK (phase IN ('pregnancy','baby'));
 ```
-Both nullable. Existing baby-mode profiles keep `due_date = NULL` and `phase = NULL`; the frontend
-fallback (see helper) treats a null `phase` with a birthdate as baby mode, so they're unaffected.
+`due_date` stays nullable. After the backfill no profile row can have a null `phase`, so the
+frontend needs no legacy fallback. The whole migration runs in one transaction — if any row still
+had a null phase after the backfill, `SET NOT NULL` fails and the migration rolls back (won't happen
+given the backfill, but that's the failure mode).
 
-### `com.gotcherapp.api.baby` (BabyProfile)
-- Add `dueDate` (`LocalDate`) and `phase` (`String`) to the `BabyProfile` record.
-- Repository: include `due_date` + `phase` in the SELECT column list, the INSERT, and the UPDATE
-  (the profile upsert). Map both in the `RowMapper`.
-- Service / controller: thread `dueDate` + `phase` through the `/baby-profile` GET response and the
-  create/update request DTO. No new endpoints — the existing upsert handles the swap (the frontend
-  just PATCHes `phase`).
+### `com.gotcherapp.api.baby` (`BabyProfileService` + DTOs)
+The existing service already establishes the pattern we want: alongside the big `upsert`, it has
+narrow single-column writers (`updateBookTheme`, `uploadCoverPhoto`, `updateCoverSubtitle`) that
+change one field without disturbing the rest. Phase changes follow that precedent — they are **not**
+routed through the upsert.
 
-> ⚠️ The profile is an **upsert** keyed on `user_id` (UNIQUE). Make sure adding columns to the
-> UPDATE branch does not blow away `birthdate` / `due_date` / `phase` when only one is supplied —
-> patch semantics: only overwrite a column when the request actually carries a value. (The phase
-> swap must not wipe the dates.)
+- Add `dueDate` (`String`/ISO) + `phase` to `BabyProfileResponse`, `BabyProfileRequest`, and the
+  `SELECT` + `mapRow` in `getProfile`.
+
+- **`upsert` — INSERT carries `phase`; UPDATE never touches it; both dates are COALESCE-protected.**
+  ```sql
+  INSERT INTO baby_profiles (user_id, baby_name, birthdate, parent_name, phone, sex, due_date, phase)
+  VALUES (?, ?, ?::date, ?, ?, ?, ?::date, ?)
+  ON CONFLICT (user_id) DO UPDATE SET
+      baby_name   = EXCLUDED.baby_name,
+      birthdate   = COALESCE(EXCLUDED.birthdate, baby_profiles.birthdate),
+      due_date    = COALESCE(EXCLUDED.due_date,  baby_profiles.due_date),
+      parent_name = EXCLUDED.parent_name,
+      phone       = EXCLUDED.phone,
+      sex         = EXCLUDED.sex,
+      updated_at  = NOW()              -- NOTE: phase deliberately absent from the UPDATE list
+  RETURNING ...
+  ```
+  - `phase` is in the INSERT (onboarding is the first save → INSERT path; `phase` is `NOT NULL` with
+    no default, so it must be supplied) but **omitted from the UPDATE** — a normal profile-form save
+    can never change phase.
+  - Both dates use `COALESCE(EXCLUDED.x, baby_profiles.x)`: a baby-mode form save (no due date)
+    won't wipe a preserved `due_date`, and a pregnancy-mode save (no birthdate) won't wipe a
+    `birthdate`. The form only ever *sets* a date it actually carries.
+  - Validate `phase ∈ {pregnancy, baby}` and non-null in the service before the upsert (mirror the
+    existing `VALID_THEMES` guard → clean 400, with the DB `CHECK` as backstop).
+
+- **`updatePhase(userId, phase)`** — dedicated narrow writer, a copy of `updateBookTheme`
+  (incl. `VALID_PHASES` validation): `UPDATE baby_profiles SET phase = ?, updated_at = NOW()
+  WHERE user_id = ?`. Backend primitive for the guarded settings-only reversal. Not wired to any
+  casual toggle.
+
+- **`markAsBorn(userId, birthdate)`** — one statement, sets birthdate + swaps to baby in a single
+  write, preserves `due_date` by not touching it:
+  ```sql
+  UPDATE baby_profiles SET birthdate = ?::date, phase = 'baby', updated_at = NOW() WHERE user_id = ?
+  ```
+
+- Controller: add the two small endpoints (locked 2026-06-17): `POST /baby-profile/mark-born`
+  (body `{ birthdate }`) → `markAsBorn`, and `POST /baby-profile/phase` (body `{ phase }`) →
+  `updatePhase` (guarded reversal). No phase ever flows through the `/baby-profile` upsert's update path.
 
 ---
 
@@ -64,13 +127,10 @@ fallback (see helper) treats a null `phase` with a birthdate as baby mode, so th
 const GESTATION_DAYS = 280; // 40 weeks; due date = LMP + 280d
 
 // 'pregnancy' | 'baby' | 'incomplete'
-// The stored phase wins; fall back to a date-derived guess only for legacy profiles
-// that predate the phase column (phase == null).
+// phase is NOT NULL on every saved row, so the stored value always wins. 'incomplete' only
+// covers a brand-new user mid-onboarding (no saved profile yet) — not a persisted row.
 export function profilePhase(profile) {
-  if (profile?.phase === 'pregnancy' || profile?.phase === 'baby') return profile.phase;
-  if (profile?.birthdate) return 'baby';
-  if (profile?.dueDate) return 'pregnancy';
-  return 'incomplete';
+  return profile?.phase ?? 'incomplete';
 }
 
 // Whole weeks pregnant today, from the due date. Clamp to [0, 42].
@@ -95,8 +155,10 @@ render paths).
 - Compute `phase = profilePhase(data.profile)` and pass it down. For S1, pregnancy mode can render a
   simple placeholder ("Pregnancy mode — coming in S2") gated on `phase === 'pregnancy'`; baby mode
   is the existing app unchanged.
-- Add a lightweight `swapPhase(next)` that PATCHes `phase` to `/baby-profile` and updates local
-  state — used by the swap control and "mark as born".
+- Add two small action helpers that hit the dedicated endpoints (NOT the profile upsert) and update
+  local state: `markBorn(birthdate)` → `markAsBorn` endpoint; `undoBirth()` → `updatePhase('pregnancy')`.
+  These are the only client-side paths that change phase post-onboarding. There is no generic
+  always-available `swapPhase` toggle.
 
 ### Onboarding — phase choice
 The onboarding gate today is `needsOnboarding` (null=loading / true=no profile / false=has profile).
@@ -110,29 +172,35 @@ Update the onboarding form (wherever `needsOnboarding === true` renders) to a tw
 Result: an "expecting" user lands in pregnancy mode (placeholder for now); a "have baby" user lands
 in the current app exactly as today.
 
-### Phase swap control
-Add a small control (placeholder location for S1; S2 gives it a real home) that calls
-`swapPhase(...)` to move between pregnancy and baby mode at will. This is the user-controlled switch
-— the mode follows `phase`, never the birthdate.
-
 ### "Mark as born" transition
-Add an action available in pregnancy mode (placeholder location for S1; S2 gives it a real home)
-that prompts for the birthdate, saves it, **and** swaps `phase` to `baby`. It is **reversible** via
-the swap control. Confirm `due_date` is preserved and the swap doesn't wipe any dates.
+An action available in pregnancy mode (placeholder location for S1; S2 gives it a real home) that
+**confirms**, prompts for the birthdate, then calls `markBorn(birthdate)`. It sets `birthdate`,
+swaps `phase` to `baby`, and preserves `due_date`. This is a deliberate milestone — confirmation
+required, not a toggle.
+
+### Guarded reversal (baby → pregnancy)
+There is **no casual swap control.** The only way back is a buried, settings-only action behind its
+own confirmation ("Undo birth announcement? This puts CradleHQ back into pregnancy mode.") that calls
+`undoBirth()` → `updatePhase('pregnancy')`. It exists for mistakes, not nostalgia; "look back at bump
+photos" is handled later (S2/S3) as read-only history inside baby mode, without re-entering pregnancy
+mode. For S1 a placeholder location is fine — just ensure it's confirmed and not prominent.
 
 ---
 
 ## Testing checklist
-- [ ] Migration applies; existing profiles read back with `due_date`/`phase = null` and still work
+- [ ] Migration applies; existing profiles backfill to `phase = 'baby'` with `due_date = null` and
+      still work; CHECK constraint rejects any phase outside `('pregnancy','baby')`
 - [ ] `/baby-profile` GET returns `dueDate` + `phase`; upsert round-trips them without clobbering
       `birthdate` / each other
-- [ ] `profilePhase` returns the stored phase when set; falls back correctly when `phase` is null
+- [ ] `profilePhase` returns the stored phase for any saved row; `'incomplete'` only pre-onboarding
 - [ ] `weeksPregnant` / `daysUntilDue` unit tests pass
 - [ ] New user picking "Expecting" + due date → `phase = pregnancy` → loads pregnancy placeholder
 - [ ] New user picking "Already have my baby" + birthdate → `phase = baby` → current app unchanged
-- [ ] Swap control moves between modes both directions; dates preserved each way
-- [ ] "Mark as born" sets birthdate, preserves due_date, swaps to baby mode — and is reversible
-- [ ] Existing baby-mode users (null phase) see no behavior change
+- [ ] Profile-form save in baby mode does NOT wipe a preserved `due_date`; save in pregnancy mode
+      does NOT wipe `birthdate` (both COALESCE-protected); profile save never changes `phase`
+- [ ] "Mark as born" sets birthdate, preserves due_date, swaps to baby mode (via dedicated endpoint)
+- [ ] Guarded settings-only undo returns to pregnancy mode; no casual/always-visible swap exists
+- [ ] Existing baby-mode users (backfilled to `phase = 'baby'`) see no behavior change
 
 ## Out of scope
 - Pregnancy home screen, size card, dataset, illustrations — S2.

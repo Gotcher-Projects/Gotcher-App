@@ -18,11 +18,30 @@ all driven by one ~37-row size dataset. Surface the existing appointments featur
 visits. Follow the plan step by step.
 ```
 
-## S3 — Bump Photo Diary + Storybook Tie-in
+## S3 — Bump Photo Diary
 ```
-S2 of the pregnancy plan is complete. We're starting S3: plans/pregnancy/s3-bump-diary-and-storybook.md
+S2 of the pregnancy plan is complete. We're starting S3: plans/pregnancy/s3-bump-diary.md
 Goal: build the bump photo diary (a weekly belly-photo series, each photo paired with the baby's
-size that week) reusing the existing photo upload/crop flow, and wire bump photos + pregnancy
-journal/first-time entries into the existing storybook so the book runs continuously from bump to
-baby. Follow the plan step by step.
+size that week) reusing the existing photo upload/crop flow. New bump_photos table + a `bump`
+package mirroring `firsttimes`, and one editable BumpDiary component mounted on the pregnancy home
+and as a data-gated "Bump" pill in the Memories tab. Storybook tie-in is now S4. Follow the plan
+step by step.
+```
+
+## S4 — Storybook Pregnancy Tie-in — DEFERRED → Storybook V2
+```
+S4 is no longer built here. The pregnancy → storybook tie-in is built against the v2 Guided Book
+(data-derived, fixed-layout page types), where it mirrors the Firsts chapter instead of retrofitting
+the scrapbook wizard + L-Wrap. See plans/storybook-v2/pregnancy-track.md. It depends on the v2 guided
+book shell (sv2-s6) and the Letter component (sv2-s1), and consumes the phase-flagged pre-birth
+journal data produced by pregnancy S5. Re-discuss as part of the v2 re-talk before speccing sessions.
+```
+
+## S5 — Pregnancy Flow Alignment + Polish
+```
+We're starting S5 of the pregnancy plan: plans/pregnancy/s5-pregnancy-flow-alignment.md
+Goal: bring pregnancy mode (PregnancyHome + bump diary) visually/structurally in line with the
+established baby flow, and derive the bump-entry Week from its Date (via weeksPregnant(dueDate, date)).
+Independent of S4. START by settling the shell/structure question and the derived-vs-overridable Week
+behavior with Michael before coding. Follow the plan step by step.
 ```

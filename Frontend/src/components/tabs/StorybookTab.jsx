@@ -10,6 +10,7 @@ import StorybookWizard from "@/components/storybook/StorybookWizard";
 import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
 import LayoutRenderer from "@/components/storybook/LayoutRenderer";
 import { BOOK_THEMES, getTheme } from "@/lib/bookThemes";
+import { formatDate } from "@/lib/formatting";
 import { apiRequest } from "@/lib/api";
 import BookCover from "@/components/storybook/BookCover";
 
@@ -18,9 +19,9 @@ export default function StorybookTab({
   journalEntries, firsts, birthdate, babyName,
   coverPhotoUrl: coverPhotoUrlProp, coverSubtitle: coverSubtitleProp,
   onUpdate, onDelete,
-  onWizardGenerate, onGeneratePages, onUpload,
+  onWizardGenerate, onUpload,
   bookTheme: bookThemeProp, onUpdateBookTheme,
-  onNavigate, onError,
+  onError,
 }) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [credits, setCredits] = useState(initialCredits ?? null);
@@ -56,15 +57,10 @@ export default function StorybookTab({
   }
 
   async function handleGeneratePages(chapterId, groups) {
-    let pages;
-    if (groups) {
-      pages = await apiRequest(`/storybook/generate-pages/${chapterId}`, {
-        method: 'POST',
-        body: JSON.stringify({ groups }),
-      });
-    } else {
-      pages = await onGeneratePages(chapterId);
-    }
+    const pages = await apiRequest(`/storybook/generate-pages/${chapterId}`, {
+      method: 'POST',
+      body: JSON.stringify({ groups }),
+    });
     setCredits(c => c === null ? null : Math.max(0, c - pages.length));
     return pages;
   }
@@ -335,7 +331,7 @@ function ChapterCard({ chapter, theme, onUpdate, onDelete, onEditLayout, onError
         <LayoutRenderer layout={chapter.layoutData} theme={theme} />
         {chapter.publishedAt && (
           <p className="text-center text-xs text-muted-foreground px-8 py-4" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>
-            {new Date(chapter.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {formatDate(chapter.publishedAt)}
           </p>
         )}
         <div className="px-6 py-3 border-t border-[#ddd0b8] dark:border-border flex gap-2 justify-end">

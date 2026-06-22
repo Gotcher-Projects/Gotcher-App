@@ -1,4 +1,6 @@
 import { TEMPLATES } from '@/lib/storybookTemplates';
+import { toTiptapDoc } from '@/lib/tiptap';
+import { cleanBodyText } from '@/lib/storybookText';
 
 // ── Word counting ─────────────────────────────────────────────────────────────
 
@@ -9,6 +11,14 @@ function wordCount(text) {
 
 // ── Memory list builder ───────────────────────────────────────────────────────
 
+// sourceKey grammar (the string that ties a memory to its blocks / generated content):
+//   `journal:<id>`      — a journal entry
+//   `first_time:<id>`   — a first-time memory
+//   `upload:<uuid>`     — a standalone chapter photo (minted by the backend on upload)
+//   `slot:<N>`          — a photo-only template slot with no owning memory
+// l-wrap blocks carry the photo provenance on a SEPARATE `photoSourceKey` (the text
+// keeps `sourceKey`), because one l-wrap mixes text from one memory + a photo from another.
+// The backend mirrors `journal:`/`first_time:` in buildBatchPagesPrompt (StorybookService).
 export function buildMemoryList({ journalIds, firstTimeIds, journalEntries, firsts, photoOverrides, entryNotes }) {
   const memories = [];
 
@@ -156,21 +166,7 @@ export function extractPieceText(gc, piece = 'body') {
   if (piece === 'pullQuote') return gc.pullQuote || '';
   if (piece === 'title') return gc.title || '';
   if (piece === 'caption') return gc.caption || '';
-  return (gc.body || '').replace(/\[PHOTO:[^\]]+\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function toTiptapDoc(text) {
-  if (!text || !text.trim()) {
-    return { type: 'doc', content: [{ type: 'paragraph', content: [] }] };
-  }
-  const paras = text.trim().split(/\n{2,}/).filter(Boolean);
-  return {
-    type: 'doc',
-    content: paras.map(p => ({
-      type: 'paragraph',
-      content: [{ type: 'text', text: p.trim() }],
-    })),
-  };
+  return cleanBodyText(gc.body);
 }
 
 export function buildGroupedLayoutData(pageGroups, generatedPages) {

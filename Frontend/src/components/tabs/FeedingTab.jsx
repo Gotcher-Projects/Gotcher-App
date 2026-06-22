@@ -7,7 +7,7 @@ import { LoadingButton } from "@/components/ui/LoadingButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Utensils, Timer, StopCircle, Plus, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
-import { formatDuration } from "@/lib/formatting";
+import { formatDuration, formatDate } from "@/lib/formatting";
 
 const FEED_TYPES = [
   { value: 'breast_left',  label: 'Breast (L)' },
@@ -138,7 +138,7 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
   const pastLogs = displayLogs.filter(l => l.endedAt && new Date(l.startedAt).toDateString() !== today);
   const grouped = {};
   pastLogs.forEach(l => {
-    const d = new Date(l.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const d = formatDate(l.startedAt, { style: 'short', withYear: false });
     if (!grouped[d]) grouped[d] = [];
     grouped[d].push(l);
   });

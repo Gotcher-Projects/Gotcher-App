@@ -1,152 +1,186 @@
 # Storybook Feature — Context Primer
 
-> **Purpose:** A single, accurate briefing on how the CradleHQ "Storybook" feature
-> works end to end. Paste this into a new AI session before doing storybook work so
-> the assistant has correct context without re-deriving it (and without the wrong
-> assumptions that have bitten past sessions). Last mapped: 2026-05-30. Feature is
-> at **S5.6 complete; S5.7 (book cover) next.**
+> **Purpose:** A single, accurate briefing on how the CradleHQ "Storybook" (memory-book)
+> feature works end to end. Paste this into a new AI session before doing storybook work so
+> the assistant has correct context without re-deriving it.
 >
-> Companion docs in this folder: `storybook-text-layout-recommendations.html` (the
-> text-fit + repetitive-opening analysis this primer was written alongside). At repo
-> root: `storybook-layout-findings.html` (the S5.45 real-estate/cutoff diagnosis).
+> **Last verified against commit `4dc23e9`** (branch `pregnancy-updates`, 2026-06-21).
+> This rewrite replaces the pre-rewrite primer that described the old multi-path AI
+> generator, `LayoutEditor`, stickers, and the sharing endpoints — all since removed.
 
 ---
 
-## 0. The five things that surprise people
+## 0. The things that surprise people
 
 1. **There is no `storybooks` table and no `Storybook` entity.** "The book" is simply
    *all `storybook_chapters` rows for a baby profile*, ordered by `sort_order` then
    `created_at`. One row = one chapter.
-2. **A "chapter" is anchored to one of three things** (`anchor_type`): a `milestone`,
-   a `first_time`, or a `period` (a time window). The period/wizard flow is the main one.
-3. **There are THREE different AI generation paths with TWO different system prompts.**
-   The "page per memory" complaint and the "every page starts with You" complaint both
-   come from *one* of them — the paged path with `SINGLE_ENTRY_SYSTEM_PROMPT`.
-4. **In "One Page Per Memory" mode each page is a separate, independent Claude call.**
-   So pages can't vary their openings relative to each other — every call sees only its
-   own memory and the same prompt. (The woven "One Story" mode is a single call.)
-5. **Layout block coordinates are fractions (0–1) of a 600×800 virtual canvas**, not a
-   grid. `fitText` is already a real pixel measurement (binary search), not a heuristic —
-   but it only ever *shrinks* text, never grows it (this is central to the wasted-space issue).
+2. **There is exactly ONE AI generation path now.** `POST /storybook/generate-pages/{id}`
+   → `generatePages()` → a single **batched** `claudeClient.generatePagesBatch()` call that
+   returns every page in one shot. (The old 3-paths / 2-prompts / per-memory-loop design and
+   the `POST /storybook/generate/{id}` endpoint are gone.)
+3. **Generation and layout are decoupled.** The AI only produces *text* (`generated_content`,
+   a per-memory map of `{body, pullQuote, title, caption}`). Arranging that text + photos onto
+   pages is done entirely client-side in the **builder** (`ScrapbookBuilder`).
+4. **Chapters are created only by the wizard, as `anchor_type = 'period'`.** The old
+   `/storybook/unlock` endpoint (which created `milestone` / `first_time` rows) was removed.
+   The `anchor_type` column still allows all three values for legacy rows, but the live flow
+   only writes `period`.
+5. **Layout block coordinates are fractions (0–1) of a 600×800 virtual canvas**, not a grid.
+   `fitText` is a real pixel measurement (binary search) that **both shrinks and grows** text
+   to fill its fixed box (up to a per-caller ceiling, default = no growth).
 
 ---
 
 ## 1. Data model (PostgreSQL, JdbcTemplate — no ORM)
 
-### `storybook_chapters` (V24, extended by V26–V32)
+### `storybook_chapters` (V24, extended by V26–V34)
 One row per chapter. Columns (see `StorybookService.CHAPTER_COLS`):
 
 | Column | Meaning |
 |--------|---------|
 | `id`, `baby_profile_id` | PK + owner FK (ownership scoped on every query) |
-| `anchor_type` | `milestone` \| `first_time` \| `period` |
-| `anchor_key`, `anchor_label` | e.g. milestone key `8-2`, or a period key; label is the chapter title |
-| `period_start_weeks`, `period_end_weeks` | for `period` chapters |
+| `anchor_type` | `milestone` \| `first_time` \| `period` — **live flow only writes `period`** |
+| `anchor_key`, `anchor_label` | period key + the chapter title/label |
+| `period_start_weeks`, `period_end_weeks` | the period window |
 | `sort_order` | chapter ordering (nullable; `COALESCE(…,999999)`) |
-| `body` | AI-generated prose. May contain inline `[PHOTO:journal:42]` / `[PHOTO:first_time:42]` markers |
-| `status` | `unlocked` → `draft` → `published` |
-| `image_url` | legacy single hero image (pre-wizard) |
+| `body` | legacy AI prose (pre-builder). May contain inline `[PHOTO:journal:42]` markers. Not produced by the current flow |
+| `status` | `unlocked` → (`draft`) → `published` (see §2) |
+| `image_url` | legacy single hero image |
 | `wizard_journal_ids`, `wizard_first_time_ids` | CSV of selected source IDs (V28) |
 | `supplementary_notes` | free-text extra memories from the parent (V28) |
 | `photo_overrides` | JSONB map `"journal:42" → url` (V28) — photos used only in the book |
 | `wizard_entry_notes` | JSONB map `"journal:42" → note` (V29) — per-entry parent memory |
-| `layout_data` | JSONB layout (V30). NULL = render via legacy body renderer |
+| `layout_data` | JSONB layout (V30). NULL = no layout yet |
 | `chapter_photos` | JSONB array of standalone uploaded photos `{key,url,label}` (V31) |
+| `generated_content` | **JSONB map `sourceKey → {body, pullQuote, title, caption}`** (V34) — the AI output the builder draws from |
 | `generated_at`, `published_at`, `created_at`, `updated_at` | timestamps |
 
 ### Other tables
-- **`book_share_tokens`** (V25) — `baby_profile_id` + 64-char hex `token` for the public read-only book (`GET /book/public/{token}`).
+- **`book_share_tokens`** (V25) — retained in the DB but **unused**: the sharing feature and
+  its endpoints were removed (see `plans/storybook-and-pregnancy-review-fixes/s2`).
 - **`baby_profiles.book_theme`** VARCHAR(20) default `'classic'` (V32) — the book's theme preset.
 
-> Mapped to **`ChapterResponse`** (note the field renames): `wizard_journal_ids → selectedJournalIds`, `wizard_first_time_ids → selectedFirstTimeIds`, `wizard_entry_notes → entryNotes`, `layout_data → layoutData`, `chapter_photos → chapterPhotos`.
+> Mapped to **`ChapterResponse`** (field renames): `wizard_journal_ids → selectedJournalIds`,
+> `wizard_first_time_ids → selectedFirstTimeIds`, `wizard_entry_notes → entryNotes`,
+> `layout_data → layoutData`, `chapter_photos → chapterPhotos`, `generated_content → generatedContent`.
 
 ---
 
 ## 2. Chapter lifecycle
 
 ```
-unlocked ──generate──▶ draft ──publish──▶ published
-   ▲                     │
-   └── free users can have unlocked rows but cannot generate
-       (gated on tier != 'free' AND users.ai_credits_remaining > 0)
+(wizard creates row) ──▶ unlocked ──build + Publish──▶ published
 ```
 
-Each generate call **decrements a credit before** calling Claude and **refunds it** if
-the call throws (paged mode refunds per-page). Credits/tier live on the `users` table.
+- The **wizard** inserts the period row with `status = 'unlocked'` (`StorybookService.wizard`).
+- `generatePages()` writes `generated_content` but does **not** change status.
+- The **builder** autosaves `layout_data` via `PATCH /storybook/{id}` (status unchanged), and
+  **Publish** sets `status = 'published'` + `published_at`.
+- `draft` is part of the status vocabulary but the current wizard→builder flow goes
+  `unlocked → published`; the UI groups any non-`published` chapter as "Draft / unlocked"
+  (`StorybookTab.ChapterCard`).
+
+**Credits:** `generatePages` **charges `N` credits up front** (N = number of selected memories)
+in a single atomic conditional `UPDATE` (gates + decrements together — TOCTOU-safe), and
+**refunds all N** if the Claude call or the JSON parse throws. Free tier is rejected before any
+charge. Credits/tier live on the `users` table.
 
 ---
 
-## 3. The three AI generation paths (READ THIS CAREFULLY)
+## 3. The AI generation path
 
-All three live in `StorybookService` and call `ClaudeClient`. Model + temperature from
-`application.properties`: **`anthropic.model` (currently `claude-haiku-4-5-20251001`)**,
-`anthropic.temperature` (0.3).
+`POST /storybook/generate-pages/{id}` → `StorybookService.generatePages()`:
 
-| # | Endpoint → method | System prompt | Shape | Cost |
-|---|---|---|---|---|
-| 1 | `POST /storybook/generate/{id}` → `generate()` | `SYSTEM_PROMPT` (woven) | One chapter body from a milestone/first_time/period anchor. `buildPrompt()` gathers context: event window (±3 wks) for event anchors, or merged memories for period/wizard anchors. | 1 credit |
-| 2 | `POST /storybook/wizard` → `wizard()` | `SYSTEM_PROMPT` (woven) | "One Story" — one woven period chapter from the user-selected journal/first-time IDs (`buildWizardPrompt()` → `appendMergedMemories`). `skipGeneration:true` just saves the row (used by paged mode). | 1 credit |
-| 3 | `POST /storybook/generate-pages/{id}` → `generatePages()` | `SINGLE_ENTRY_SYSTEM_PROMPT` (page) | **"One Page Per Memory"** — loops over each selected entry and makes **one independent Claude call per memory** (`buildSingleJournalPrompt` / `buildSingleFirstTimePrompt`, `generateSingle`, 220 max tokens). Returns `[{sourceKey, body}]`. | 1 credit **per page** |
+1. Gate on tier (`free` → 403) and load the chapter's selected journal/first-time IDs.
+2. Build a **single** user prompt listing every selected memory in date order, each tagged with
+   its `sourceKey` (`buildBatchPagesPrompt`). Memories that share a printed page are tagged
+   `[GROUP]` so the model writes a shorter body for them.
+3. Charge credits, then **one** call: `claudeClient.generatePagesBatch(prompt, maxTokens)`
+   (`maxTokens = min(800 + N*320, 8000)`).
+4. Parse the JSON `{ "pages": [ { sourceKey, body, pullQuote, title, caption } ] }`
+   (`extractJson` tolerates prose/fences), persist it to `generated_content`, and return the list.
 
-**Path 3 is the one behind both of the user's current complaints** (short pages waste
-space; every page opens with "You…"). Because each page is its own call with the same
-prompt, there's no cross-page awareness to vary openings or balance length.
+Model + temperature from `application.properties`: **`anthropic.model`
+(`claude-haiku-4-5-20251001` default)**, `anthropic.temperature` (0.3).
 
-### The two system prompts (verbatim location: `ClaudeClient.java`)
-- **`SINGLE_ENTRY_SYSTEM_PROMPT`** (paths 3): *one page, second person "You did…/You were…", 1–2 short paragraphs ~60–100 words, strict no-inference rules (don't invent people/relationships/genders, use "the people who love you" if unclear), no title, no photo markers, no closing line.*
-- **`SYSTEM_PROMPT`** (paths 1 & 2): *woven chapter, second person, paragraph count scales with richness (max 25), same strict no-inference rules, **emits `[PHOTO:…]` markers** when a "Photos available:" line is present, opens "by grounding the reader in a specific moment or sensory detail from the earliest entry," closes with a brief forward-looking line.*
+The system prompt is **`BATCH_PAGES_SYSTEM_PROMPT`** in `ClaudeClient.java` (verbatim): one page
+per memory; warm 2nd-person voice; **every page must open differently** (never "You…" / the
+baby's name); 90–160 words (40–70 for `[GROUP]`); strict no-inference rules (never invent
+people/relationships/genders — use "the people who love you" when unsure); also emits
+`pullQuote` / `title` / `caption` per page. JSON only.
 
-The exact current prompt text and proposed rewrites are in
-`storybook-text-layout-recommendations.html`.
+> **Note:** `ClaudeClient.callClaude` still has a temporary `[CLAUDE-DEBUG]` logger that prints
+> full prompts + responses (personal journal content). Removal is tracked in
+> `plans/storybook/sDeferred-remove-claude-logging.md` — out of scope for the docs pass.
 
 ---
 
 ## 4. The wizard UI flow (`StorybookWizard.jsx`)
 
-Steps (state machine `step` 1–6):
-1. **Period** — pick a time window (`STORYBOOK_PERIODS` in `lib/storybookPeriods.js`); auto-selects entries in range.
-2. **Curate** — check which journal entries / first times to include (max 20); per-entry "Add photo" (crops + uploads → `photoOverrides`) and "Add a memory" note (→ `entryNotes`).
-3. **Mode picker:**
-   - **One Story** → `handleGenerate()` → path 2 (`wizard`) → review (step 5).
-   - **One Page Per Memory** → `handleGeneratePages()` → path 2 with `skipGeneration` to save the row, then path 3 (`generate-pages`), then **builds v2 `layout_data` client-side** (one page per returned memory) → layout editor (step 6).
-4. **Supplementary notes** (One Story only) → Generate.
-5. **Review** (`BookChapterReview.jsx`) — publish / regenerate / "Design" (→ editor).
-6. **Layout editor** (`LayoutEditor.jsx`) — both modes; also reached via `editMode`.
+State machine `step`; the live path is **1 → 2 → 3 → 6** (steps 4/5 of the old design are gone
+along with `BookChapterReview`):
 
-The page-per-memory layout it builds: text block `x0.04 y0.04 w0.92 h(0.34 if photo else 0.92)`; photo block `x0.04 y0.40 w0.92 h0.56`.
+1. **Period** — pick a time window (`STORYBOOK_PERIODS` in `lib/storybookPeriods.js`); auto-selects
+   entries in range.
+2. **Curate** — check which journal entries / first times to include (max 20); per-entry "Add
+   photo" (crops + uploads → `photoOverrides`) and "Add a memory" note (→ `entryNotes`).
+3. **Mode picker — both paths generate first, then open the builder (step 6):**
+   - **Scrapbook** (`handleStartPath('scrapbook')`, `seed:false`) — generates content, opens the
+     builder with **one blank page**; the freshly generated content is attached so the memory
+     panel can place it manually.
+   - **Quick Build** (`handleStartPath('quick')`, `seed:true`) — generates content, then
+     **auto-arranges** it into pages via `autoSuggestGroups` + `buildGroupedLayoutData`, saves the
+     `layout_data`, and opens the builder pre-filled.
+6. **Builder** (`ScrapbookBuilder`) — arrange/edit/publish (see §6). Also reached via the chapter
+   "Edit" action in `StorybookTab`.
+
+`runGenerateFirst(seed)` orchestrates: `wizard` (save row) → `generate-pages` → optional
+`buildGroupedLayoutData` → `PATCH layoutData`.
 
 ---
 
-## 5. Layout schema (`layout_data` JSONB)
+## 5. Layout schema (`layout_data` JSONB) + the render model
 
 ```jsonc
-// v2 (multi-page — produced by paged mode and the editor)
+// v2 (multi-page — the only shape the builder produces)
 {
   "version": 2,
   "pages": [
     {
       "id": "p-…",
-      "sourceKey": "journal:42",        // which memory this page came from (or null)
-      "backgroundColor": "#fff" | null, // per-page bg override (else theme bg)
+      "sourceKeys": ["journal:42", …],   // memories this page came from
+      "templateId": "classic" | null,    // the chosen template (or null)
+      "backgroundColor": "#fff" | null,  // per-page bg override (else theme bg)
       "blocks": [ /* see below */ ]
     }
   ]
 }
-
-// v1 (single page) — { "version": 1, "blocks": [...] }   (NULL = legacy body renderer)
+// v1 (single page) — { "version": 1, "blocks": [...] }. NULL layout_data = page has no layout yet.
+// initPages() folds v1/empty into a single v2 page on load (lib/storybookLayout.js).
 
 // block — x/y/width/height are FRACTIONS (0..1) of the page, NOT a grid
-{ "type": "text",    "x":0.04,"y":0.04,"width":0.92,"height":0.34,
-  "content": { /* Tiptap doc */ } | "legacy string", "fontFamily": "serif"? }
-{ "type": "photo",   "x":0.04,"y":0.40,"width":0.92,"height":0.56,
-  "url":"…", "sourceKey":"journal:42", "label":"…" }   // object-fit: cover
-{ "type": "sticker", "x":0.40,"y":0.42,"width":0.20,"height":0.15,
-  "stickerKey":"heart", "color":"#9b7e5a" }            // SVG in /public/stickers/, CSS-mask tinted
+{ "type": "text",   "x":0.05,"y":0.04,"width":0.90,"height":0.36,
+  "content": { /* Tiptap doc */ }, "fontFamily": "serif"?, "suppressDropCap": true?,
+  "sourceKey": "journal:42"? }
+{ "type": "photo",  "x":0.05,"y":0.44,"width":0.90,"height":0.52,
+  "url":"…", "sourceKey":"journal:42", "label":"…", "crop": {x,y,width,height}? }
+{ "type": "l-wrap", "x":0.04,"y":0.04,"width":0.92,"height":0.92,
+  "content": { /* Tiptap doc */ }, "url":"…"?, "crop":…?,
+  "sourceKey": "journal:42"?,        // owns the TEXT provenance
+  "photoSourceKey": "journal:42"? }  // owns the PHOTO provenance (separate key!)
 ```
 
-- **Virtual canvas: 600×800 (3:4 portrait).** Both `LayoutRenderer` and `LayoutEditor`
-  render at this size and CSS-`transform: scale()` to fit the container, so the editor and
-  the published view match exactly. Base font = `CANVAS_W * 0.025` = 15px.
+- **`l-wrap`** is a single cohesive text block that flows around a photo floated into its
+  top-right ~47% corner, producing a true L-shape (one container, one fitted font size). It
+  tracks text vs photo provenance on **two separate keys** (`sourceKey` / `photoSourceKey`).
+- **`moment_hero`** (templates with `renderer: 'moment_hero'`) is a bespoke polaroid "hero page"
+  rendered by `MomentHeroCanvas`, **not** by the generic block renderer. Its blocks carry fixed
+  **role ids** (`badge`/`title`/`date`/`photo`/`note`/`attrib`) that the canvas looks up by id —
+  see the contract comments in `storybookTemplates.js` and `MomentHeroCanvas.jsx`.
+- **Virtual canvas: 600×800 (3:4 portrait).** Both the builder and `LayoutRenderer` render at this
+  size and CSS-`transform: scale()` to fit (`useCanvasScale`), so editor and published view match.
+  Base font = `CANVAS_W * 0.025` = 15px; `useFittedFontSize` fits each block to its box.
 
 ---
 
@@ -155,27 +189,39 @@ The page-per-memory layout it builds: text block `x0.04 y0.04 w0.92 h(0.34 if ph
 ### `Frontend/src/components/storybook/`
 | File | Role |
 |------|------|
-| `StorybookWizard.jsx` | The 6-step wizard above; also `editMode`. Owns selection/photo/note state. |
-| `BookChapterReview.jsx` | Step-5 review of a generated One-Story chapter (publish / regenerate / design). |
-| `LayoutEditor.jsx` | Drag/resize editor (`react-rnd`). Templates (`classic`, `side-by-side`, `hero`, `gallery`, `text-only`); **Tiptap** rich text + `FormatToolbar`; sticker picker; per-page background; per-block font picker; multi-page (add/reorder); **debounced autosave** → `onSave(layoutData)` → `PATCH /storybook/{id}`. |
-| `LayoutRenderer.jsx` | Renders `layout_data` (v2 carousel or v1). `RenderedText` uses `useFittedFontSize` to shrink-to-fit; renders Tiptap via `renderContentHTML` + `dangerouslySetInnerHTML`; stickers via `stickerMaskStyle`. |
-| `LegacyChapterRenderer.jsx` | For chapters with **no** `layout_data`: parses `body` `[PHOTO:…]` markers (`parseBodySegments`) and renders prose + paired photos (`renderPublishedBody` / `renderDraftBody`). |
+| `StorybookWizard.jsx` | The 1→2→3→6 wizard (§4). Owns selection/photo/note state; generate-first for both paths. |
+| `ScrapbookBuilder.jsx` | **The builder.** Shell: page/placement state, drag + click-to-place, autosave, publish. Renders a `MemoryPanel`, the canvas (`Slot`s or `MomentHeroCanvas`), `TemplateSheet`, `PhotoTray`. |
+| `MemoryPanel.jsx` | Left panel: the chapter's memory pieces (`DraggablePiece` / `MemoryCard`), draggable + tap-to-select. |
+| `Slot.jsx` | One droppable/editable block slot (text → `RichTextEditor`; photo → tray/re-crop; `l-wrap`). Plus `SlotPlaceholder` / `LWrapTextPlaceholder`. |
+| `TemplateSheet.jsx` | Template picker bottom-sheet + thumbnails (`TemplateThumb` / `MomentHeroThumb`). |
+| `MomentHeroCanvas.jsx` | Renders the `moment_hero` polaroid layout (role-id blocks); used in the builder (interactive) and read-only (published/PDF). |
+| `LayoutRenderer.jsx` | Read-only render of `layout_data` for published chapters + PDF (via `bookCanvas` helpers). |
+| `BookCover.jsx` | The book cover (title/subtitle + cover photo). |
+| `PhotoTray.jsx` | Bottom-sheet photo chooser/uploader for a slot. |
+| `RichTextEditor.jsx`, `FormatToolbar.jsx`, `FontPicker.jsx` | Tiptap inline editor + its format toolbar + per-block font picker. |
 
-### `Frontend/src/components/tabs/StorybookTab.jsx`
-The tab shell (mounted by `MemoriesTab` when `view === 'book'`). Renders the book-theme
-picker (PATCH `/baby-profile/book-theme`), the "Write a Period Chapter" wizard entry, and a
-`ChapterCard` per chapter. `ChapterCard` switches on status: `unlocked` (Generate),
-`draft` (review/publish/edit/regenerate), `published` (themed card; `LayoutRenderer` if
-`hasLayout` else `LegacyChapterRenderer`). `hasLayout = layoutData.version===2 || layoutData.blocks?.length>0`.
+> **Removed (don't look for them):** `LayoutEditor`, `BookChapterReview`, `LegacyChapterRenderer`,
+> and `lib/stickers.js` / all sticker UI.
 
 ### `Frontend/src/lib/`
 | File | Role |
 |------|------|
-| `fitText.js` | `useFittedFontSize(ref, baseSize, minSize, deps)` — **binary-searches the largest font (≤ baseSize, ≥ minSize=8) that fits the block's real pixel height.** Measurement-based (S5.45). **Only shrinks — never enlarges beyond `baseSize`.** |
-| `tiptap.js` | `tiptapExtensions` (StarterKit minus block stuff + TextStyle + FontSize + TextAlign), `FONT_SIZES` (small/normal/large as em), `renderContentHTML`, `toTiptapDoc`, `contentToPlainText`, `isTiptapDoc`, `fontSizeKey`. |
-| `bookThemes.js` | `BOOK_THEMES` = **classic, coral, midnight (dark), meadow**. Each: `bg`, `accent`, `fontClass`, `dividerChar`, `palette[5]`, optional `textColor`/`isDark`. `getTheme(key)`. |
-| `stickers.js` | `STICKERS` (16 keys → `/public/stickers/<key>.svg`), `stickerMaskStyle(key,color)` (paints SVG via CSS mask), `stickerColors(theme)`. |
-| `storybookPeriods.js` | `STORYBOOK_PERIODS` — fixed list of age windows `{key,label,startWeeks,endWeeks}` for the step-1 picker. |
+| `bookCanvas.jsx` | **The single render model.** `CANVAS_W/H`, `BASE_FONT`, `FONT_MAP`/`FONT_OPTIONS`/`REVERSE_FONT_MAP`, `RenderedText`, `LWrapBlock`, `SlotImage`, `blockBoxStyle`, `cropStyle`, `renderBlocks`, `useCanvasScale`. |
+| `storybookLayout.js` | Pure builder helpers: `splitTextParts`, `migrateBlock`, `initPages` (v1/empty → v2 fold), `buildLayoutData`, `makeId`/`makePageId`. Unit-tested (`test/storybookLayout.test.js`). |
+| `storybookGrouping.js` | `buildMemoryList`, `autoSuggestGroups`, `buildGroupedLayoutData`, `extractPieceText`. The Quick-Build auto-arrange + the memory list the builder shows. |
+| `storybookTemplates.js` | `TEMPLATES` — 15 fixed templates (normalized block boxes + `contentSource`). Includes `l-wrap` + the two `moment_hero` role-id templates. |
+| `storybookText.js` | `cleanBodyText(s)` — strips `[PHOTO:…]` markers + collapses blank lines. One copy, used everywhere. |
+| `tiptap.js` | `tiptapExtensions`, `FONT_SIZES`, `toTiptapDoc`, `renderContentHTML`, `contentToPlainText`, `isTiptapDoc`, `fontSizeKey`. |
+| `fitText.js` | `useFittedFontSize(ref, base, min, deps, max)` — binary-search fit; shrinks long text (≥ min) and grows short text up to `max` (default `max === base` = shrink-only). |
+| `bookThemes.js` | `BOOK_THEMES` (classic, coral, midnight, meadow) + `getTheme(key)`. |
+| `storybookPeriods.js` | `STORYBOOK_PERIODS` — age windows for the step-1 picker. |
+| `storybookPdf.js` | `generateStorybookPdf` — html2canvas + jsPDF export of published chapters (`captureElement`). |
+
+### `Frontend/src/components/tabs/StorybookTab.jsx`
+Tab shell (mounted by `MemoriesTab` when `view === 'book'`): book-theme picker (PATCH
+`/baby-profile/book-theme`), the wizard entry, PDF export of published chapters, and a
+`ChapterCard` per chapter. `ChapterCard` switches on status: `published` (themed card via
+`LayoutRenderer`) vs draft/unlocked (Edit → builder, Publish, Delete).
 
 ---
 
@@ -184,43 +230,35 @@ picker (PATCH `/baby-profile/book-theme`), the "Write a Period Chapter" wizard e
 | Method + path | Purpose |
 |---|---|
 | `GET /storybook` | All chapters for the baby (the whole book) |
-| `POST /storybook/unlock` | Create an `unlocked` milestone/first_time/period chapter row |
-| `POST /storybook/wizard` | Path 2 — One Story (or save row w/ `skipGeneration`) |
-| `POST /storybook/generate/{id}` | Path 1 — (re)generate a chapter body |
-| `POST /storybook/generate-pages/{id}` | Path 3 — One Page Per Memory |
+| `PUT /storybook/order` | Reorder chapters (`{orderedIds:[…]}`) |
+| `POST /storybook/wizard` | Create/update the period chapter row from the wizard selection |
+| `POST /storybook/generate-pages/{id}` | The AI generation path — batched page content (§3) |
 | `PATCH /storybook/{id}` | Update `body` / `status` / `sortOrder` / `layoutData` (or `clearLayoutData`) |
-| `POST /storybook/{id}/chapter-photos` | Multipart standalone photo upload (→ `chapter_photos`) |
+| `POST /storybook/{id}/chapter-photos` | Multipart standalone photo upload (→ `chapter_photos`; key `upload:<uuid>`) |
 | `DELETE /storybook/{id}` | Delete chapter |
-| `GET/DELETE /storybook/share` | Create/revoke share token (plus tier only) |
-| `GET /book/public/{token}` | Public read-only book (no auth) |
+
+> **Removed:** `/storybook/unlock`, `/storybook/generate/{id}`, `/storybook/share`,
+> `/book/public/{token}` (sharing + the old single-chapter generator).
 
 > **Spring error gotcha (project-wide):** an uncaught `RuntimeException` re-dispatches to
-> `/error` unauthenticated → surfaces as **401, not 500**. External-service calls are wrapped
-> in try/catch and mapped via `ApiError` in the controller.
+> `/error` unauthenticated → surfaces as **401, not 500**. External-service calls are wrapped in
+> try/catch; controllers map errors via `ApiError` (and `ApiExceptionHandler`).
 
 ---
 
-## 8. Plan roadmap & status (`plans/storybook/`)
+## 8. Security & ownership
 
-**Complete:** S0–S5 foundation; S5.1 (editor polish/multi-page), S5.2 (v2/reorder/edit
-mode), S5.5 (stickers), S5.6 (rich text). **Needs Verification:** S5.3 (standalone photos),
-S5.4 + S5.41 (theming), S5.42 (per-block fonts), S5.44 (theme polish + virtual canvas),
-**S5.45 (layout real-estate & text-cutoff)**. **Not started:** S5.43 (verify theming/fonts),
-**S5.7 book cover (NEXT)**, S5.8 chapter reordering, S5.9 PDF export, S7 share link UI, S8 print.
-
-Living docs: `tech-debt.md`, `session-prompts.md` (copy-paste opening prompts per session).
-
-> Per **CLAUDE.md**: always check a plan's **Status** first — `Complete` → stop & ask;
-> `Needs Verification`/`In Progress` → confirm state with the user before coding;
-> `Not started` → proceed.
+Every query is scoped by `baby_profile_id`. The wizard additionally **rejects** selections that
+reference another tenant's journal/first-time IDs (`assertSelectionsOwned`), and
+`buildBatchPagesPrompt` re-scopes its reads by `baby_profile_id` as defense-in-depth (the s3 IDOR
+fix). Upload endpoints validate content-type + size (`ImageUploadService.imageValidationError`).
 
 ---
 
 ## 9. Conventions (from project memory / CLAUDE.md)
-- Discuss options & tradeoffs **before** writing code.
+- Discuss options & tradeoffs **before** writing code; never invent unrequested scope.
 - Multi-session work uses `plans/<name>/sN` + `session-prompts.md`.
 - Implement → mark plan **Needs Verification**; only **Complete** after the user confirms.
 - **Never** add `Co-Authored-By: Claude` to commits.
 - Frontend = Vite + React JSX (no TypeScript); backend = Spring Boot + raw JdbcTemplate SQL.
 - When updating the Claude model/API, use the `/claude-api` skill.
-```

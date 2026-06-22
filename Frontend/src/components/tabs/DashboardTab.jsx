@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Sparkles, CalendarDays, CheckCircle2, Zap, ArrowRight } from "lucide-react";
 import { MILESTONES } from "@/lib/babyData";
 import { formatBabyAge } from "@/lib/babyAge";
+import { formatDate } from "@/lib/formatting";
 import { fmtDuration, timeAgo, computeFeedingStats, computeSleepStats } from "@/lib/dashboardStats";
 
 function nowDate() {
@@ -566,7 +567,7 @@ export default function DashboardTab({
                     {upcoming.map(a => (
                       <div key={a.id} className="flex items-center gap-2 text-sm text-foreground">
                         <span className="font-medium text-color-success min-w-[52px]">
-                          {new Date(a.appointmentDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {formatDate(a.appointmentDate, { style: 'short', withYear: false })}
                           {a.appointmentTime && ` · ${new Date(`1970-01-01T${a.appointmentTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
                         </span>
                         <span className="truncate">{a.appointmentType || '—'}</span>

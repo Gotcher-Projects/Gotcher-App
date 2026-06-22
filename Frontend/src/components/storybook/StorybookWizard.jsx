@@ -4,22 +4,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, X, ChevronLeft, Camera, BookOpen, PenLine, Layers, Zap } from "lucide-react";
 import { STORYBOOK_PERIODS } from "@/lib/storybookPeriods";
-import { openCropModal } from "@/lib/imageUtils";
+import { openCropModal, uploadCroppedPhoto } from "@/lib/imageUtils";
 import { pickPhoto } from "@/lib/camera";
 import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
 import { buildMemoryList, autoSuggestGroups, buildGroupedLayoutData } from "@/lib/storybookGrouping";
+import { formatDate } from "@/lib/formatting";
 
 function weeksFromBirthdate(dateStr, birthdate) {
   if (!birthdate || !dateStr) return -1;
   return Math.floor((new Date(dateStr) - new Date(birthdate)) / (7 * 24 * 3600 * 1000));
 }
 
-function fmtDate(raw) {
-  if (!raw) return '';
-  const d = new Date(raw + 'T12:00:00');
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+const fmtDate = raw => formatDate(raw, { style: 'short' });
 
 export default function StorybookWizard({
   journalEntries,
@@ -119,12 +115,9 @@ export default function StorybookWizard({
       file,
       async ({ blob }) => {
         cancelCropRef.current = null;
-        const croppedFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
         try {
-          const form = new FormData();
-          form.append('file', croppedFile, croppedFile.name);
-          const result = await onUpload(form);
-          setPhotoOverrides(prev => ({ ...prev, [key]: result.url }));
+          const url = await uploadCroppedPhoto(onUpload, blob);
+          setPhotoOverrides(prev => ({ ...prev, [key]: url }));
           setPhotoNoteShown(true);
         } catch {
           onError('Failed to upload photo');
@@ -182,7 +175,6 @@ export default function StorybookWizard({
       supplementaryNotes: null,
       photoOverrides: Object.keys(photoOverrides).length > 0 ? photoOverrides : null,
       entryNotes: Object.keys(filteredNotes).length > 0 ? filteredNotes : null,
-      skipGeneration: true,
     };
   }
 
