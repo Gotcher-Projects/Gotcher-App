@@ -51,6 +51,25 @@ export function useCanvasScale(ref) {
   return { containerSize, scale };
 }
 
+// Circular-avatar initial, centered GEOMETRICALLY via SVG (text-anchor:middle +
+// dominant-baseline:central) rather than CSS line-height/flex. The browser and html2canvas disagree
+// on text baselines — a CSS-centered glyph renders low in the exported PDF — but both rasterize this
+// SVG identically. Shared by FamilyTreeCanvas + PeopleCanvas (the circular book-page avatars).
+// Pair it with `borderRadius:'50%'` on the sibling <img> so the photo clips cleanly in html2canvas
+// (which doesn't reliably clip a rounded parent's overflow).
+export function CircleInitial({ letter, color = '#fff' }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ display: 'block' }}>
+      <text
+        x="50" y="50" textAnchor="middle" dominantBaseline="central"
+        fontFamily="'Playfair Display', Georgia, serif" fontWeight="700" fontSize="56" fill={color}
+      >
+        {(letter || '?').toString().trim().charAt(0).toUpperCase()}
+      </text>
+    </svg>
+  );
+}
+
 export function injectDropCap(html) {
   // Wrap the first letter in an explicit span so html2canvas renders it
   // (html2canvas ignores ::first-letter pseudo-elements).
@@ -178,15 +197,20 @@ export function SlotImage({ url, crop, label, className, style }) {
 
 // Render a list of blocks (text / photo). Empty slots draw nothing —
 // callers that want placeholders (e.g. the builder) render their own slot view.
-export function renderBlocks(blocks, theme) {
+// opts.suppressDropCap forces the journal drop-cap OFF for every text block — used by the fill-in
+// layouts (Trio+Note / Pair+Caption) whose text is short titles/captions, not body paragraphs. It's
+// applied at render time (keyed on the template) so it fixes pages already saved without the per-block
+// flag, not just newly-added ones.
+export function renderBlocks(blocks, theme, opts = {}) {
   return blocks.map((block, i) => {
     const fontClass = FONT_MAP[block.fontFamily] ?? theme?.fontClass ?? 'font-serif';
+    const tblock = opts.suppressDropCap ? { ...block, suppressDropCap: true } : block;
     return (
       <div key={block.id || i} style={blockBoxStyle(block)}>
         {block.type === 'text' ? (
-          <RenderedText block={block} fontClass={fontClass} textColor={theme?.textColor} />
+          <RenderedText block={tblock} fontClass={fontClass} textColor={theme?.textColor} />
         ) : block.type === 'l-wrap' ? (
-          <LWrapBlock block={block} fontClass={fontClass} textColor={theme?.textColor} />
+          <LWrapBlock block={tblock} fontClass={fontClass} textColor={theme?.textColor} />
         ) : (
           <SlotImage url={block.url} crop={block.crop} label={block.label} className="w-full h-full object-cover" />
         )}
@@ -194,3 +218,6 @@ export function renderBlocks(blocks, theme) {
     );
   });
 }
+
+// Template ids whose text blocks must never get the journal drop-cap (short title/caption fields).
+export const DROP_CAP_FREE_TEMPLATES = new Set(['growth-spread', 'hands-feet']);

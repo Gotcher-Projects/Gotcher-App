@@ -1,5 +1,13 @@
 # Deferred — Print-on-Demand (Lulu)
-**Status:** Not started (deferred)
+
+> **PROMOTED INTO STORYBOOK V2 (2026-06-22).** This is the "LULU work." It's now the `sv2-print`
+> workstream — see `plans/storybook-v2/planning.md` §6 (placement + scope changes) and
+> `plans/storybook-v2/lulu-print-handoff.md` (the external Lulu account/API/spec setup that BLOCKS
+> implementation). This file remains the detailed spec; the decisions below are still valid. Scope
+> grew: the print renderer must now reproduce **all v2 page types** (Letter/BirthDay/People/
+> MomentHero/Gallery/ChapterDivider/Bump) at 300 DPI server-side, not just legacy scrapbook layouts.
+
+**Status:** Not started (deferred → folded into v2 as `sv2-print`, still blocked on external setup)
 **Branch:** `storybook-print`
 **Depends on:** the scrapbook builder rewrite (S7–S10), shareable link (deferred), Payments S1 (tier check)
 

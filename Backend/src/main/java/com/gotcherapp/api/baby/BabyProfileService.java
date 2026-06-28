@@ -35,7 +35,7 @@ public class BabyProfileService {
 
     public Optional<BabyProfileResponse> getProfile(Long userId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase FROM baby_profiles WHERE user_id = ?",
+            "SELECT id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase, photo_url FROM baby_profiles WHERE user_id = ?",
             userId
         );
         if (rows.isEmpty()) return Optional.empty();
@@ -63,7 +63,7 @@ public class BabyProfileService {
                 phone       = EXCLUDED.phone,
                 sex         = EXCLUDED.sex,
                 updated_at  = NOW()
-            RETURNING id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase
+            RETURNING id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase, photo_url
             """,
             userId,
             req.babyName(),
@@ -136,6 +136,16 @@ public class BabyProfileService {
         return url;
     }
 
+    // Square avatar for the profile summary card — distinct from the book cover photo above.
+    public String uploadPhoto(Long userId, MultipartFile file) throws IOException {
+        String url = imageUploadService.upload(file, UploadFolder.BABIES.folderName(), userId);
+        jdbc.update(
+            "UPDATE baby_profiles SET photo_url = ?, updated_at = NOW() WHERE user_id = ?",
+            url, userId
+        );
+        return url;
+    }
+
     public void updateCoverSubtitle(Long userId, String subtitle) {
         jdbc.update(
             "UPDATE baby_profiles SET cover_subtitle = ?, updated_at = NOW() WHERE user_id = ?",
@@ -160,7 +170,8 @@ public class BabyProfileService {
             (String) row.get("cover_photo_url"),
             (String) row.get("cover_subtitle"),
             dueDate,
-            (String) row.get("phase")
+            (String) row.get("phase"),
+            (String) row.get("photo_url")
         );
     }
 }

@@ -9,6 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { TEMPLATES } from "@/lib/storybookTemplates";
 import MomentHeroCanvas from "@/components/storybook/MomentHeroCanvas";
+import LetterCanvas from "@/components/storybook/LetterCanvas";
+import GalleryCanvas from "@/components/storybook/GalleryCanvas";
+import BirthDayCanvas from "@/components/storybook/BirthDayCanvas";
+import PeopleCanvas from "@/components/storybook/PeopleCanvas";
+import FamilyTreeCanvas from "@/components/storybook/FamilyTreeCanvas";
+import ChapterDividerCanvas from "@/components/storybook/ChapterDividerCanvas";
+import PromptsCanvas from "@/components/storybook/PromptsCanvas";
+import BumpCanvas from "@/components/storybook/BumpCanvas";
+import FamilyRosterPopup from "@/components/storybook/FamilyRosterPopup";
 import PhotoTray from "@/components/storybook/PhotoTray";
 import FormatToolbar from "@/components/storybook/FormatToolbar";
 import MemoryPanel from "@/components/storybook/MemoryPanel";
@@ -29,7 +38,7 @@ const TYPE_LABELS = { period: 'Time Period', milestone: 'Milestone', first_time:
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ScrapbookBuilder({ chapter, journalEntries, firsts, theme, onUpdate, onClose }) {
+export default function ScrapbookBuilder({ chapter, journalEntries, firsts, theme, onUpdate, onClose, pageData, onError }) {
   const containerRef = useRef(null);
   const [pages, setPages] = useState(() => initPages(chapter));
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -42,8 +51,13 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   const [extraPhotos, setExtraPhotos] = useState([]);          // photos uploaded this session
   const [saveStatus, setSaveStatus] = useState('saved');       // saved | unsaved | saving
   const [publishing, setPublishing] = useState(false);
+  // Local family roster so the People page live-renders the latest data (the popup updates it).
+  const [familyMembers, setFamilyMembers] = useState(pageData?.familyMembers || []);
+  const [peoplePopupOpen, setPeoplePopupOpen] = useState(false);
   const saveTimerRef = useRef(null);
   const cancelSlotCropRef = useRef(null);
+
+  useEffect(() => { setFamilyMembers(pageData?.familyMembers || []); }, [pageData?.familyMembers]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -391,6 +405,23 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     });
     setEditingBlockId(null);
     setShowTemplatePicker(false);
+    // The People page needs roster + per-page selection — open its popup right after adding it.
+    if (tpl.renderer === 'people') setPeoplePopupOpen(true);
+  }
+
+  // Persist the People popup's selection + variant into the current page's config block, and refresh
+  // the local roster so the canvas live-renders the latest people.
+  function applyPeopleConfig({ selectedMemberIds, variant, members }) {
+    if (members) setFamilyMembers(members);
+    commitPages(prev => {
+      const next = [...prev];
+      const page = { ...next[currentPageIndex] };
+      page.blocks = (page.blocks || []).map(b =>
+        b.type === 'people-config' ? { ...b, selectedMemberIds, variant } : b
+      );
+      next[currentPageIndex] = page;
+      return next;
+    });
   }
 
   // One-click escape for a photo-less l-wrap: re-shape its single block into the
@@ -520,13 +551,23 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
             <span className="text-sm text-muted-foreground truncate">
               {currentTemplate ? currentTemplate.label : 'No layout chosen'}
             </span>
-            <button
-              onClick={() => setShowTemplatePicker(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors flex-shrink-0"
-            >
-              <LayoutTemplate className="w-3.5 h-3.5" />
-              Change layout
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {(currentTemplate?.renderer === 'people' || currentTemplate?.renderer === 'family_tree') && (
+                <button
+                  onClick={() => setPeoplePopupOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+                >
+                  Edit people
+                </button>
+              )}
+              <button
+                onClick={() => setShowTemplatePicker(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+              >
+                <LayoutTemplate className="w-3.5 h-3.5" />
+                Change layout
+              </button>
+            </div>
           </div>
 
           {/* Canvas */}
@@ -549,6 +590,77 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                   <MomentHeroCanvas
                     blocks={currentBlocks}
                     orientation={currentTemplate.id === 'moment-hero-landscape' ? 'landscape' : 'portrait'}
+                    theme={theme}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                    onOpenTray={setPhotoTrayFor}
+                    onReCrop={handleReCrop}
+                  />
+                ) : currentTemplate?.renderer === 'letter' ? (
+                  <LetterCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                  />
+                ) : currentTemplate?.renderer === 'gallery' ? (
+                  <GalleryCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                    onOpenTray={setPhotoTrayFor}
+                    onReCrop={handleReCrop}
+                  />
+                ) : currentTemplate?.renderer === 'birth_day' ? (
+                  <BirthDayCanvas
+                    birthDetails={pageData?.birthDetails}
+                    babyName={pageData?.babyName}
+                    birthdate={pageData?.birthdate}
+                    coverPhotoUrl={pageData?.coverPhotoUrl}
+                    theme={theme}
+                  />
+                ) : currentTemplate?.renderer === 'people' ? (
+                  <PeopleCanvas
+                    blocks={currentBlocks}
+                    familyMembers={familyMembers}
+                    theme={theme}
+                  />
+                ) : currentTemplate?.renderer === 'family_tree' ? (
+                  <FamilyTreeCanvas
+                    familyMembers={familyMembers}
+                    babyName={pageData?.babyName}
+                    coverPhotoUrl={pageData?.coverPhotoUrl}
+                    theme={theme}
+                  />
+                ) : currentTemplate?.renderer === 'chapter_divider' ? (
+                  <ChapterDividerCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                  />
+                ) : currentTemplate?.renderer === 'prompts' ? (
+                  <PromptsCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                  />
+                ) : currentTemplate?.renderer === 'bump' ? (
+                  <BumpCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
                     editingBlockId={editingBlockId}
                     onActivate={handleSlotActivate}
                     onStopEdit={handleStopEdit}
@@ -576,7 +688,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                 )}
               </div>
             )}
-            {currentBlocks.length === 0 && (
+            {!currentTemplate && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
                 <p className="text-sm text-muted-foreground">This page has no layout yet.</p>
                 <button
@@ -692,6 +804,21 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
           onClose={() => setShowTemplatePicker(false)}
         />
       )}
+
+      {peoplePopupOpen && (() => {
+        const cfg = currentBlocks.find(b => b.type === 'people-config') || {};
+        return (
+          <FamilyRosterPopup
+            open={peoplePopupOpen}
+            onClose={() => setPeoplePopupOpen(false)}
+            initialSelectedIds={cfg.selectedMemberIds || []}
+            initialVariant={cfg.variant || 'two-up'}
+            mode={currentTemplate?.renderer === 'family_tree' ? 'roster' : 'select'}
+            onApply={applyPeopleConfig}
+            onError={onError}
+          />
+        );
+      })()}
 
       {photoTrayFor && (
         <PhotoTray

@@ -4,11 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, CalendarDays, CheckCircle2, Zap, ArrowRight } from "lucide-react";
+import { Loader2, Sparkles, CalendarDays, CheckCircle2, Zap, ArrowRight, Pencil } from "lucide-react";
 import { MILESTONES } from "@/lib/babyData";
 import { formatBabyAge } from "@/lib/babyAge";
 import { formatDate } from "@/lib/formatting";
 import { fmtDuration, timeAgo, computeFeedingStats, computeSleepStats } from "@/lib/dashboardStats";
+import Avatar from "@/components/ui/Avatar";
+import ProfileEditModal from "@/components/tabs/ProfileEditModal";
+
+const SEX_LABEL = { male: "Boy", female: "Girl" };
+
+// True when any birth-detail field has been filled in (sv2-s2).
+function hasBirthDetails(bd) {
+  if (!bd) return false;
+  return [bd.birthTime, bd.hospital, bd.weightLbs, bd.heightIn, bd.headIn, bd.birthType, bd.birthStory, bd.birthPhotoUrl]
+    .some(v => v != null && v !== "");
+}
 
 function nowDate() {
   return new Date().toISOString().slice(0, 10);
@@ -27,13 +38,21 @@ const QUICK_LOG_BUTTONS = [
 
 export default function DashboardTab({
   data, setData, week, months,
-  onSaveProfile, profileSaving, profileSaved,
+  onSaveProfile, onUploadPhoto, profileSaving,
+  birthDetails, onSaveBirthDetails, onUploadBirthPhoto,
   onToggleMilestone, appointments,
   feeding, sleep,
   onManualAdd, onAddSleep, onAddDiaper,
   setActiveTab, setHealthView,
   onError,
 }) {
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState("basics");
+
+  function openProfileModal(tab = "basics") {
+    setModalTab(tab);
+    setProfileModalOpen(true);
+  }
   const [quickLogOpen, setQuickLogOpen] = useState(null);
   const [quickLogForm, setQuickLogForm] = useState({});
   const [quickLogSaving, setQuickLogSaving] = useState(false);
@@ -383,79 +402,95 @@ export default function DashboardTab({
         {/* ── Profile + Milestones grid ── */}
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h3 className="font-semibold font-display text-lg">Profile Setup</h3>
-            <div>
-              <Label>Baby's Name</Label>
-              <Input
-                value={data.profile.name}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
-                placeholder="e.g., Harper"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Birthdate</Label>
-              <Input
-                type="date"
-                value={data.profile.birthdate}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Sex</Label>
-              <select
-                value={data.profile.sex || ''}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
-                className="mt-1 w-full rounded-md border border-border bg-input text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Not specified</option>
-                <option value="male">Boy</option>
-                <option value="female">Girl</option>
-              </select>
-            </div>
-            <div>
-              <Label>Your Name</Label>
-              <Input
-                value={data.profile.parentName}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, parentName: e.target.value } }))}
-                placeholder="e.g., Sarah"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={data.profile.email}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, email: e.target.value } }))}
-                placeholder="your@email.com"
-                className=""
-              />
-            </div>
-            <div>
-              <Label>Phone</Label>
-              <Input
-                type="tel"
-                value={data.profile.phone}
-                onChange={(e) => setData(d => ({ ...d, profile: { ...d.profile, phone: e.target.value } }))}
-                placeholder="555-0123"
-                className=""
-              />
-            </div>
-            <Button
-              onClick={onSaveProfile}
-              disabled={profileSaving}
-              className="w-full"
-            >
-              {profileSaving ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-              ) : profileSaved ? (
-                "Saved!"
-              ) : (
-                "Save Profile"
-              )}
-            </Button>
+            <h3 className="font-semibold font-display text-lg">Profile</h3>
+            {(() => {
+              const p = data.profile;
+              const hasProfile = !!(p.name?.trim() || p.birthdate);
+              const ageText = formatBabyAge(p.birthdate);
+              const sexLabel = SEX_LABEL[p.sex];
+              const weight = birthDetails?.weightLbs != null ? `${birthDetails.weightLbs} lbs` : null;
+              const birthEmpty = !hasBirthDetails(birthDetails);
+
+              if (!hasProfile) {
+                return (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-3">
+                    <Avatar photoUrl={p.photoUrl} name={p.name} sex={p.sex} size={56} className="mx-auto" />
+                    <p className="text-sm text-muted-foreground">Add your baby's details to personalize the app.</p>
+                    <Button onClick={() => openProfileModal("basics")} className="w-full">Set up profile</Button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="rounded-2xl border border-border p-4">
+                  <div className="flex items-center gap-3.5">
+                    <Avatar photoUrl={p.photoUrl} name={p.name} sex={p.sex} size={56} />
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-lg truncate">{p.name || 'Baby'}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {[ageText, sexLabel].filter(Boolean).join(' · ') || 'No birthdate set'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-5 mt-3.5 pt-3.5 border-t border-border">
+                    {p.birthdate && (
+                      <div className="text-xs text-muted-foreground">
+                        Born<span className="block text-foreground text-[13px] font-medium">{formatDate(p.birthdate)}</span>
+                      </div>
+                    )}
+                    {weight ? (
+                      <div className="text-xs text-muted-foreground">
+                        Weight<span className="block text-foreground text-[13px] font-medium">{weight}</span>
+                      </div>
+                    ) : sexLabel && (
+                      <div className="text-xs text-muted-foreground">
+                        Sex<span className="block text-foreground text-[13px] font-medium">{sexLabel}</span>
+                      </div>
+                    )}
+                    {p.parentName && (
+                      <div className="text-xs text-muted-foreground min-w-0">
+                        Parent<span className="block text-foreground text-[13px] font-medium truncate">{p.parentName}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => openProfileModal("basics")}
+                    className="w-full mt-4 text-primary border-primary/40 bg-primary/5 hover:bg-primary/10"
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit profile
+                  </Button>
+
+                  {birthEmpty && (
+                    <button
+                      type="button"
+                      onClick={() => openProfileModal("birth")}
+                      className="mt-2.5 w-full text-left text-xs text-amber-700 bg-color-warm/40 border border-color-warm rounded-lg px-3 py-2"
+                    >
+                      Add birth details to unlock "The Day We Met You" book page →
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            <ProfileEditModal
+              open={profileModalOpen}
+              onClose={() => setProfileModalOpen(false)}
+              data={data}
+              setData={setData}
+              onSaveProfile={onSaveProfile}
+              onUploadPhoto={onUploadPhoto}
+              birthDetails={birthDetails}
+              onSaveBirthDetails={onSaveBirthDetails}
+              onUploadBirthPhoto={onUploadBirthPhoto}
+              initialTab={modalTab}
+              profileSaving={profileSaving}
+              accountEmail={data.profile.email}
+              onError={onError}
+            />
           </div>
 
           <div>

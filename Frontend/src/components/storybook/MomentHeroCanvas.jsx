@@ -62,6 +62,7 @@ function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEdito
 export default function MomentHeroCanvas({
   blocks = [],
   orientation = 'portrait',
+  theme,
   // Builder-only props — all undefined in read-only (StorybookTab / PDF).
   editingBlockId,
   onActivate,
@@ -72,6 +73,13 @@ export default function MomentHeroCanvas({
 }) {
   const isBuilder  = !!onActivate;
   const isPortrait = orientation !== 'landscape';
+
+  // Background follows the active book theme; the title/date sit directly on it, so flip them
+  // to the theme's light textColor on dark themes (Midnight). The polaroid/note-card content
+  // keeps its own colors — it's drawn on its own light surfaces, independent of the theme bg.
+  const pageBg     = theme?.bg ?? '#FDF6ED';
+  const titleColor = theme?.isDark ? (theme.textColor ?? '#e8eaf6') : '#2C1810';
+  const dateColor  = theme?.isDark ? (theme.textColor ?? '#e8eaf6') : '#A07860';
 
   // CONTRACT: this layout is keyed to fixed role ids defined on the moment_hero
   // templates in storybookTemplates.js. Each blk('<role>') must match a block id
@@ -143,7 +151,7 @@ export default function MomentHeroCanvas({
   return (
     <div style={{
       position: 'absolute', inset: 0,
-      background: '#FDF6ED',
+      background: pageBg,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -199,7 +207,7 @@ export default function MomentHeroCanvas({
               fontFamily: "'Playfair Display', serif",
               fontSize: 38,
               fontWeight: 700,
-              color: '#2C1810',
+              color: titleColor,
               lineHeight: 1.1,
               display: 'block',
             }}
@@ -220,7 +228,7 @@ export default function MomentHeroCanvas({
           <HeroText
             block={date}
             placeholder={isBuilder ? 'Date' : ''}
-            style={{ fontStyle: 'italic', fontSize: 13, color: '#A07860', letterSpacing: '0.03em' }}
+            style={{ fontStyle: 'italic', fontSize: 13, color: dateColor, letterSpacing: '0.03em' }}
           />
         </TextZone>
       </div>

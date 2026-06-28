@@ -1,5 +1,13 @@
 # Deferred — Shareable Book Link
-**Status:** Not started (deferred)
+
+> **V2 TRIAGE (2026-06-22):** kept **deferred / optional** — see `plans/storybook-v2/planning.md` §7.
+> Useful but independent of the v2 book-structure work; pull in only if sharing is a near-term
+> priority. ⚠️ **This is now a FRESH build, not a resume:** the review-fixes track **removed the old
+> sharing backend** (migration V25 `book_share_tokens` kept, code removed), and this plan still
+> describes serving legacy chapter `body` rather than `layout_data`. Also paid-gated → same Payments
+> caveat as print (no upgrade flow yet; `tier` column exists).
+
+**Status:** Not started (deferred — fresh build if resumed)
 **Branch:** `feature/storybook`
 **Depends on:** the scrapbook builder rewrite (S7–S10), S3 (storybook view must exist), S2 (public backend endpoint live)
 

@@ -1,5 +1,7 @@
 package com.gotcherapp.api.firsttimes;
 
+import java.util.List;
+
 public record FirstTime(
     Long id,
     Long babyProfileId,
@@ -8,5 +10,6 @@ public record FirstTime(
     String imageUrl,
     String notes,
     String createdAt,
-    String imageOrientation
+    String imageOrientation,
+    List<FirstTimePhoto> additionalPhotos
 ) {}

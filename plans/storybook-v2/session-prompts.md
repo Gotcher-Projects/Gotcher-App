@@ -6,7 +6,24 @@ Research context: `plans/storybook-v2/research.md` (Precious Five analysis)
 Planning decisions: `plans/storybook-v2/planning.md`
 Architecture reference: memory `project_storybook_architecture.md`
 
-**Prerequisites before any sv2 session:** S12 + all Deferred storybook items complete. LULU work complete (check Q8 in planning.md before starting AI generation sessions).
+**Prerequisites before any sv2 session:** the storybook review-fixes track (s1–s11) + S13 + S15 are
+**Complete** (verified 2026-06-22 — see planning.md §0). "LULU work" = the Lulu print-on-demand session,
+now folded in as `sv2-print` (planning.md §6) — it is the *last* workstream and does NOT block the page-type
+sessions. **Heads-up on stale names:** S13 shipped as **`MomentHeroCanvas.jsx`**, not `MomentHeroPage.jsx`;
+`bookCanvas` is `lib/bookCanvas.jsx`. See planning.md §0 "Naming mismatches".
+
+**⭐ CROSS-CUTTING — AI is separate now (planning.md §8):** every page-type session (s1, s2, s3, s5, s6,
+s8) builds the **manual text path as the default** — the book is AI-free by default. **There is
+NO AI page generation in the new system** — pages come from the user (scrapbook) or the default guided
+arc (guided book), never from AI; the old `generatePages()` flow is being deleted (`sv2-ai-retrofit`).
+The only AI is a **separate, paid-gated, per-field "✨ write this for me" text assist**, built ONCE in
+`sv2-ai-assist` and consumed everywhere — it helps word ONE existing field, it never makes pages. Where
+a prompt below says "AI note/bio generation endpoint", read that as: *manual field now; wire the shared
+per-field assist later.* Core v2 ships free with no Payments dependency.
+
+**⭐ Before sv2-s7 (the shell):** `sv2-s7-plan-default-book.md` holds the **locked default book** (its
+arc + which pages ship + page count — DECIDED 2026-06-27; see the two mockups), which the shell builds
+into the page-sequence config.
 
 ---
 
@@ -15,26 +32,19 @@ Architecture reference: memory `project_storybook_architecture.md`
 ```
 Session SV2-S1 — Letter to Baby (extensible letter component).
 Plan: plans/storybook-v2/sv2-s1-letter-to-baby.md
-Depends on: S12 + Deferred storybook items complete.
+Status: IMPLEMENTED 2026-06-24 (Needs Verification). The notes below are AS BUILT.
 
-Build the extensible letter component and ship the pre-birth letter type first.
-Key design: LETTER_TYPES config array in lib/letterTypes.js — adding new letter types later
-is additive (new config entry + prompt, no structural changes).
+The letter is a LAYOUT TEMPLATE + RENDERER in the book canvas (the moment-hero pattern), NOT an
+anchor_type chapter. (First attempt built it as a bespoke anchor_type='letter' chapter + create
+endpoint + standalone card — fully reverted. See planning.md §0 page-type pattern.) Built:
+1. lib/storybookTemplates.js — `letter` template (renderer: 'letter', role blocks title/body/signature).
+2. components/storybook/LetterCanvas.jsx — renderer (warm cream palette, section label + heart divider
+   chrome, in-place Tiptap editing), following MomentHeroCanvas.
+3. Dispatched in ScrapbookBuilder + LayoutRenderer + storybookPdf.js; LetterThumb in TemplateSheet.
+4. lib/letterTypes.js — additive letter-type registry (id → title) for guided book + later AI assist.
+5. NO backend/DB changes — the letter rides inside a chapter's layout_data, saved via PATCH /storybook/{id}.
 
-Resolve at session start:
-- Letter input storage (raw user prompt — storybook_chapters.body before generation, or new column?)
-- Re-edit flow: inline edit vs regenerate-only?
-- One letter per type, or multiple?
-
-Build in this order:
-1. Frontend/src/lib/letterTypes.js — letter type config (id, displayName, promptTemplate, etc.)
-2. Frontend/src/components/storybook/LetterPage.jsx — full-page fixed-layout renderer
-   (script/italic font, multi-paragraph letter body, signed attribution, cream background)
-3. StorybookTab.jsx — render LetterPage for anchor_type='letter' chapters; "Add a Letter" UI
-4. Backend: letter generation endpoint (extend existing /storybook/generate or new endpoint)
-5. storybookPdf.js — handle letter chapter type
-
-Read StorybookTab.jsx, storybookPdf.js, bookThemes.js, and sv2-s1 plan before coding.
+Added via the builder's template picker like any layout. AI assist not wired (sv2-ai-assist later).
 ```
 
 ---
@@ -59,12 +69,14 @@ Build in this order:
 2. com.gotcherapp.api.birthdetails — BirthDetails record, BirthDetailsRequest, BirthDetailsService,
    BirthDetailsController (GET + PUT /birth-details). Add to SecurityConfig.
 3. Birth details form in DashboardTab (or BirthDetailsForm.jsx component)
-4. Frontend/src/components/storybook/BirthDayPage.jsx — fixed-layout renderer:
-   section label, title, birth date + hospital subtitle, hero photo, stats card row
-   (WEIGHT / LENGTH / HEAD / TIME), AI note card
-5. StorybookTab.jsx — render BirthDayPage for anchor_type='birth_day' chapters
-6. Birth day AI note generation endpoint
-7. storybookPdf.js — handle birth_day chapter type
+4. PAGE-TYPE PATTERN (planning.md §0 + sv2-s1): build the birth-day page as a LAYOUT TEMPLATE +
+   RENDERER (the moment-hero pattern), NOT an anchor_type chapter.
+   a. Add a `renderer: 'birth_day'` template to lib/storybookTemplates.js (role blocks).
+   b. BirthDayCanvas.jsx renderer (section label, title, birth date + hospital subtitle, hero photo,
+      stats card row WEIGHT/LENGTH/HEAD/TIME, note card = parent-written birth_story).
+   c. Dispatch it in ScrapbookBuilder + LayoutRenderer + storybookPdf.js (+ TemplateSheet thumb),
+      exactly like moment-hero. Page stored in layout_data; the birth_details TABLE holds the data.
+(AI model §8: the note is the parent's birth_story shown as-is — no generation endpoint this session.)
 
 Read DashboardTab.jsx, storybookPdf.js, growth records backend before coding.
 ```
@@ -87,16 +99,23 @@ Resolve at session start:
 - Photo crop: square (for profile cards) or free?
 
 Build in this order:
+AI model (§8): bios are USER-WRITTEN by default. No bio-generation endpoint this session — the optional
+per-field assist comes via sv2-ai-assist.
+
 1. Backend migration — CREATE TABLE family_members (id, baby_profile_id, name, role,
-   role_category, photo_url, bio_input, bio_generated, sort_order, created_at, updated_at)
+   role_category, photo_url, bio_input, bio, sort_order, created_at, updated_at)
+   (bio = displayed, user-written; bio_input = optional seed/notes — see plan open Q5)
 2. com.gotcherapp.api.family — FamilyMember record, FamilyMemberRequest, FamilyMemberService,
    FamilyMemberController (GET/POST /family-members, PATCH/DELETE /family-members/{id},
    POST /family-members/{id}/photo). Add to SecurityConfig.
-3. Family members management UI in DashboardTab (list + add/edit/delete form + photo upload)
-4. AI bio generation endpoint for a single family member
-5. Frontend/src/components/storybook/PeoplePage.jsx — fixed 2-column layout: photo + name +
-   role + bio paragraph per person (2 per page)
-6. StorybookTab.jsx — render PeoplePage for anchor_type='people' chapters
+3. Family members management UI in DashboardTab (list + add/edit/delete form + photo upload +
+   "a few words about [name]" textarea = the bio)
+4. PAGE-TYPE PATTERN (planning.md §0 + sv2-s1): build the people page as a LAYOUT TEMPLATE + RENDERER
+   (the moment-hero pattern), NOT an anchor_type chapter.
+   a. Add a `renderer: 'people'` template to lib/storybookTemplates.js (role blocks).
+   b. PeopleCanvas.jsx renderer — 2-column layout: photo + name + role + bio paragraph per person (2/page).
+   c. Dispatch it in ScrapbookBuilder + LayoutRenderer + storybookPdf.js (+ TemplateSheet thumb), like
+      moment-hero. Page stored in layout_data; the family_members TABLE holds the data.
 
 Read DashboardTab.jsx, existing photo upload patterns (journal, firsts) before coding.
 ```
@@ -133,99 +152,129 @@ Read MemoriesTab.jsx (FirstTimesTab section), first_times backend, imageUtils.js
 
 ---
 
-## SV2-S5 — Moment-Hero in Guided Book + Gallery Wiring
+> ❌ **Old SV2-S5 (auto Firsts chapter) + SV2-S7 (firsts integration) are DROPPED (2026-06-27).** Firsts
+> are now user-picked moment-hero pages in the fixed book. The s5/s7 numbers are reused below.
+
+## SV2-S5 — Family Tree (book page)  ← build before the shell
 
 ```
-Session SV2-S5 — Wire moment-hero + gallery pages into the guided book Firsts chapter.
-Plan: plans/storybook-v2/sv2-s5-moment-hero-guided.md
-Depends on: S13 (MomentHeroPage exists), sv2-s4 (GalleryPage + first_time_photos exist).
+Session SV2-S5 — Family Tree as a default-book page (renumbered 2026-06-27, was sv2-s9).
+Plan: plans/storybook-v2/sv2-s5-family-tree.md
+Depends on: sv2-s3 (family_members data — shipped). Build BEFORE the shell (sv2-s7).
 
-This is a wiring session — components already built. Focus: auto-generation, chapter data
-structure, and guided book integration.
+Build the family tree as a book page type (the People section of the guided book), reading
+family_members + role_category. Follow the data-driven page-renderer pattern (live-read via pageData,
+like BirthDayCanvas/PeopleCanvas). Inline SVG for connecting lines (avoid foreignObject — html2canvas).
+3-tier: grandparents → parents → baby; each node = circular avatar + name + role.
 
-Resolve at session start:
-- Chapter data storage: hero+gallery page list in storybook_chapters.layout_data, or in a
-  guided_book_sections structure introduced in sv2-s6?
-- Generation cost: do Firsts notes count against AI credits?
-- New Firsts added after generation: auto-include or require manual regenerate?
-
-Build in this order:
-1. Backend: POST /storybook/generate-firsts-notes — batch note generation for all First Times
-   that don't yet have a note. Returns { [firstTimeId]: note }.
-2. Frontend: Firsts chapter page sequence builder — takes first_times + generated notes, returns
-   [ {type:'moment_hero', first}, {type:'gallery', first} ] pairs. Skip gallery if no additional
-   photos.
-3. Wire into guided book Firsts section rendering (coordinate with sv2-s6 shell structure)
-4. storybookPdf.js: chain hero + gallery pages for Firsts chapter
-
-Read MomentHeroPage.jsx (from S13), GalleryPage.jsx (from sv2-s4), StorybookTab.jsx before coding.
+Read FamilyMember data model, the existing page renderers, feedback_html2canvas_limitations.md first.
 ```
 
 ---
 
-## SV2-S6 — Guided Book Shell
+## SV2-S6 — Fill-in Page Types  ← build before the shell
 
 ```
-Session SV2-S6 — Guided Book shell (container, arc, chapter divider pages).
-Plan: plans/storybook-v2/sv2-s6-guided-book-shell.md
-Depends on: sv2-s1 through sv2-s5 complete (all page types must exist).
+Session SV2-S6 — the new fill-in page types the default book needs (renumbered 2026-06-27).
+Plan: plans/storybook-v2/sv2-s6-fill-in-page-types.md
+Depends on: page renderers (s1/s2/s3) + sv2-s5 Family Tree.
 
-Frontend only. No new backend. The guided book is derived from existing data (birth_details,
-family_members, first_times, storybook_chapters).
+Build, as templates+renderers in the book canvas (like Letter/BirthDay/People):
+- ChapterDividerPage (html2canvas-safe decoratives), a "Month-by-Month" growth spread (may reuse a
+  photo-grid template + captions), simple prompt/fill pages ("All About You", "Hands & Feet"), and a
+  Bump page (600×800 wrapper around a bump photo + auto week→size tag from the shipped size dataset).
 
-Resolve at session start:
-- Floating decoratives on ChapterDividerPage: absolutely-positioned spans with Unicode/emoji
-  (html2canvas-safe) vs SVG? Avoid CSS pseudo-elements.
-- Placeholder pages: show "fill in this section" card, or skip empty sections entirely?
-- Navigation: prev/next arrows (book feel) or scrollable vertical flow?
-- PDF: guided book gets its own Download button, or reuses existing StorybookTab export?
-
-Build in this order:
-1. Frontend/src/lib/guidedBookArc.js — GUIDED_BOOK_ARC config array (cover, about_you, birth,
-   firsts chapters + sections)
-2. Frontend/src/components/storybook/ChapterDividerPage.jsx — chapter number, icon badge,
-   title, italic subtitle, floating decorative elements (html2canvas-safe approach)
-3. Frontend/src/components/storybook/GuidedBook.jsx — full-screen shell: left panel (outline +
-   completion indicators), right panel (page viewer with prev/next), page sequence builder
-4. StorybookTab.jsx — "Guided Book" entry point, guidedBookOpen state
-
-Read StorybookTab.jsx, ScrapbookBuilder.jsx (for full-screen pattern), bookCanvas.jsx,
-feedback_html2canvas_limitations.md, all existing page components before coding.
+Read sv2-s6-fill-in-page-types.md, storybookTemplates.js, the existing canvases first.
 ```
 
 ---
 
-## SV2-S7 — Firsts Chapter Integration
+## SV2-S7 — Guided fill-in book shell  (REFRAMED 2026-06-27, was sv2-s6)
 
 ```
-Session SV2-S7 — Wire Firsts chapter fully into guided book (generation, sync, completion).
-Plan: plans/storybook-v2/sv2-s7-firsts-chapter.md
-Depends on: sv2-s5, sv2-s6 both complete.
+Session SV2-S7 — Guided fill-in book shell (pre-designed locked page sequence the user fills).
+Plan: plans/storybook-v2/sv2-s7-guided-book-shell.md  +  sv2-s7-plan-default-book.md (locked arcs)
+Mockups (page lists): mockups/s6-guided-first-year-book.html (25pp) +
+  mockups/s6-guided-pregnancy-first-year-book.html (30pp).
+Mockups (in-app, 2026-06-27): mockups/s7-guided-book-in-app.html (guided book in the real tab chrome) +
+  mockups/s7-book-library-and-chooser.html (book shelf + Guided/Freeform chooser dialog).
+Depends on: page types s1/s2/s3 ✅ + s5 Family Tree ✅ + s6 fill-in page types ✅ (growth, prompts,
+hands&feet, bump, chapter divider). ALL BUILT — this session just sequences + shells them. NOT old sv2-s5 (dropped).
 
-Short integration session. Focus: generation trigger UI, completion state, sync when First
-Times are added/edited/deleted after generation.
+⚠️ This is the 2026-06-27 REFRAMED model: NOT auto-generated. It's a pre-designed, LOCKED page
+sequence (no add/remove/reorder in v1) the user fills via the existing ScrapbookBuilder mechanics.
+Page kinds: auto (fills from data) / fill (empty designed page) / pick (user chooses which First).
+
+NOTE: ChapterDividerCanvas + ALL fill-in renderers already exist (shipped in s6). Don't rebuild them —
+the shell just places them. The new code is the arc config + the shell view + the entry/chooser.
 
 Resolve at session start:
-- Empty state: what does the Firsts section show when no First Times exist yet?
-- Sort order: occurred_date ASC — confirmed?
+- Page-sequence config shape: a fixed ordered list of {template, prompt, kind}. First Year baseline;
+  pregnancy chapter front-inserts when phase=pregnancy (the s8 pages — gate that arc until s8 ships).
+- Mode = a Guided⇄Freeform toggle in the Book tab (Guided "Recommended"); mirror builderChapter full-screen.
+- Book library/switcher (MULTI-BOOK IS IN v1): 0 books → chooser dialog → book; 1 book → land in it +
+  quiet "▾" switcher; 2+ → "Your Books" shelf (cover cards + ⋯ menu). Needs a NEW `books` table
+  (baby owns many books; migrate existing chapters into a default book + add book_id FK). See plan item #5.
+- REMOVE the AI "Write a Period Chapter" card from StorybookTab (unmount wizard entry; keep code for s11).
+  Freeform = layouts/photos/text only — no AI surface in s7.
+- PDF: reuse storybookPdf (pass the guided page sequence) vs a parallel path.
 
 Build in this order:
-1. GuidedBook.jsx — wire Firsts section: fetch first_times + notes, show placeholder with
-   "Generate" CTA if notes missing, render page sequence once generated
-2. Completion indicator logic for Firsts section in left panel
-3. Individual note regeneration affordance on each hero page (visible on hover)
-4. Sync behavior: new/deleted First Times update sequence on next render
+1. lib/guidedBookArc.js — the fixed page-sequence config (per the mockups).
+2. components/storybook/GuidedBook.jsx — full-screen shell that instantiates the locked sequence and
+   reuses ScrapbookBuilder fill mechanics; auto/pick pages render from data. (ChapterDivider already exists.)
+3. StorybookTab.jsx — Guided⇄Freeform toggle + book library/switcher, guidedBookOpen state,
+   AND remove the Period-Chapter AI card.
 
-Read GuidedBook.jsx, sv2-s5 wiring code before touching anything.
+Read sv2-s7-plan-default-book.md, all four mockups (2 page-lists + 2 in-app), StorybookTab.jsx,
+ScrapbookBuilder.jsx, the existing page renderers, feedback_html2canvas_limitations.md before coding.
 ```
 
 ---
 
-## SV2-S8 — Polish + PDF Integration
+## ❌ DROPPED (old SV2-S7) — Firsts chapter integration
+
+Went with the dropped moment-hero plan — no auto Firsts chapter. (The s7 number is now the Guided
+shell, above.) See `planning.md` 2026-06-27 direction update.
+
+---
+
+## SV2-S3.5 — People page polish + circular crop  (folds in the old S6.6)
+
+```
+Session SV2-S3.5 — Make People pages fill the page + add an opt-in circular crop (folds in S6.6).
+Plan: plans/storybook-v2/sv2-s3.5-people-polish-and-circular-crop.md
+Depends on: sv2-s3 (People page) + sv2-profile-modal (baby avatar), both shipped.
+
+Frontend only. Two parts:
+1. PeopleCanvas.jsx — vertically balance/enlarge content so two-up + spotlight fill the 600×800 canvas
+   (screenshots showed content crammed in the top third). Robust for 1 vs 2 people, short vs long bios.
+2. Opt-in 1:1 / circular crop, scoped ONLY to: Your People member photos (FamilyRosterPopup) + the
+   baby profile avatar (ProfileEditModal Basics). Everything else (journal, firsts, memory book, bump,
+   cover, S2 birth hero) keeps portrait/landscape — DO NOT change those.
+
+Resolve at session start:
+- Per-call option `openCropModal(file, onComplete, onCancel, { shape: 'circle' })`; square-only in
+  circle mode (no orientation pills); output a square JPEG + CSS circle (current Avatar/PeopleCanvas).
+- People page: vertically centre vs space-between; spotlight avatar target size; bottom flourish or not.
+
+Build in this order:
+1. lib/imageUtils.jsx — opt-in 1:1 + circular preview overlay; DEFAULT behaviour unchanged.
+2. ui/PhotoPickerButton.jsx — forward a `shape` option.
+3. FamilyRosterPopup.jsx + ProfileEditModal.jsx (avatar only) — request the circle.
+4. PeopleCanvas.jsx — page-fit sizing.
+
+Read sv2-s3.5-…md, PeopleCanvas.jsx, lib/imageUtils.jsx, ui/Avatar.jsx, FamilyRosterPopup.jsx,
+ProfileEditModal.jsx first. Verify cover/firsts/journal/bump/birth-hero crops are untouched.
+```
+
+---
+
+## SV2-S9 — Polish + PDF Integration  (was sv2-s8)
 
 ```
 Session SV2-S8 — Polish all v2 page types and fix PDF export for the guided book.
-Plan: plans/storybook-v2/sv2-s8-polish-pdf.md
+Plan: plans/storybook-v2/sv2-s9-polish-pdf.md
 Depends on: sv2-s6 + sv2-s7 complete and visually verified.
 
 Resolve at session start:
@@ -246,37 +295,15 @@ Read storybookPdf.js, bookCanvas.jsx, feedback_html2canvas_limitations.md first.
 
 ---
 
-## SV2-S9 — Family Tree Visualizer (DEFERRED)
-
-```
-Session SV2-S9 — Family Tree visualizer (DEFERRED — do not start until sv2-s6 through sv2-s8
-are verified working).
-Plan: plans/storybook-v2/sv2-s9-family-tree.md
-Depends on: sv2-s3 (family_members data), sv2-s6 (guided book shell).
-
-Substantial standalone build. Resolve rendering approach at session start:
-- HTML/CSS flexbox tree (simple, symmetric only) vs inline SVG (flexible, recommended)
-- Avoid SVG foreignObject (not supported by html2canvas)
-
-Build FamilyTreePage.jsx: 3-tier tree (grandparents → parents → baby). Each node: circular
-avatar (photo or initial circle), name, role label. SVG connecting lines.
-Wire into GUIDED_BOOK_ARC under 'about_you' chapter.
-Show only if family_members has at least 2 parents/grandparents.
-
-Read FamilyMember data model, GuidedBook.jsx, feedback_html2canvas_limitations.md first.
-```
-
----
-
-## SV2-SP — "Before You Arrived" Pregnancy Chapter
+## SV2-S8 — "Before You Arrived" Pregnancy Chapter  (was sv2-sP)
 
 ```
 Session SV2-SP — pregnancy guided chapter ("Before You Arrived").
-Plan: plans/storybook-v2/pregnancy-track.md
+Plan: plans/storybook-v2/sv2-s8-pregnancy-chapter.md
 Depends on: sv2-s6 (guided book shell + ChapterDividerPage), sv2-s1 (Letter component).
 Pattern-after: sv2-s5 / sv2-s7 (Firsts chapter derivation).
 
-⚠️ Re-discuss as part of the v2 re-talk before speccing — open questions in pregnancy-track.md.
+⚠️ Re-discuss as part of the v2 re-talk before speccing — open questions in sv2-s8-pregnancy-chapter.md.
 
 The pregnancy DATA layer is already shipped (plans/pregnancy/ S1–S3 + S5): due_date + phase (V35),
 bump_photos (V36), BumpCard/BumpDiary, 37-row size dataset, and (S5) bump-as-journal that makes
@@ -291,5 +318,84 @@ Build (validate against current code first):
 4. Route phase-flagged pre-birth journal entries in by FLAG, not birthdate-relative week.
 5. storybookPdf.js: bump pages export (verify BumpCard's Twemoji <img> survives html2canvas).
 
-Read pregnancy-track.md, GuidedBook.jsx, BumpCard.jsx, the Firsts-chapter wiring before coding.
+Read sv2-s8-pregnancy-chapter.md, GuidedBook.jsx, BumpCard.jsx, the Firsts-chapter wiring before coding.
+```
+
+---
+
+## SV2-S12 — Print-on-Demand (Lulu)  ⛔ BLOCKED until external setup returns  (was sv2-print)
+
+```
+Session SV2-PRINT — physical book ordering via Lulu print-on-demand.
+Plan: planning.md §6 + plans/storybook/sDeferred-print.md (detailed spec).
+External blocker: plans/storybook-v2/lulu-print-handoff.md MUST be filled in first
+  (Lulu account, API creds, confirmed trim size / bleed / color profile / min pages,
+  redirect-vs-POST checkout, white-label, ToS). Someone with Lulu access owns that.
+Also gated on: Payments S1 (paid-tier gating) — currently Not started.
+Sequence: LAST v2 workstream — run only after sv2-s1…s8 page types are stable.
+
+Do NOT start the engineering sessions until the hand-off doc has answers for at least
+Q4 (checkout flow) and Q8 (trim size) — those are hard blockers.
+
+Sub-sessions:
+1. sv2-print-plan — with hand-off answers in hand, lock the Lulu API open questions.
+2. sv2-print-s1 — Backend: OpenPDF print assembly (reproduce ALL v2 page types at 300 DPI,
+   server-side — NOT the client html2canvas→jsPDF path) + Lulu order submission.
+3. sv2-print-s2 — Frontend: "Order a Printed Book" UI (plus/pro only), quantity picker,
+   redirect to Lulu checkout, order confirmation.
+
+Read sDeferred-print.md, lulu-print-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
+```
+
+---
+
+## SV2-S10 — Per-field "✨ write this for me" assist (shared)  (was sv2-ai-assist)
+
+```
+Session SV2-AI-ASSIST — the ONE reusable per-field AI assist (planning.md §8).
+Plan: plans/storybook-v2/sv2-s10-ai-assist.md
+Depends on: at least one manual text field exists (sv2-s1/s2/s3). Best after the core page types.
+Not a blocker for those sessions — they ship the manual path; this wires in afterward.
+
+This is the ONLY AI surface in v2. It words ONE existing field — it never makes pages.
+Paid-gated, 1 credit per field, free users see it visible-but-inert (upsell).
+
+Build in this order:
+1. Backend POST /storybook/assist-field { promptType, context } → { text }. Gate non-paid
+   (mapped ApiError, catch Exception — 401 trap). Debit 1 credit with the charge-then-refund
+   pattern from StorybookService.java:174-224. Server owns the prompt templates (client sends
+   promptType + structured context only). Per-field Claude call — NOT generatePagesBatch.
+2. Frontend AiAssistField.jsx — ✨ button next to a field; free=inert+upsell, paid=draft into
+   field for accept/edit/discard; shows credit cost + balance + out-of-credits path.
+3. api.js assistField() helper; SecurityConfig allow the endpoint.
+4. Drop AiAssistField into: letter body, birth note, person bio, moment-hero note, bump note.
+
+Read planning.md §8, StorybookService.java (generatePages credit pattern), ClaudeClient.java,
+api.js before coding.
+```
+
+---
+
+## SV2-S11 — Decommission old batched AI page-generation  ⚠️ live credit-charging code  (was sv2-ai-retrofit)
+
+```
+Session SV2-AI-RETROFIT — DELETE the old "AI builds your book" path (planning.md §8 relic).
+Plan: plans/storybook-v2/sv2-s11-ai-retrofit.md
+Depends on: sv2-ai-assist shipped first (so per-field assist exists before bulk path is removed).
+
+⚠️ Behavior change to LIVE credit-charging code. Unwind carefully; keep IDOR checks (review-fixes s3)
+and the generated_content READ path (old books must still render). No data migration.
+
+Remove:
+- Backend: StorybookService.generatePages() (~131-224) + its credit debit/refund;
+  StorybookController POST /storybook/generate-pages/{id}; ClaudeClient.generatePagesBatch();
+  batch-only DTOs (audit generated_content reads first).
+- Frontend: StorybookWizard.jsx generate-first flow (runGenerateFirst, onWizardGenerate,
+  onGeneratePages, step-6 generatedChapter, "Upgrade to Plus to generate" gating). Wizard
+  becomes create-chapter → empty manual builder. Remove generate props from StorybookTab.jsx.
+
+Keep: users.tier + ai_credits_remaining (now meter sv2-ai-assist), the whole builder + PDF.
+
+Read sv2-s11-ai-retrofit.md, StorybookService.java, StorybookController.java, StorybookWizard.jsx
+before touching anything.
 ```

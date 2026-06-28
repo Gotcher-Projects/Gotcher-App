@@ -1,6 +1,11 @@
 # Deferred — Remove Temporary Claude Request/Response Logging
 
-**Status: Not Started (deferred)**
+> **V2 TRIAGE (2026-06-22):** **do this before any public launch** — see
+> `plans/storybook-v2/planning.md` §7. It's a privacy/launch blocker (logs print real family
+> journal/first-time content), not a v2 feature, and is independent of all v2 sessions. ~30-min task;
+> verify the S5.46 logging still exists first with `grep -rn "CLAUDE-DEBUG" Backend/src`.
+
+**Status: Not Started (deferred — small hygiene task; do before launch)**
 **Branch:** journal-updates (or current)
 **Depends on:** S5.46 (which adds the logging this session removes)
 

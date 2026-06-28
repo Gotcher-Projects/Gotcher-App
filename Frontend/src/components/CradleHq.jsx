@@ -31,7 +31,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const { theme } = useTheme();
   const tier = user?.tier ?? 'free';
   const [data, setData] = useState({
-    profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "", dueDate: "", phase: "" },
+    profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "", dueDate: "", phase: "", photoUrl: "" },
     milestones: {},
     journal: []
   });
@@ -47,6 +47,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [bookTheme, setBookTheme] = useState('classic');
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(null);
   const [coverSubtitle, setCoverSubtitle] = useState(null);
+  const [birthDetails, setBirthDetails] = useState(null);
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
   const [obStep, setObStep] = useState('choice'); // 'choice' (expecting vs. have baby) → 'details'
@@ -104,6 +105,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             sex: profile.sex || d.profile.sex,
             dueDate: profile.dueDate || d.profile.dueDate,
             phase: profile.phase || d.profile.phase,
+            photoUrl: profile.photoUrl || d.profile.photoUrl,
           }
         }));
         if (profile.bookTheme) setBookTheme(profile.bookTheme);
@@ -118,6 +120,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           setNeedsOnboarding(false); // network/auth error — fail open
         }
       });
+  }, []);
+
+  useEffect(() => {
+    apiRequest('/birth-details')
+      .then(setBirthDetails)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -410,6 +418,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     );
   }
 
+
   // ── Bump photos ──
   async function addBumpPhoto(req) {
     const photo = await apiRequest('/bump-photos', { method: 'POST', body: JSON.stringify(req) });
@@ -471,6 +480,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           sex: savedProfile.sex || d.profile.sex,
           dueDate: savedProfile.dueDate || d.profile.dueDate,
           phase: savedProfile.phase || d.profile.phase,
+          photoUrl: savedProfile.photoUrl || d.profile.photoUrl,
         }
       }));
       setProfileSaved(true);
@@ -486,6 +496,21 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   async function handleOnboardingSubmit() {
     const ok = await saveProfile();
     if (ok) setNeedsOnboarding(false);
+  }
+
+  // Square avatar upload — separate endpoint from the book cover photo. Returns the new URL so the
+  // modal can show it immediately; also pushes it into profile state.
+  async function uploadProfilePhoto(formData) {
+    const res = await apiUpload('/baby-profile/photo', formData);
+    setData(d => ({ ...d, profile: { ...d.profile, photoUrl: res.url } }));
+    return res;
+  }
+
+  // Birth details (sv2-s2) — saved from the Edit-Profile modal's "Birth details" tab.
+  async function saveBirthDetails(payload) {
+    const saved = await apiRequest('/birth-details', { method: 'PUT', body: JSON.stringify(payload) });
+    setBirthDetails(saved);
+    return saved;
   }
 
   // The only two client-side paths that change phase after onboarding. Both hit dedicated
@@ -723,6 +748,10 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               week={week}
               months={months}
               onSaveProfile={saveProfile}
+              onUploadPhoto={uploadProfilePhoto}
+              birthDetails={birthDetails}
+              onSaveBirthDetails={saveBirthDetails}
+              onUploadBirthPhoto={img => apiUpload('/upload?context=birth_details', img)}
               profileSaving={profileSaving}
               profileSaved={profileSaved}
               onToggleMilestone={toggleMilestone}

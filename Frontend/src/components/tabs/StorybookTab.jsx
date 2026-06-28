@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -32,7 +32,23 @@ export default function StorybookTab({
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(coverPhotoUrlProp ?? null);
   const [coverSubtitle, setCoverSubtitle] = useState(coverSubtitleProp ?? null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  // Live data for the data-driven book pages (sv2-s2 birth_day, sv2-s3 people). Fetched here so the
+  // builder, published view, and PDF all read the current values.
+  const [birthDetails, setBirthDetails] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
   const activeTheme = getTheme(bookThemeKey);
+
+  // Live data the book pages read (birth_details / family_members). Re-pulled whenever the builder
+  // closes too — people/birth edits made inside the builder must flow into the published view + PDF
+  // (otherwise pageData stays at its mount-time snapshot and e.g. newly-added grandparents are
+  // missing from the published family tree).
+  const loadPageData = useCallback(() => {
+    apiRequest('/birth-details').then(setBirthDetails).catch(() => {});
+    apiRequest('/family-members').then(list => setFamilyMembers(list || [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadPageData(); }, [loadPageData]);
+
+  const pageData = { birthDetails, familyMembers, babyName, birthdate, coverPhotoUrl };
 
   async function handleThemeSelect(key) {
     const prev = bookThemeKey;
@@ -70,7 +86,7 @@ export default function StorybookTab({
     if (publishedChapters.length === 0) { onError?.('No published chapters to export'); return; }
     setExportingPdf(true);
     try {
-      const doc = await generateStorybookPdf(publishedChapters, activeTheme, { babyName, birthdate, coverPhotoUrl, coverSubtitle });
+      const doc = await generateStorybookPdf(publishedChapters, activeTheme, { babyName, birthdate, coverPhotoUrl, coverSubtitle, pageData });
       downloadPdf(doc, babyName || 'storybook');
     } catch (e) {
       onError?.('PDF export failed — please try again');
@@ -131,7 +147,9 @@ export default function StorybookTab({
         firsts={firsts ?? []}
         theme={activeTheme}
         onUpdate={onUpdate}
-        onClose={() => setBuilderChapter(null)}
+        onClose={() => { setBuilderChapter(null); loadPageData(); }}
+        pageData={pageData}
+        onError={onError}
       />
     );
   }
@@ -262,6 +280,7 @@ export default function StorybookTab({
                   key={chapter.id}
                   chapter={chapter}
                   theme={activeTheme}
+                  pageData={pageData}
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   onEditLayout={(ch) => setBuilderChapter(ch)}
@@ -300,7 +319,7 @@ function SortableChapterCard(props) {
   );
 }
 
-function ChapterCard({ chapter, theme, onUpdate, onDelete, onEditLayout, onError }) {
+function ChapterCard({ chapter, theme, pageData, onUpdate, onDelete, onEditLayout, onError }) {
   const typeLabel =
     chapter.anchorType === 'period' ? 'Time Period' :
     chapter.anchorType === 'milestone' ? 'Milestone' : 'First Time';
@@ -328,7 +347,7 @@ function ChapterCard({ chapter, theme, onUpdate, onDelete, onEditLayout, onError
             <div className="h-px w-14" style={{ backgroundColor: theme?.accent, opacity: 0.25 }} />
           </div>
         </div>
-        <LayoutRenderer layout={chapter.layoutData} theme={theme} />
+        <LayoutRenderer layout={chapter.layoutData} theme={theme} pageData={pageData} />
         {chapter.publishedAt && (
           <p className="text-center text-xs text-muted-foreground px-8 py-4" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>
             {formatDate(chapter.publishedAt)}
@@ -354,7 +373,7 @@ function ChapterCard({ chapter, theme, onUpdate, onDelete, onEditLayout, onError
           Draft — review before publishing
         </span>
         <div className="rounded-lg overflow-hidden bg-white border border-border">
-          <LayoutRenderer layout={chapter.layoutData} theme={theme} />
+          <LayoutRenderer layout={chapter.layoutData} theme={theme} pageData={pageData} />
         </div>
         <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
           <Button size="sm" onClick={handlePublish} className="bg-color-highlight hover:bg-color-highlight/90">

@@ -11,5 +11,6 @@ public record BabyProfileResponse(
     String coverPhotoUrl,
     String coverSubtitle,
     String dueDate,
-    String phase
+    String phase,
+    String photoUrl
 ) {}

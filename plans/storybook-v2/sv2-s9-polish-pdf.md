@@ -1,7 +1,10 @@
-# SV2-S8 — Polish + PDF Integration
+# SV2-S9 — Polish + PDF Integration   *(was sv2-s8; renumbered 2026-06-27)*
 
-**Status: Not started**
-**Depends on:** sv2-s6 + sv2-s7 complete (all page types exist and guided book is functional)
+**Status: Not started.** Note (2026-06-27 direction update): the **auto Firsts chapter is dropped** — the
+book page order no longer has "hero+gallery pairs" (line 49 below is stale). The guided book is the
+pre-designed fill-in arc (25 / 30 pages — see the mockups); the PDF just chains that fixed page sequence.
+New page types to audit also include the growth spread, prompt pages, bump page, and family-tree page.
+**Depends on:** sv2-s7 complete (all page types exist and the guided fill-in book is functional)
 **Reference:** `feedback_html2canvas_limitations.md` — what doesn't render in html2canvas
 
 ---

@@ -28,7 +28,7 @@ class BabyProfileControllerTest {
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(USER_ID, EMAIL);
 
     private static final BabyProfileResponse PROFILE = new BabyProfileResponse(
-        PROFILE_ID, "Lily", "2025-06-01", "Jane", "555-0100", null, "classic", null, null, null, "baby"
+        PROFILE_ID, "Lily", "2025-06-01", "Jane", "555-0100", null, "classic", null, null, null, "baby", null
     );
 
     // ── GET /baby-profile ─────────────────────────────────────────────────────

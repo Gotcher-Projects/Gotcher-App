@@ -1,9 +1,154 @@
 # Storybook V2 — Planning
 
-**Status: Draft — open questions unresolved (see Section 4)**  
-**Depends on:** S12 + Deferred items complete  
+**Status: Draft — re-discussion in progress (2026-06-22). Most open questions in §4 decided;
+LULU/print folded in (§6); deferred-session triage added (§7); AI-separation model added (§8).**  
+**Depends on:** storybook review-fixes track **Complete** (s1–s11) + S13/S15 **Complete**. See §0.  
+**Key model shift (§8):** core book is **AI-free by default** (built from your data + your own words);
+AI is a **separate, opt-in, paid-gated per-field "write this for me" assist**. This **unblocks core v2
+from Payments** — only the AI assist, print, and share sit behind the paid wall.  
 **Reference:** `research.md` (Precious Five competitive analysis)  
-**LULU integration:** v2 builds on top of LULU work once that lands
+**LULU / print-on-demand:** now an explicit v2 workstream — see §6 and the hand-off doc
+`lulu-print-handoff.md`. **External dependency:** the Lulu account + API + spec confirmation is
+setup work someone other than the implementing session must do first.
+
+---
+
+## ⭐ DIRECTION UPDATE (2026-06-27) — guided book is a PRE-DESIGNED FILL-IN book, not auto-generated
+
+This supersedes the "automatic guided mode" framing in §1/§4/§8 and reshapes the remaining sessions.
+Discussed + mocked 2026-06-27. **Mockups (page lists):** `mockups/s6-guided-first-year-book.html` (25 interior
+pages) and `mockups/s6-guided-pregnancy-first-year-book.html` (30 interior pages).
+**Mockups (in-app s7 — added 2026-06-27):** `mockups/s7-guided-book-in-app.html` (the guided book drawn in the
+real Storybook-tab chrome — cover, theme swatches, Guided⇄Freeform toggle, progress + locked page-sequence),
+`mockups/s7-book-library-and-chooser.html` (a shelf of books + the new-book Guided/Freeform chooser dialog),
+`mockups/s7-guided-book-shell.html` (abstract wireframe of the same flow).
+
+**The model.** The guided book is **a pre-designed keepsake the user fills in** — like a printed
+"baby's first year" book with labeled pages. *We* choose the page sequence and each page's layout and
+**lock it**; the user **drags their photos / types their words** into the slots (reusing the existing
+ScrapbookBuilder fill mechanics). Three page kinds:
+- **auto** — fills from data already entered (Your People, Birth Stats, Family Tree, the bump size tag).
+- **fill** — an empty designed page the user drops photos/text into (most pages).
+- **pick** — a designed slot where the user **chooses which First** to feature (a few moment-hero pages).
+Pages are **locked** (no add/remove/reorder) for v1 — flexibility deferred to a future plan. Per-page
+prompts/labels ("Your First Bath") are what make it feel guided. It is **NOT** auto-derived/variable-length.
+
+**Two default books (adaptive).** Baseline **"Your First Year" ≈ 25 interior pages** (birth → 1st
+birthday). When the profile has **pregnancy data**, a **6-page pregnancy chapter front-inserts** →
+**"Bump to One" ≈ 30 pages**. Cover + back cover wrap *around* the interior count. Counts **locked at ~25 / ~30** (assumed to fit
+Lulu's page rules — revisit only if Lulu later rejects them).
+
+**DROPPED: the old sv2-s5 (moment-hero) + sv2-s7 (firsts chapter)** — the auto-derived Firsts chapter.
+(Those numbers are now reused: s5 = Family Tree, s7 = Guided shell.) Firsts now appear as **a few user-picked
+moment-hero pages** inside the fixed book — no mass page generation. Moment-Hero + Gallery remain manual
+scrapbook templates (already shipped). See those plans for the drop notes.
+
+**Pregnancy chapter (now sv2-s8) reframed.** No longer an auto firsts-clone. It is **fixed fill-in pages**:
+A Letter Before You Arrived · The Day We Found Out · Your First Photo (ultrasound) · The Bump ×2 ·
+Getting Ready for You. The **week→size comparison is a small AUTO TAG layered on bump photos** ("how big
+were you here"), **not** a standalone page. Uses the shipped 37-row size dataset.
+
+**Page types the default book needs (build before the shell, sv2-s7):**
+- ✅ exist: Cover (BookCover), Letter (s1), Birth Stats (s2), Your People (s3), Gallery + Moment-Hero.
+- ✅ **sv2-s5 Family Tree** — *default-book page* in the People section. **Built 2026-06-27 (Needs Verification).**
+- ✅ **sv2-s6 Fill-in Page Types** — Chapter-divider, growth spread (→ "Trio + Note"), prompt pages
+  ("All About You"), hands & feet (→ "Pair + Caption"), Bump page (size comparison = caption under photo, not
+  an overlay pill). **Built 2026-06-27 (Needs Verification).**
+
+**Build order (renumbered 2026-06-27 — see §3 for the full map):** page types s1–s4 ✅ done →
+**s5 Family Tree ✅** → **s6 Fill-in page types ✅** → **s7 Guided fill-in shell** ← NEXT (arc config + locked
+sequence + Guided⇄Freeform mode toggle + book library/switcher; scrapbook coexists as the advanced option) →
+**s8 Pregnancy chapter** → **s9 Polish/PDF** → s10 ai-assist / s11 ai-retrofit / s12 print.
+**Old s5 (moment-hero) + s7 (firsts) removed.**
+
+**s7 decisions reached in the in-app mockup pass (2026-06-27):**
+- **Mode = a Guided⇄Freeform toggle** in the Book tab (Guided = "Recommended"); not a separate tab. Mirrors the
+  existing `builderChapter` full-screen pattern (§0).
+- **Books become a (light) library — multi-book is IN v1 (decided 2026-06-27).** Most users have **one** book;
+  some want more. The shelf is **NOT the landing page** — **0 books** → new-book chooser dialog → book; **1 book**
+  → land *inside* it with a quiet "Lily's First Year ▾" switcher; **2+ books** → the switcher opens a "Your Books"
+  shelf (cover-thumb cards + type/theme/progress + a `⋯` rename/duplicate/delete/export menu + "Start a new book"
+  tile). **Needs a new `books` table** (baby owns many books; existing chapters reparent into a default book via
+  migration) — supersedes the earlier "no new table" note. See sv2-s7 plan item #5 for the shape.
+- **Remove the AI "Write a Period Chapter" card** from the tab. AI page-gen is deferred (core ships free, no AI);
+  the only AI is the separate opt-in paid per-field assist (**s10/s11**). Freeform = layouts/photos/text only —
+  no AI surface anywhere in s7. Wizard code stays in the repo, just unmounted.
+
+---
+
+## 0. Current State — what's actually built (verified against code 2026-06-22)
+
+This section grounds the rest of the plan in the real codebase so sessions don't re-assume stale
+shapes. Paths verified this date.
+
+### Storybook (scrapbook) — shipped and live
+- **Entry point:** `Frontend/src/components/tabs/StorybookTab.jsx` — renders the chapter list and
+  launches the builder full-screen via `builderChapter` state (`StorybookTab.jsx:30`, `:126`,
+  `onEditLayout` at `:267`). **This is the pattern the Guided Book shell (sv2-s7) mirrors** — add a
+  parallel `guidedBookOpen` state + entry point, don't invent a new tab (matches Q1 decision).
+- **Builder components** (`Frontend/src/components/storybook/`): `ScrapbookBuilder.jsx`,
+  `StorybookWizard.jsx`, `LayoutRenderer.jsx`, `Slot.jsx`, `MemoryPanel.jsx`, `PhotoTray.jsx`,
+  `TemplateSheet.jsx`, `BookCover.jsx`, `RichTextEditor.jsx` + `FontPicker.jsx` + `FormatToolbar.jsx`,
+  and **`MomentHeroCanvas.jsx`**.
+- **Libs** (`Frontend/src/lib/`): `bookThemes.js` (theme tokens), **`bookCanvas.jsx`** (`CANVAS_W` /
+  `CANVAS_H` page dims — this is the "bookCanvas" the session prompts say to read), `storybookLayout.js`,
+  `storybookPdf.js` (html2canvas → jsPDF export), `storybookTemplates.js`, `storybookText.js`,
+  `storybookGrouping.js`, `storybookPeriods.js`.
+- **Backend** (`Backend/.../api/storybook/`): `StorybookController`, `StorybookService`,
+  `ClaudeClient`, dto records. Page content is generated **batched, one page per memory** via
+  `generatePages()`; each page costs **1 AI credit**, debited atomically up-front with a
+  charge-then-refund-on-failure pattern (`StorybookService.java:174–224`).
+
+### ⚠️ Naming mismatches to fix in the sessions (plans assume names that don't exist)
+- **S13 shipped as `MomentHeroCanvas.jsx`, NOT `MomentHeroPage.jsx`.** sv2-s5 / sv2-s7 / sv2-s8 all
+  reference `MomentHeroPage.jsx`. Before sv2-s5, **read `MomentHeroCanvas.jsx` and decide**: is it
+  reusable as a fixed-layout book page, or is it builder-canvas-coupled and needs a thin
+  `MomentHeroPage` wrapper? This is the first thing sv2-s5 must resolve.
+- `bookCanvas` is `lib/bookCanvas.jsx` (not a component) — session prompts that say "read
+  bookCanvas.jsx" are correct, just note it's a lib.
+
+### ⭐ Page-type implementation pattern (DECIDED 2026-06-24) — applies to every v2 page type
+Every new page type (Letter, Birth-Stats, People, Moment-Hero, Gallery, Chapter-Divider) is a
+**layout template + renderer inside the existing book canvas** — the **moment-hero pattern** — **NOT its
+own `anchor_type` chapter**. Concretely, a page type:
+1. adds a template to `lib/storybookTemplates.js` with `renderer: '<name>'` + role-id blocks (the
+   renderer ignores block x/y and lays out its own fixed design, reading content via `blk('role')`;
+   theme-independent palette, like `MomentHeroCanvas`);
+2. adds a renderer component dispatched at **three points** — `ScrapbookBuilder` (builder edit),
+   `LayoutRenderer` (read view), `storybookPdf.js` (PDF) — plus a `TemplateSheet` thumbnail;
+3. is **added via the builder's template picker** and stored as a page in a chapter's `layout_data`,
+   saved through the existing `PATCH /storybook/{id}` — **no new anchor_type, create endpoint, column, or
+   migration for the page itself**.
+
+Page-type **data** that needs its own table (e.g. `birth_details`, `family_members`, `first_time_photos`)
+lives in its own endpoint/table; only the **page** is a layout template that reads that data.
+
+> **Why this is called out:** sv2-s1 first built the letter the wrong way (a bespoke
+> `anchor_type='letter'` chapter + a generic `POST /storybook/chapters` endpoint + standalone card) and it
+> was **fully reverted** to the template/renderer pattern. **Do not reintroduce the chapter-type paradigm**
+> in sv2-s2/s3/s4/s5. The per-session plans' older "anchor_type = '…'" / "is a chapter type" lines are
+> **superseded** by this pattern.
+
+### Tiers & credits — partially real
+- `users` has **`tier`** and **`ai_credits_remaining`** columns (`UserDto.java:10–11`); AI generation
+  is genuinely credit-gated today.
+- **BUT the Payments/Stripe track is `Not started`** (`plans/payments/` — s0 status "Not started").
+  So `tier` exists as a field and can be read for gating, but there is **no purchase/upgrade flow** to
+  actually move a user to `plus`/`pro` yet. **Per §8 the paid wall now gates only three things — AI
+  per-field assist, print, share — and core v2 is unblocked from Payments.** Those three read `tier`
+  for gating but can't assume users can buy in until Payments ships; they ship visible-but-inert
+  (upsell) meanwhile. **Flag this dependency** (now scoped, not blanket).
+
+### Pregnancy data layer — shipped (see §5 + `sv2-s8-pregnancy-chapter.md`)
+- `baby_profiles.due_date` + `phase` (V35), `bump_photos` (V36), `BumpCard.jsx`/`BumpDiary.jsx`,
+  37-row size dataset, `com.gotcherapp.api.bump`. Only the guided-book derivation layer remains.
+
+### Predecessor tracks — done
+- **Storybook & Pregnancy review-fixes** (`plans/storybook-and-pregnancy-review-fixes/`): s1–s11
+  **Complete**; s12 polish deferred to `plans/tech-debt/storybook-pregnancy-polish.md`.
+- **S13 Moment-Hero** and **S15 L-Wrap follow-up**: both **Complete** (confirmed in-app).
+- This **supersedes the old "Depends on: S12 + Deferred items complete" prerequisite** — S12 work and
+  its review fixes are done. The remaining "deferred" items are triaged in §7.
 
 ---
 
@@ -41,7 +186,7 @@ The pregnancy chapter is a long-term track (separate user onboarding flow, signi
 | **Firsts chapter** | Auto-generated chapter that pulls all First Times as moment-hero pairs | Moment-Hero from Group A |
 | **Gallery pages** | "More from [Moment]" 2×2 grids (needs multi-photo Firsts) | Moment-Hero + first_time_photos schema |
 
-### Group C — Pregnancy track (data layer SHIPPED; guided chapter remains → `pregnancy-track.md`)
+### Group C — Pregnancy track (data layer SHIPPED; guided chapter remains → `sv2-s8-pregnancy-chapter.md`)
 
 | Feature | What it is | Status |
 |---|---|---|
@@ -49,7 +194,7 @@ The pregnancy chapter is a long-term track (separate user onboarding flow, signi
 | **Bump diary** | Weekly photo uploads paired with size, week labels | ✅ Shipped (pregnancy S3: `bump_photos` V36, `BumpCard`/`BumpDiary`) |
 | **Pregnancy journal** | Notes/entries during pregnancy | 🟡 Pregnancy S5 — bump diary *becomes* the journal (phase-flagged, photo optional) |
 | **Pre-birth letter** | "A letter before you arrived" | ↪ Already **sv2-s1** v1 letter type |
-| **"Before You Arrived" guided chapter** | Derives bump pages + letter + pre-birth entries into the guided book | ⬜ Remaining v2 work — `pregnancy-track.md` (depends on sv2-s6) |
+| **"Before You Arrived" guided chapter** | Fixed fill-in pregnancy pages in the guided book | ⬜ Remaining v2 work — `sv2-s8-pregnancy-chapter.md` (depends on sv2-s7) |
 
 ### Group D — Deferred
 
@@ -60,21 +205,72 @@ The pregnancy chapter is a long-term track (separate user onboarding flow, signi
 
 ## 3. Proposed Session Breakdown (post-S12 + Deferred)
 
+> **RENUMBERED 2026-06-27** to match the build order. List below is current. Mapping at the end of §3.
+
 ```
-sv2-s1  Letter to Baby            ← extensible letter component, pre-birth type first
-sv2-s2  Birth Stats Card           ← schema TBD (Q5), new page template
-sv2-s3  Your People               ← family_members data model + About Your People pages
-sv2-s4  Multi-photo Firsts         ← first_time_photos table + Firsts UI update
-sv2-s5  Moment-Hero renderer       ← MomentHeroPage component + scrapbook chapter type
-sv2-s6  Guided Book shell          ← book arc UI, chapter divider pages (in Book tab)
-sv2-s7  Firsts chapter in book     ← auto-generated Firsts chapter + gallery pages
-sv2-s8  Polish + PDF integration   ← all new page types export correctly
-sv2-s9  Family Tree visualizer     ← DEFERRED — renders Your People data as a tree (substantial)
-sv2-sP  "Before You Arrived" chapter ← pregnancy guided chapter; data layer shipped (pregnancy S1–S3),
-                                       derivation remains. Depends on sv2-s6 + sv2-s1. → pregnancy-track.md
+═══ SHIPPED (kept as historical record) ═══
+sv2-profile-modal  Dashboard refactor    ← ✅ Complete. Edit-Profile modal + baby photo.
+sv2-s1  Letter to Baby                    ← ✅ Complete. Letter renderer/template.
+sv2-s2  Birth Stats Card                  ← ✅ Complete. birth_details + BirthDayCanvas.
+sv2-s3  Your People                       ← ✅ Complete. family_members + PeopleCanvas.
+sv2-s3.5  People polish + circular crop   ← ✅ Complete. Page-fit + opt-in circular crop.
+sv2-s4  Multi-photo Firsts                ← ✅ Needs Verification. first_time_photos + GalleryCanvas.
+sv2-s4.5  Multi-photo Firsts UX           ← ⬜ side plan: redesign in-card multi-photo editing.
+
+═══ REMAINING — guided book build, in order ═══
+sv2-s5  Family Tree                       ← family tree as a default-book page (People section).
+                                            → sv2-s5-family-tree.md  [Needs Verification]
+sv2-s5.5  Family relationships (refine)    ← real relationship model + editable titles + step-relations.
+                                            → sv2-s5.5-family-relationships.md  [Not started]
+sv2-s6  Fill-in Page Types                ← chapter-divider, growth ("Trio+Note"), prompts, hands&feet
+                                            ("Pair+Caption"), bump page. → sv2-s6-fill-in-page-types.md
+                                            [Needs Verification — built 2026-06-27]
+sv2-s7  Guided fill-in book shell         ← NEXT. Locked page sequence + auto/fill/pick pages +
+       (+ sv2-s7-plan default book)         Guided⇄Freeform toggle + light book library/switcher +
+                                            REMOVE the AI Period-Chapter card. → sv2-s7-guided-book-shell.md
+                                            Default arc DECIDED → sv2-s7-plan-default-book.md
+                                            In-app mockups: s7-guided-book-in-app / s7-book-library-and-chooser
+sv2-s8  Pregnancy chapter                 ← "Before You Arrived" fixed fill-in pages; size = auto bump tag.
+                                            → sv2-s8-pregnancy-chapter.md
+sv2-s9  Polish + PDF integration          ← all page types export cleanly; chain the fixed page sequence.
+                                            → sv2-s9-polish-pdf.md
+sv2-s10  Per-field AI assist              ← shared "✨ write this for me" field + single-field endpoint.
+                                            → sv2-s10-ai-assist.md
+sv2-s11  Decommission old batched AI      ← DELETE generatePages() + wizard generate step. → sv2-s11-ai-retrofit.md
+sv2-s12  Print-on-demand (Lulu)           ← print PDF + Lulu order flow; BLOCKED on external Lulu setup.
+                                            → lulu-print-handoff.md + plans/storybook/sDeferred-print.md
+
+═══ DROPPED / SUPERSEDED → moved to deprecated/ (see deprecated/README.md) ═══
+deprecated/moment-hero-guided.md          ← ❌ old s5: auto Firsts chapter (firsts now = user-picked pages).
+deprecated/firsts-chapter.md              ← ❌ old s7: went with the above.
+deprecated/circular-avatar-crop.md        ← old s6.6: folded into sv2-s3.5.
 ```
 
-Pregnancy track now has its planning file: `plans/storybook-v2/pregnancy-track.md` (data layer
+**Rename map (old → new):** s9→**s5** (Family Tree) · *(new)*→**s6** (Fill-in types) · s6→**s7** (shell) ·
+s6-plan→**s7-plan** · pregnancy-track→**s8** · s8→**s9** (Polish) · ai-assist→**s10** · ai-retrofit→**s11** ·
+print→**s12** · s6.5→**s4.5** · old s5/s7/s6.6 → **`deprecated/`** (moment-hero, firsts-chapter, circular-avatar-crop).
+*(Deep-body mentions of old numbers in individual plans should be read through this map.)*
+
+**Sequencing note (§8 model):** core page-type sessions (sv2-s1…s8) build the **manual text path
+first** and ship **free, no Payments dependency**. `sv2-ai-assist` + `sv2-ai-retrofit` + print + share
+are the paid bundle, lit up once Payments lands; until then the AI affordance ships visible-but-inert.
+
+**Build order for the S2/S3 sprint (planned 2026-06-25, implementation deferred):**
+1. **`sv2-profile-modal`** — dashboard refactor (summary card + tabbed Edit-Profile modal + baby photo).
+   Prerequisite: it hosts S2's birth-details form tab.
+2. **`sv2-s2`** — birth_details table/endpoint + Birth-details tab content + `BirthDayCanvas` book page.
+   Depends on (1).
+3. **`sv2-s3`** — independent of (1)/(2); can run in parallel or after. family_members + add-page popup +
+   `PeopleCanvas`.
+Mockups for all three live in `mockups/` (`index.html`). All decisions are locked in each plan's
+"Decisions locked" block; these three are **planned, not yet implemented**.
+
+**Deferred storybook sessions** (`plans/storybook/sDeferred-*.md`) are triaged in §7 — short version:
+`sDeferred-print` is promoted into v2 as `sv2-print` (§6); `sDeferred-share-link` is **optional /
+on-demand**; `sDeferred-remove-claude-logging` is a **small hygiene task to do before any public
+launch**, independent of v2 feature work.
+
+Pregnancy track now has its planning file: `plans/storybook-v2/sv2-s8-pregnancy-chapter.md` (data layer
 shipped via `plans/pregnancy/` S1–S3; the remaining guided-book chapter rides along with the v2
 re-discussion).
 
@@ -205,18 +401,30 @@ Requires `due_date` on `baby_profiles` (or use birthdate as a proxy — letter c
 
 ### Q8 — LULU integration points
 
-When LULU lands, what specifically does v2 inherit from it?
-- Does LULU change the book canvas render pipeline in ways that affect moment-hero pages?
-- Does LULU affect how AI narrative copy is generated (different prompts, different models)?
+**RECONCILED (2026-06-22):** "LULU" = **Lulu.com print-on-demand**. There is no separate "LULU work"
+landing independently — it **is** the deferred print session (`plans/storybook/sDeferred-print.md`),
+now promoted into v2 as the `sv2-print` workstream. See **§6** for the folded-in plan and
+`lulu-print-handoff.md` for the external setup that must happen first. The original framing of
+"v2 builds on top of LULU once it lands" was backwards: print builds **on top of** the v2 page types,
+not the other way around.
 
-*Flag for re-evaluation once LULU work is visible.*
+Resolved sub-questions:
+- **Render pipeline:** v2's fixed-layout page components (LetterPage, BirthDayPage, MomentHero, etc.)
+  feed print — but print needs **server-side, print-resolution PDF assembly (OpenPDF)**, not the
+  current client-side html2canvas→jsPDF path (screen-DPI, not print-quality). The screen page
+  components remain the *design source of truth*; the print renderer re-implements them at 300 DPI.
+  **Design each new v2 page type with a print equivalent in mind** (no html2canvas-only tricks that
+  can't be reproduced server-side).
+- **AI copy:** unchanged — print reuses whatever narrative copy the book already has; no new prompts.
+
+*Print is gated behind external Lulu setup + Payments — keep it the LAST v2 workstream.*
 
 ---
 
 ## 5. Pregnancy Track — Brief
 
 > **UPDATE (2026-06-18): the data layer described below has SHIPPED — full plan now in
-> `plans/storybook-v2/pregnancy-track.md`.** The pregnancy mode (S1–S3 of `plans/pregnancy/`) was
+> `plans/storybook-v2/sv2-s8-pregnancy-chapter.md`.** The pregnancy mode (S1–S3 of `plans/pregnancy/`) was
 > built *after* this planning doc, so the schema sketch here is **superseded**:
 > - `baby_profiles.due_date` **and** a user-controlled `phase` column already exist (migration V35) —
 >   not just `due_date`.
@@ -231,7 +439,7 @@ When LULU lands, what specifically does v2 inherit from it?
 >
 > **What remains is only the guided-book layer:** a front-of-book "Before You Arrived" chapter that
 > derives bump pages (reuse `BumpCard`) + the pre-birth letter (already sv2-s1) + phase-flagged
-> journal entries — mirroring the Firsts chapter. Depends on sv2-s6. See pregnancy-track.md for the
+> journal entries — mirroring the Firsts chapter. Depends on sv2-s6. See sv2-s8-pregnancy-chapter.md for the
 > approach, the journal-reframing rationale, and open questions.
 
 Original brief (kept for context — schema is superseded above):
@@ -242,3 +450,175 @@ Pregnancy is a bigger UX commitment than any of the above because it requires:
 3. A new "Pregnancy" chapter in the guided book that can be filled in retroactively
 
 **User value:** Parents who are currently pregnant could use CradleHQ from day 1 (before birth), significantly expanding the addressable audience. Worth planning for but scoped as a separate track.
+
+---
+
+## 6. Print-on-Demand (Lulu) — folded into v2 as `sv2-print`
+
+> **This is the "LULU work."** It already had a deferred plan: `plans/storybook/sDeferred-print.md`
+> (decisions from Storybook S0 + S2 planning). That file stays as the detailed spec; this section
+> places it inside v2 and records what changed. **Companion doc: `lulu-print-handoff.md`** — the
+> external setup write-up to pass to whoever owns the Lulu account.
+
+### What it is
+Paid users order a physical printed copy of their book. Lulu (lulu.com) handles printing, shipping,
+and payment via hosted checkout; we assemble a print-quality PDF and submit the order.
+
+### Decisions already locked (from sDeferred-print.md — still valid)
+- **Vendor:** Lulu print-on-demand (no inventory).
+- **Gating:** `plus` / `pro` users only; multi-copy ordering supported (grandparents).
+- **Checkout:** redirect to Lulu hosted checkout — **no Stripe charge on our side for the print itself**.
+- **Print is separate from AI credits** — ordering doesn't consume credits.
+- **PDF library:** **OpenPDF** (server-side, Apache-licensed) — replaces client-side jsPDF for print.
+- **Images:** fetch raw Cloudinary upload URLs server-side (phone uploads are 3000px+, enough for
+  300 DPI); **do not** use Cloudinary transformations (free-tier credit limits).
+
+### What changed by folding into v2
+- **Page set is bigger.** The print renderer must reproduce **all v2 page types** (Letter, BirthDay,
+  People, MomentHero, Gallery, ChapterDivider, Bump) at 300 DPI server-side — not just the legacy
+  scrapbook layouts the original print plan assumed. This is the main scope increase.
+- **Two book modes to print.** Guided Book and Scrapbook both need to flow into the same print
+  assembler. Decide whether a print = one mode or the user picks (mirrors the sv2-s8 PDF question).
+- **Sequencing:** print is the **last** v2 workstream — it should consume finished, stable page types,
+  not chase them while they change.
+
+### Dependencies & blockers
+- ⛔ **External Lulu setup (someone else):** account, API credentials, confirmed trim size / bleed /
+  color-profile / min-page-count from Lulu's spec catalog, white-label check. → `lulu-print-handoff.md`.
+- ⚠️ **Payments S1** (`plans/payments/`) is **Not started** — needed for real paid-tier gating and
+  (if we ever add markup) billing. The `tier` column exists so gating *code* can be written, but
+  there's no upgrade path for users yet.
+- ✅ **v2 page types** (sv2-s1…s8) — print should follow these.
+
+### Sessions (unchanged from sDeferred-print.md, renamed under v2)
+- **sv2-print-plan** — resolve Lulu API open questions *after* the hand-off setup returns answers
+  (trim size, auth model, redirect-vs-POST checkout, white-label, min pages).
+- **sv2-print-s1** — Backend: OpenPDF print assembly (all v2 page types) + Lulu API order submission.
+- **sv2-print-s2** — Frontend: "Order a Printed Book" UI, quantity picker, redirect, confirmation.
+
+---
+
+## 7. Deferred storybook sessions — triage (which do we actually need?)
+
+The three `plans/storybook/sDeferred-*.md` files, assessed for v2:
+
+| Deferred session | Verdict for v2 | Why |
+|---|---|---|
+| **`sDeferred-print.md`** (Lulu print) | ✅ **Promote into v2** as `sv2-print` (§6) | This *is* the LULU work. Highest-value of the three; blocked only on external setup + Payments. |
+| **`sDeferred-share-link.md`** (public `/book/{token}` share) | 🟡 **Optional / on-demand** | Genuinely useful (grandparents read without an app) and self-contained, but **independent of the v2 book-structure work**. Note: its plan still says it serves legacy chapter `body`; the review-fixes track **removed the old sharing backend** (V25 `book_share_tokens` migration kept, code removed). So this is a **fresh build**, not a resume. Pull in only if sharing is a near-term priority; otherwise leave deferred. Also paid-gated → same Payments caveat as print. |
+| **`sDeferred-remove-claude-logging.md`** (strip `[CLAUDE-DEBUG]` logs) | ✅ **Do before any public launch — small & independent** | Hygiene: removes temporary logging that prints **real family journal/first-time content** to server logs. Not a v2 feature, but a privacy/launch blocker. ~30-min task; do it whenever, definitely before wider rollout. Verify with `grep -rn "CLAUDE-DEBUG" Backend/src`. |
+
+**Recommendation:** promote print (§6); do the logging cleanup as a standalone hygiene task soon;
+keep share-link deferred until there's product pull for it (and budget it as a fresh build, since the
+old sharing code was removed).
+
+---
+
+## 8. AI as a separate, opt-in feature (DECIDED 2026-06-22)
+
+**The core book is AI-free by default. AI is pulled out into a separate, opt-in, paid-gated
+per-field assist.** This is the biggest model change in the re-discussion and it reshapes every page
+type plus the dependency graph.
+
+### ⚠️ Two different "AI" things — only one survives (clarified 2026-06-22)
+The new system draws a hard line:
+- **AI page _generation_ — REMOVED ENTIRELY. A relic of the old storybook we are moving away from.**
+  AI never creates pages, page content, or book structure. The old `generatePages()` batched
+  page-generation flow is **deleted, not retired-or-hidden, not repurposed.** No "AI builds your book"
+  anywhere in v2.
+- **AI per-field text _assist_ — survives** as the separate, opt-in, paid feature. It does **not**
+  generate pages; it only helps you **word a single text field you already have** (a note/letter/bio
+  slot inside a page you already made, manually or via the guided structure). "Write this for me" on
+  one field — never "make me pages."
+
+If a future reader is unsure: pages and structure come from **the user (scrapbook)** or **the default
+guided arc (guided book)** — *never* from AI. AI's only job is helping phrase text the user opted to
+get help with.
+
+### The principle
+- The **default** way to build a book — guided **and** scrapbook — uses **only data the user already
+  has + text the user writes themselves**. No AI in the normal path.
+- **AI is a garnish, not the engine.** It's a separate feature, **normally not used**, that a user
+  can opt into to help word a single piece of text — it never produces pages.
+
+### The two book modes (clarified 2026-06-22)
+- **Scrapbook** — the user **manually makes pages** (existing free-form builder, continued).
+- **Guided Book** — a **default book with a default set of pages** (a predetermined arc + default page
+  count) that the user fills in. We need to **design/"set" that default book** — its chapter arc,
+  which pages ship by default, and the default page count. **This needs its own planning pass**
+  (`sv2-s7-plan`, see §3) *before* the shell session (sv2-s7) builds the page-sequence config.
+
+### Decisions
+- **Scope: Forward + retroactive.** Both modes are AI-free by default. The **existing scrapbook AI
+  generation** (`StorybookService.generatePages()`, batched, 1 credit/page — live today) is **reframed
+  as part of this same separate AI feature**, not the default generation path. One consistent model
+  across guided book and scrapbook.
+- **Shape: per-field assist only.** AI surfaces as a **"✨ write this for me" affordance on each
+  individual text field** (a Moment-Hero note, a Letter body, a People bio, a Birth-day note).
+  User-directed, one field at a time. **No whole-book bulk generate, and no AI page generation at all**
+  — the batched `generatePages()` path is **removed, not hidden** (see retrofit note + the "Two
+  different AI things" callout above).
+- **Gating & metering:** per-field assist is **paid-tier only** and **spends AI credits** (the existing
+  `tier` + `ai_credits_remaining` machinery stays as the metering mechanism). For free users the
+  affordance is **visible but inert** (an upsell), so the value is discoverable before Payments lands.
+
+### What this means for each v2 page type
+Every page type now needs a **manual text path as its default**, with an **optional per-field AI
+assist** layered on:
+
+| Page type | Default (free, no AI) | Optional AI assist (paid) |
+|---|---|---|
+| Letter (sv2-s1) | User writes the letter | "Write this for me" from a few prompt words |
+| Birth Stats (sv2-s2) | User writes the birth note (or leaves blank) | Generate the note from the stats |
+| People (sv2-s3) | User writes each bio | Generate a bio from `bio_input` |
+| Moment-Hero (sv2-s5/s7) | User writes each first's note | Generate a note per first |
+| Bump / pregnancy (sv2-s8) | Existing notes | (optional) tidy/expand a note |
+
+The sessions for these page types should **build the manual path first**; the AI assist hook is a
+**shared component** (see below), not re-implemented per page.
+
+### New / changed work this creates
+- **`sv2-ai-assist` (new shared session):** build one reusable **"AI write-for-me" field component +
+  backend single-field endpoint** (reuse `ClaudeClient`; per-field prompt instead of batched). Wire
+  the paid-gate + credit spend + free-user upsell state once, consume everywhere.
+- **`sv2-ai-retrofit` (new, retroactive — "decommission old AI page-gen"):** change the **shipped
+  scrapbook** so pages are **made manually** and text **defaults to manual**; **delete the batched
+  AI page-generation system** (`generatePages()` and its wizard "generate" step) — it's the relic we're
+  moving away from, removed not hidden. The only AI left is the new per-field assist (`sv2-ai-assist`),
+  which is a *new* component, not the old code repurposed. ⚠️ This is a **behavior change to live,
+  credit-charging code** — treat as its own careful session: unwind the batched up-front credit
+  debit/refund logic (`StorybookService.java:174–224`) cleanly, mind the page-gen IDOR history
+  (review-fixes s3). No data migration — existing books keep their already-generated text as plain text.
+
+### Dependency impact (the upside)
+- ✅ **Core v2 (sv2-s1 … sv2-s8) NO LONGER depends on Payments.** The whole book — guided + scrapbook,
+  all page types — ships **free and AI-free**. This removes the Payments hard-blocker from the bulk of
+  v2.
+- 🔒 **Payments now gates only three things:** the **AI per-field assist**, **print** (§6), and
+  **share** (§7). Those become a clean "premium" bundle to light up once Payments (`plans/payments/`,
+  currently *Not started*) lands. Until then, the AI affordance ships **visible-but-inert** as an
+  upsell.
+- This **supersedes** the earlier note (in §0 / §6) that paid-tier features broadly block on Payments —
+  now precisely scoped to the three above; core book is unblocked.
+
+### Resolved (2026-06-22)
+- **Free-user AI affordance:** ✅ **visible-but-inert upsell** — show the "✨ write this for me"
+  affordance to free users (discoverability), inert until they're on a paid tier.
+- **Credit cost:** ✅ **1 credit per field** (same unit as today's per-page charge).
+- **Onboarding/pitch:** ✅ **no change planned.** Pitch stays centred on the keepsake + guided
+  structure, not on AI authorship. **One caveat to watch:** the first-run "wow" moment (see note
+  below) — that's the only place the change is actually felt.
+- **Share + print gating:** ✅ **cut from the free tier entirely** (paid-only, not just limited).
+  Same paid bundle as AI assist.
+
+### Resolved — no hidden bulk path (2026-06-22)
+- **No bulk "fill all empty" / no AI page generation of any kind.** Per the "Two different AI things"
+  callout: AI page generation is removed entirely. Per-field assist is the *only* AI surface. The
+  batched path is deleted, not preserved as a hidden power-user option.
+
+### First-run "wow" caveat (the one onboarding risk)
+Today a brand-new user can hit "generate" and instantly see polished prose — an impressive aha moment.
+AI-free-by-default replaces that with **empty fields to fill in**, which is less immediately wow.
+Mitigate by **seeding each field with the user's own raw text** (the journal entry / first-time note
+they already wrote) instead of a blank box — so the default still feels populated and personal, just
+not AI-authored. Track activation here if we're worried.

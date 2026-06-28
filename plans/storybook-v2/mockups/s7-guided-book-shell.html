@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S7 — Guided Book Shell &amp; entry flow (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --warm:#fbeede; --cream:#FDF6ED; --ink-soft:#A07860; --purple:#9b7fd4;
+          --green:#6fae7c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:38px 22px 100px; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:33px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 8px; font-size:15px; max-width:840px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:10px 0 4px; }
+  .legend b { display:inline-flex; align-items:center; gap:6px; font-weight:700; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .d-auto{background:var(--gold);} .d-fill{background:var(--hi);} .d-pick{background:var(--purple);}
+
+  /* screen frame = a phone-ish app surface */
+  .screen { background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.08);
+            max-width:520px; margin:0 auto; overflow:hidden; }
+  .screens { display:flex; gap:34px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:26px; }
+  .col { flex:1 1 460px; max-width:520px; }
+  .steplabel { font-family:'Playfair Display',serif; font-size:18px; color:var(--ink-soft); margin:0 0 12px; text-align:center; }
+  .steplabel b { color:var(--ink); }
+  .arrowdown { text-align:center; font-size:26px; color:var(--hi); margin:14px 0; }
+  .appbar { background:var(--cream); border-bottom:1px solid var(--line); padding:12px 18px; display:flex; align-items:center; gap:8px; font-weight:900; font-size:13px; letter-spacing:.04em; color:var(--ink-soft); text-transform:uppercase; }
+  .appbar .x { margin-left:auto; color:var(--muted); font-weight:700; }
+  .pad { padding:18px; }
+
+  /* ---- mode chooser (screen 1) ---- */
+  .chooser { display:flex; flex-direction:column; gap:14px; }
+  .choice { border:1px solid var(--line); border-radius:14px; padding:16px 16px 16px 18px; position:relative; background:#fff; cursor:pointer; transition:.15s; }
+  .choice.rec { border-color:var(--hi); box-shadow:0 6px 20px rgba(217,123,138,.12); background:linear-gradient(180deg,#fff,#fff7f3); }
+  .choice:hover { transform:translateY(-1px); }
+  .choice h3 { font-family:'Playfair Display',serif; font-size:18px; margin:0 0 3px; display:flex; align-items:center; gap:9px; }
+  .choice p { margin:0; font-size:13px; color:var(--muted); line-height:1.45; }
+  .recbadge { font-size:9.5px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:var(--hi); padding:3px 9px; border-radius:100px; }
+  .advbadge { font-size:9.5px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:#efe7d8; padding:3px 9px; border-radius:100px; }
+  .choice .ic { width:40px; height:40px; border-radius:10px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .choice .row { display:flex; gap:13px; align-items:flex-start; }
+  .cta { display:inline-flex; align-items:center; gap:7px; background:var(--hi); color:#fff; border:none; border-radius:10px;
+         font-weight:800; font-size:13px; padding:9px 16px; margin-top:12px; cursor:pointer; }
+  .cta.ghost { background:#fff; color:var(--ink-soft); border:1px solid var(--line); }
+  .subnote { font-size:12px; color:var(--muted); margin-top:14px; text-align:center; }
+
+  /* ---- guided shell (screen 2) ---- */
+  .bookhead { padding:18px 18px 14px; border-bottom:1px solid var(--line); background:linear-gradient(160deg,#efe6d4,#e7dcc4); }
+  .bookhead .ks { font-size:9.5px; font-weight:900; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .bookhead h2 { font-family:'Playfair Display',serif; font-size:23px; margin:3px 0 2px; }
+  .bookhead .sub { font-size:12px; color:var(--ink-soft); }
+  .progwrap { padding:14px 18px 4px; }
+  .progbar { height:8px; border-radius:100px; background:#eee3d0; overflow:hidden; }
+  .progbar > i { display:block; height:100%; width:36%; background:linear-gradient(90deg,var(--gold),var(--hi)); border-radius:100px; }
+  .progrow { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+  .progrow .t { font-size:12.5px; color:var(--muted); } .progrow .t b{ color:var(--ink); }
+  .continue { background:var(--hi); color:#fff; border:none; border-radius:9px; font-weight:800; font-size:12.5px; padding:8px 13px; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+
+  .seclbl { display:flex; align-items:center; gap:10px; padding:16px 18px 6px; }
+  .seclbl span { font-family:'Playfair Display',serif; font-size:14px; color:var(--ink-soft); white-space:nowrap; }
+  .seclbl .ln { flex:1; height:1px; background:var(--line); }
+
+  .prow { display:flex; align-items:center; gap:12px; padding:9px 18px; border-bottom:1px solid #f1ead9; }
+  .prow:hover { background:#fcf8f0; }
+  .thumb { width:38px; height:50px; border-radius:4px; background:var(--cream); border:1px solid var(--line); flex:0 0 auto; position:relative; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .thumb .mini { position:absolute; inset:4px; }
+  .pmeta { flex:1; min-width:0; }
+  .pmeta .pt { font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.15; }
+  .pmeta .pp { font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.3; }
+  .kbadge { font-size:8.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:100px; }
+  .b-auto{ background:rgba(194,163,107,.16); color:#9a7b3a;} .b-fill{ background:rgba(217,123,138,.14); color:var(--hi);} .b-pick{ background:rgba(155,127,212,.16); color:#6f55b0;}
+  .state { flex:0 0 auto; text-align:right; min-width:96px; }
+  .state .done { color:var(--green); font-weight:800; font-size:12px; display:inline-flex; gap:4px; align-items:center; }
+  .state .todo { color:var(--hi); font-weight:800; font-size:12px; cursor:pointer; }
+  .state .muted { color:var(--muted); font-size:11.5px; }
+  .lockrow { display:flex; align-items:center; justify-content:center; gap:6px; padding:13px; font-size:11.5px; color:var(--muted); }
+
+  /* ---- builder reuse (screen 3) ---- */
+  .builderframe { border:2px dashed var(--purple); border-radius:12px; margin:14px; position:relative; }
+  .builderframe .tagline { position:absolute; top:-11px; left:14px; background:#fff; padding:0 8px; font-size:10.5px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color:#6f55b0; }
+  .returnbar { background:var(--cream); border-bottom:1px solid var(--line); padding:9px 14px; display:flex; align-items:center; gap:8px; font-size:12px; }
+  .returnbar .lnk { color:var(--hi); font-weight:800; }
+  .builderbody { padding:14px; }
+  .bcanvas { background:var(--cream); border:1px solid var(--line); border-radius:8px; height:230px; position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,.04); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .bcanvas .lbl { font-size:8px; font-weight:900; letter-spacing:.18em; color:var(--gold); text-transform:uppercase; }
+  .bcanvas .ttl { font-family:'Playfair Display',serif; font-weight:700; font-size:15px; margin-top:5px; }
+  .slot { border:2px dashed #c9b9a0; border-radius:6px; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px; }
+  .tray { display:flex; gap:7px; margin-top:12px; }
+  .tray .ph { width:42px; height:42px; border-radius:5px; }
+  .gA{background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .gB{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .gC{background:linear-gradient(135deg,#cfe0c0,#a8c89a);} .gD{background:linear-gradient(135deg,#e6d3a8,#d8b58a);}
+  .pick-dd { margin-top:10px; border:1px solid var(--purple); border-radius:8px; padding:8px 10px; font-size:12px; color:#6f55b0; background:#faf7ff; display:flex; align-items:center; justify-content:space-between; }
+
+  .callout { background:#fff7e9; border:1px solid #ecd9a8; border-radius:12px; padding:14px 18px; font-size:13px; color:#7a5c2a; margin:30px auto 0; max-width:840px; line-height:1.5; }
+  .callout b { color:#5e4717; }
+  .mini-av { border-radius:50%; background:linear-gradient(135deg,#C9B6F5,#A0C4F0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S7 — Guided Book shell &amp; entry flow</h1>
+  <p class="lead">How the <b>guided fill-in book</b> lives inside the existing Storybook tab and reuses
+     today's <b>ScrapbookBuilder</b>. This is the in-app flow (not the page list — that's the
+     <a class="back" href="s6-guided-first-year-book.html">25-page mock</a>). Three steps: choose a mode →
+     work the locked page sequence → fill a page with the builder you already have.</p>
+  <div class="legend">
+    <b><span class="dot d-auto"></span> auto — fills from your data</b>
+    <b><span class="dot d-fill"></span> fill — you drag photos / type</b>
+    <b><span class="dot d-pick"></span> pick — you choose which First</b>
+  </div>
+
+  <div class="screens">
+    <!-- ============ SCREEN 1 — mode chooser ============ -->
+    <div class="col">
+      <p class="steplabel"><b>1.</b> Open Storybook → choose how to build</p>
+      <div class="screen">
+        <div class="appbar">📖 Storybook <span class="x">Emma · 11 mo</span></div>
+        <div class="pad">
+          <div class="chooser">
+            <div class="choice rec">
+              <div class="row">
+                <div class="ic" style="background:#fdeef0">📘</div>
+                <div style="flex:1">
+                  <h3>Guided Book <span class="recbadge">Recommended</span></h3>
+                  <p>A ready-made keepsake — we lay out the pages, you drop in photos &amp; words.
+                     Some pages fill themselves. <b>~25 pages</b>.</p>
+                  <button class="cta">Start your book →</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="choice">
+              <div class="row">
+                <div class="ic" style="background:#eef2ee">🧩</div>
+                <div style="flex:1">
+                  <h3>Freeform Scrapbook <span class="advbadge">Advanced</span></h3>
+                  <p>Build chapters page-by-page from scratch — pick any layout, add/remove/reorder.
+                     The current builder, unchanged.</p>
+                  <button class="cta ghost">Open scrapbook</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="subnote">The AI <b>Period Chapter</b> wizard still lives inside the scrapbook as an optional add-on.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 2 — guided shell ============ -->
+    <div class="col">
+      <p class="steplabel"><b>2.</b> The guided book = a locked page sequence</p>
+      <div class="screen">
+        <div class="bookhead">
+          <div class="ks">Your Keepsake</div>
+          <h2>Emma's First Year</h2>
+          <div class="sub">A guided fill-in book · pages are pre-set</div>
+        </div>
+
+        <div class="progwrap">
+          <div class="progbar"><i></i></div>
+          <div class="progrow">
+            <div class="t"><b>9</b> of 25 pages ready · <b>6</b> filled by us</div>
+            <button class="continue">Continue ▾</button>
+          </div>
+        </div>
+
+        <!-- Opening -->
+        <div class="seclbl"><span>Opening</span><div class="ln"></div></div>
+        <div class="prow">
+          <div class="thumb"><div class="mini" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px"><div style="font-size:6px;letter-spacing:.1em;color:var(--gold)">LETTER</div><div style="font-family:'Playfair Display',serif;font-size:7px">Dear Emma</div></div></div>
+          <div class="pmeta"><div class="pt">A Letter to You</div><div class="pp">Write a few words to your baby</div></div>
+          <span class="kbadge b-fill">fill</span>
+          <div class="state"><span class="done">✓ Done</span></div>
+        </div>
+
+        <!-- The Beginning -->
+        <div class="seclbl"><span>The Beginning</span><div class="ln"></div></div>
+        <div class="prow">
+          <div class="thumb"><div class="mini" style="display:flex;flex-direction:column;align-items:center"><div class="mini-av" style="width:18px;height:18px;margin-top:3px"></div><div style="font-size:5px;color:var(--ink-soft);margin-top:3px">7.5lb · 20"</div></div></div>
+          <div class="pmeta"><div class="pt">The Day We Met You</div><div class="pp">Birth stats — from your profile</div></div>
+          <span class="kbadge b-auto">auto</span>
+          <div class="state"><span class="done">✓ Filled</span></div>
+        </div>
+        <div class="prow">
+          <div class="thumb"><div class="mini" style="display:grid;grid-template-columns:1fr 1fr;gap:2px"><div class="gA" style="border-radius:2px"></div><div class="gB" style="border-radius:2px"></div><div class="gC" style="border-radius:2px"></div><div class="gD" style="border-radius:2px"></div></div></div>
+          <div class="pmeta"><div class="pt">Welcome to the World</div><div class="pp">Add a few hospital photos</div></div>
+          <span class="kbadge b-fill">fill</span>
+          <div class="state"><span class="todo">Add photos →</span></div>
+        </div>
+        <div class="prow" style="background:#fff7f3">
+          <div class="thumb"><div class="mini gB" style="border-radius:3px"></div></div>
+          <div class="pmeta"><div class="pt">Coming Home</div><div class="pp">One photo + a caption</div></div>
+          <span class="kbadge b-fill">fill</span>
+          <div class="state"><span class="todo">Add yours →</span></div>
+        </div>
+
+        <!-- Your People -->
+        <div class="seclbl"><span>Your People</span><div class="ln"></div></div>
+        <div class="prow">
+          <div class="thumb"><svg width="100%" height="100%" viewBox="0 0 38 50"><circle cx="11" cy="16" r="6" fill="#cdbef0"/><circle cx="27" cy="16" r="6" fill="#f3c6da"/><line x1="11" y1="22" x2="11" y2="34" stroke="#cbb89a"/><line x1="27" y1="22" x2="27" y2="34" stroke="#cbb89a"/><circle cx="19" cy="40" r="7" fill="#e6d3a8"/></svg></div>
+          <div class="pmeta"><div class="pt">Your Family Tree</div><div class="pp">Built from "Your People"</div></div>
+          <span class="kbadge b-auto">auto</span>
+          <div class="state"><span class="muted">Edit people ›</span></div>
+        </div>
+
+        <!-- Firsts -->
+        <div class="seclbl"><span>Firsts — you choose the moments</span><div class="ln"></div></div>
+        <div class="prow">
+          <div class="thumb"><div class="mini" style="display:flex;flex-direction:column;align-items:center;justify-content:center"><div class="gC" style="width:22px;height:22px;border-radius:4px;transform:rotate(3deg)"></div></div></div>
+          <div class="pmeta"><div class="pt">A First We'll Never Forget</div><div class="pp">Pick which First to feature</div></div>
+          <span class="kbadge b-pick">pick</span>
+          <div class="state"><span class="todo" style="color:#6f55b0">Choose ▾</span></div>
+        </div>
+        <div class="prow" style="opacity:.55">
+          <div class="thumb"><div class="mini" style="display:flex;align-items:center;justify-content:center;color:#c9b9a0;font-size:16px">＋</div></div>
+          <div class="pmeta"><div class="pt">A First We'll Never Forget</div><div class="pp">Pick which First to feature</div></div>
+          <span class="kbadge b-pick">pick</span>
+          <div class="state"><span class="muted">Not yet</span></div>
+        </div>
+
+        <div class="lockrow">🔒 Pages are pre-set in v1 — no reorder. You fill them in any order.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrowdown">↓ tap any <b style="color:var(--hi)">fill</b> / <b style="color:#6f55b0">pick</b> page ↓</div>
+
+  <!-- ============ SCREEN 3 — fill via existing builder ============ -->
+  <div class="col" style="margin:0 auto;">
+    <p class="steplabel"><b>3.</b> Filling a page reuses today's <b>ScrapbookBuilder</b></p>
+    <div class="screen" style="max-width:520px">
+      <div class="returnbar">
+        <span class="lnk">‹ Back to book</span>
+        <span style="color:var(--muted)">·</span>
+        <span style="color:var(--ink-soft);font-weight:700">Page 3 of 25 — Welcome to the World</span>
+        <span style="margin-left:auto;color:var(--green);font-weight:800;font-size:11.5px">Auto-saved ✓</span>
+      </div>
+      <div class="builderframe">
+        <span class="tagline">Existing builder · unchanged</span>
+        <div class="builderbody">
+          <div class="bcanvas">
+            <div class="lbl">Welcome to the World</div>
+            <div class="ttl">First days</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-top:12px;flex:1">
+              <div class="slot">drop photo</div>
+              <div class="slot gA" style="border-style:solid;border-color:transparent"></div>
+              <div class="slot gB" style="border-style:solid;border-color:transparent"></div>
+              <div class="slot">drop photo</div>
+            </div>
+          </div>
+          <div class="tray">
+            <div class="ph gA"></div><div class="ph gB"></div><div class="ph gC"></div><div class="ph gD"></div>
+            <div style="align-self:center;font-size:11px;color:var(--muted);margin-left:4px">your photos →</div>
+          </div>
+          <div class="pick-dd">
+            <span>On a <b>pick</b> page instead: choose which First →</span>
+            <span style="font-weight:800">First Steps ▾</span>
+          </div>
+        </div>
+      </div>
+      <p class="subnote" style="padding:0 18px 16px">Same drag-photo / type-text mechanics as the freeform scrapbook —
+        the shell just decides <i>which</i> page you're filling and hands it the right template.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>What's actually new to build (s7):</b> ① a mode-chooser entry in <code>StorybookTab</code>
+    (Guided = default) · ② a <code>guidedBookArc.js</code> config = the locked, ordered page list (the
+    25-page mock) · ③ a <b>shell view</b> that seeds that sequence, tracks per-page fill state, and routes a
+    tapped page into the <b>existing</b> ScrapbookBuilder · ④ the <code>ChapterDividerPage</code> (from s6).
+    Everything else — the page renderers, the builder, auto/data pages — already exists.
+    The <b>"Bump to One"</b> 30-page arc just front-inserts the pregnancy chapter once <b>s8</b> ships.
+  </div>
+</div>
+</body>
+</html>

@@ -135,6 +135,191 @@ export const TEMPLATES = [
     ],
   },
 
+  // ── Letter ──────────────────────────────────────────────────────────────────
+  // CONTRACT: the `letter` renderer (LetterCanvas) looks blocks up by these exact
+  // role `id`s — `title`, `body`, `signature` — via blk('title') etc., NOT by
+  // position/order. Renaming/removing an id silently drops that zone. Keep in sync
+  // with LetterCanvas. Like moment_hero, the renderer ignores block x/y and lays out
+  // its own fixed design; positions below are nominal. No photos, no memory binding —
+  // a fully hand-written page.
+
+  {
+    id: 'letter',
+    label: 'Letter',
+    description: 'Full-page hand-written letter — title, body, signed',
+    renderer: 'letter',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [
+      { id: 'title',     type: 'text', x: 0.10, y: 0.10, width: 0.80, height: 0.10, content: '' },
+      { id: 'body',      type: 'text', x: 0.12, y: 0.26, width: 0.76, height: 0.52, content: '' },
+      { id: 'signature', type: 'text', x: 0.12, y: 0.82, width: 0.76, height: 0.10, content: '' },
+    ],
+  },
+
+  // ── Gallery ───────────────────────────────────────────────────────────────────
+  // CONTRACT: the `gallery` renderer (GalleryCanvas) looks blocks up by these exact role
+  // `id`s — `title`, `subtitle`, `photo1`..`photo4`, `cap1`..`cap4` — via blk('title') etc.,
+  // NOT by position/order. Renaming/removing an id silently drops that zone. Like moment_hero,
+  // the renderer ignores block x/y and lays out its own fixed design; positions below are nominal.
+  // Photos fill from the photo tray today; sv2-s5/s7 wires it to first_time_photos data.
+
+  {
+    id: 'gallery',
+    label: 'Gallery',
+    description: '"More from…" — up to four captioned photos in a grid',
+    renderer: 'gallery',
+    memoryCount: 0, minPhotos: 1, maxPhotos: 4,
+    blocks: [
+      { id: 'title',    type: 'text',  x: 0.10, y: 0.06, width: 0.80, height: 0.06, content: '' },
+      { id: 'subtitle', type: 'text',  x: 0.10, y: 0.13, width: 0.80, height: 0.04, content: '' },
+      { id: 'photo1',   type: 'photo', x: 0.06, y: 0.24, width: 0.42, height: 0.32, contentSource: { photoIndex: 0 } },
+      { id: 'cap1',     type: 'text',  x: 0.06, y: 0.56, width: 0.42, height: 0.03, content: '' },
+      { id: 'photo2',   type: 'photo', x: 0.52, y: 0.24, width: 0.42, height: 0.32, contentSource: { photoIndex: 1 } },
+      { id: 'cap2',     type: 'text',  x: 0.52, y: 0.56, width: 0.42, height: 0.03, content: '' },
+      { id: 'photo3',   type: 'photo', x: 0.06, y: 0.62, width: 0.42, height: 0.32, contentSource: { photoIndex: 2 } },
+      { id: 'cap3',     type: 'text',  x: 0.06, y: 0.94, width: 0.42, height: 0.03, content: '' },
+      { id: 'photo4',   type: 'photo', x: 0.52, y: 0.62, width: 0.42, height: 0.32, contentSource: { photoIndex: 3 } },
+      { id: 'cap4',     type: 'text',  x: 0.52, y: 0.94, width: 0.42, height: 0.03, content: '' },
+    ],
+  },
+
+  // ── Birth Day (sv2-s2) ────────────────────────────────────────────────────────
+  // Data-driven page: the `birth_day` renderer (BirthDayCanvas) ignores blocks entirely and
+  // live-reads birth_details (+ babyName/birthdate/coverPhotoUrl) threaded through the render
+  // pipeline. No editable zones — data is entered in the Edit-Profile modal's Birth details tab.
+
+  {
+    id: 'birth_day',
+    label: 'The Day We Met You',
+    description: 'Birth-day keepsake — reads your saved birth details',
+    renderer: 'birth_day',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [],
+  },
+
+  // ── Your People (sv2-s3) ────────────────────────────────────────────────────────
+  // Data-driven: the `people` renderer (PeopleCanvas) live-reads family_members. The config block
+  // stores which members appear on this page + the variant; edited via the FamilyRosterPopup
+  // launched when this template is picked in the builder.
+
+  {
+    id: 'people',
+    label: 'Your People',
+    description: 'Family profile cards — photo, name, role, a few words',
+    renderer: 'people',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [
+      { id: 'config', type: 'people-config', selectedMemberIds: [], variant: 'two-up' },
+    ],
+  },
+
+  // ── Family Tree (sv2-s5) ────────────────────────────────────────────────────────
+  // Data-driven: the `family_tree` renderer (FamilyTreeCanvas) live-reads family_members (placed by
+  // roleCategory) + the baby (babyName/coverPhotoUrl) threaded through the pipeline. No editable
+  // zones — people are managed in "Your People"; this page just visualises them.
+
+  {
+    id: 'family_tree',
+    label: 'Family Tree',
+    description: 'A connected tree — grandparents, parents, you',
+    renderer: 'family_tree',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [],
+  },
+
+  // ── Chapter Divider (sv2-s6) ────────────────────────────────────────────────────
+  // CONTRACT: the `chapter_divider` renderer (ChapterDividerCanvas) looks blocks up by ids
+  // `label`, `title`, `subtitle` via blk(...). Renderer ignores x/y; positions below are nominal.
+
+  {
+    id: 'chapter_divider',
+    label: 'Chapter Divider',
+    description: 'Opens a section — chapter label, title, subtitle',
+    renderer: 'chapter_divider',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [
+      { id: 'label',    type: 'text', x: 0.10, y: 0.30, width: 0.80, height: 0.05, content: '' },
+      { id: 'title',    type: 'text', x: 0.10, y: 0.40, width: 0.80, height: 0.14, content: '' },
+      { id: 'subtitle', type: 'text', x: 0.12, y: 0.58, width: 0.76, height: 0.08, content: '' },
+    ],
+  },
+
+  // ── Prompt page "All About You" (sv2-s6) ────────────────────────────────────────
+  // CONTRACT: the `prompts` renderer (PromptsCanvas) has FIXED preset labels (PROMPT_LABELS) and
+  // pulls each answer by id `val0`..`val4`. Keep the block count in sync with PROMPT_LABELS.
+
+  {
+    id: 'prompts',
+    label: 'All About You',
+    description: 'Preset prompts you fill in — nickname, favourites…',
+    renderer: 'prompts',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 0,
+    blocks: [
+      { id: 'val0', type: 'text', x: 0.12, y: 0.34, width: 0.76, height: 0.06, content: '' },
+      { id: 'val1', type: 'text', x: 0.12, y: 0.46, width: 0.76, height: 0.06, content: '' },
+      { id: 'val2', type: 'text', x: 0.12, y: 0.58, width: 0.76, height: 0.06, content: '' },
+      { id: 'val3', type: 'text', x: 0.12, y: 0.70, width: 0.76, height: 0.06, content: '' },
+      { id: 'val4', type: 'text', x: 0.12, y: 0.82, width: 0.76, height: 0.06, content: '' },
+    ],
+  },
+
+  // ── Bump page (sv2-s6) ──────────────────────────────────────────────────────────
+  // CONTRACT: the `bump` renderer (BumpCanvas) looks blocks up by ids `title`, `photo1`, `week1`,
+  // `photo2`, `week2`, `note`. Each photo gets an auto week→size tag when its week field parses.
+
+  {
+    id: 'bump',
+    label: 'Bump Page',
+    description: 'Two bump photos with an auto week → size tag + a note',
+    renderer: 'bump',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 2,
+    blocks: [
+      { id: 'title',  type: 'text',  x: 0.10, y: 0.06, width: 0.80, height: 0.06, content: '' },
+      { id: 'photo1', type: 'photo', x: 0.06, y: 0.22, width: 0.42, height: 0.50, contentSource: { photoIndex: 0 } },
+      { id: 'week1',  type: 'text',  x: 0.06, y: 0.74, width: 0.42, height: 0.04, content: '' },
+      { id: 'photo2', type: 'photo', x: 0.52, y: 0.22, width: 0.42, height: 0.50, contentSource: { photoIndex: 1 } },
+      { id: 'week2',  type: 'text',  x: 0.52, y: 0.74, width: 0.42, height: 0.04, content: '' },
+      { id: 'note',   type: 'text',  x: 0.06, y: 0.86, width: 0.88, height: 0.10, content: '' },
+    ],
+  },
+
+  // ── Trio + Note (sv2-s6) ────────────────────────────────────────────────────────
+  // Generic reusable layout (no custom renderer): title + 1 large + 2 small photos + a note. The
+  // guided book uses it as the "Months 0–3…" growth spread, but in the scrapbook picker it's just a
+  // neutral layout. suppressDropCap on the text blocks — these are short title/note fields, not body
+  // paragraphs, so the journal drop-cap would render a giant first letter ("T" + "EST").
+
+  {
+    id: 'growth-spread',
+    label: 'Trio + Note',
+    description: 'One large + two small photos, with a title & note',
+    memoryCount: 0, minPhotos: 1, maxPhotos: 3,
+    blocks: [
+      { type: 'text',  x: 0.06, y: 0.05, width: 0.88, height: 0.10, content: '', suppressDropCap: true },
+      { type: 'photo', x: 0.06, y: 0.18, width: 0.55, height: 0.46, contentSource: { photoIndex: 0 } },
+      { type: 'photo', x: 0.64, y: 0.18, width: 0.30, height: 0.22, contentSource: { photoIndex: 1 } },
+      { type: 'photo', x: 0.64, y: 0.42, width: 0.30, height: 0.22, contentSource: { photoIndex: 2 } },
+      { type: 'text',  x: 0.06, y: 0.68, width: 0.88, height: 0.27, content: '', suppressDropCap: true },
+    ],
+  },
+
+  // ── Pair + Caption (sv2-s6) ─────────────────────────────────────────────────────
+  // Generic reusable layout: title + two photo slots + a caption. The guided book uses it as the
+  // "Hands & Feet" page, but it's a neutral two-photo layout in the picker. suppressDropCap as above.
+
+  {
+    id: 'hands-feet',
+    label: 'Pair + Caption',
+    description: 'Two photos with a title & caption',
+    memoryCount: 0, minPhotos: 1, maxPhotos: 2,
+    blocks: [
+      { type: 'text',  x: 0.06, y: 0.06, width: 0.88, height: 0.10, content: '', suppressDropCap: true },
+      { type: 'photo', x: 0.06, y: 0.20, width: 0.43, height: 0.56, contentSource: { photoIndex: 0 } },
+      { type: 'photo', x: 0.51, y: 0.20, width: 0.43, height: 0.56, contentSource: { photoIndex: 1 } },
+      { type: 'text',  x: 0.06, y: 0.80, width: 0.88, height: 0.14, content: '', suppressDropCap: true },
+    ],
+  },
+
   // ── Two Memories ─────────────────────────────────────────────────────────────
 
   {

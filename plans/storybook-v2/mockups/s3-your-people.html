@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S3 — Your People · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --warm:#fbeede; --cream:#FDF6ED; --ink-soft:#A07860; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 80px; }
+  .wrap { max-width:980px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 30px; font-size:15px; }
+  h2.sec { font-family:'Playfair Display',serif; font-size:23px; margin:42px 0 6px; padding-top:24px; border-top:1px solid var(--line); }
+  .sec-sub { color:var(--muted); font-size:14px; margin:0 0 22px; }
+  .opts { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; }
+  .opt { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+  .opt > header { padding:14px 18px; border-bottom:1px solid var(--line); background:#fffdf8; }
+  .opt h3 { margin:0; font-size:16px; font-weight:900; }
+  .opt .where { font-size:12px; color:var(--gold); font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+  .opt .body { padding:16px 18px; }
+  .opt .pros { padding:12px 18px 16px; font-size:12.5px; color:var(--muted); border-top:1px dashed var(--line); }
+  .opt .pros b { color:#3a7a4a; } .opt .pros i { color:#a06; font-style:normal; }
+  .lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:10px 0 3px; }
+  .inp { background:var(--warm); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; color:var(--ink); }
+  .seg { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .pill { font-size:11.5px; padding:4px 10px; border-radius:100px; border:1px solid var(--line); background:#fff; color:var(--muted); }
+  .pill.on { background:rgba(217,123,138,.12); border-color:rgba(217,123,138,.4); color:var(--hi); font-weight:700; }
+  .sq { width:46px; height:46px; border-radius:10px; flex-shrink:0; }
+  .g1 { background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .g2{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .g3 { background:linear-gradient(135deg,#e6d3a8,#d8b58a);} .g4{background:linear-gradient(135deg,#cfc0e0,#b8a0d0);}
+  .roster { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .person { display:flex; gap:10px; align-items:center; border:1px solid var(--line); border-radius:12px; padding:8px 10px; background:#fffdf8; }
+  .person b { font-size:13px; display:block; } .person span { font-size:11px; color:var(--muted); }
+  .addp { display:flex; align-items:center; justify-content:center; border:1px dashed var(--hi); color:var(--hi);
+          border-radius:12px; padding:8px; font-size:13px; font-weight:700; background:rgba(217,123,138,.05); }
+  .listrow { display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--line); padding:9px 2px; }
+  .grip { color:#cbb89a; font-size:15px; cursor:grab; } .listrow b{font-size:13px} .listrow span{font-size:11px;color:var(--muted)}
+  .mini { margin-left:auto; font-size:11px; color:var(--muted); }
+  .btn { background:var(--hi); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; margin-top:12px; }
+  .editorbox { border:1px solid var(--line); border-radius:12px; padding:12px; background:#fffdf8; margin-top:10px; }
+  /* book canvas */
+  .pages { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:28px; align-items:start; }
+  .pagewrap h3 { font-size:15px; margin:0 0 4px; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .canvas { width:330px; height:440px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 10px 30px rgba(0,0,0,.10); margin:0 auto; position:relative; overflow:hidden; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.24em; color:var(--gold); text-transform:uppercase; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); line-height:1.1; }
+  .bioline { height:4px; background:#4A3728; opacity:.16; border-radius:2px; }
+  .role { font-family:'Dancing Script',cursive; color:var(--ink-soft); font-size:15px; }
+  .heart { position:absolute; bottom:12px; right:14px; color:#F9A8D4; font-size:14px; }
+  .legend { font-size:12px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S3 — Your People</h1>
+  <p class="lead">Flexible family members (parents, siblings, grandparents, anyone) with user-typed roles
+     and a parent-written bio. Powers the "About Your People" page now and a family tree later.
+     Photos are <b>square-cropped</b> (your choice).</p>
+
+  <!-- ───────────── MANAGER UI ───────────── -->
+  <h2 class="sec">Part 1 · The family-member manager</h2>
+  <p class="sec-sub">Lives in a "Your People" section (Dashboard or Profile). Add / edit / reorder / remove people. Role is free text with preset chips.</p>
+
+  <div class="opts">
+    <!-- Option A: roster grid + modal -->
+    <div class="opt">
+      <header><div class="where">Option A · Roster grid</div><h3>Avatar cards + add modal</h3></header>
+      <div class="body">
+        <div class="roster">
+          <div class="person"><div class="sq g1"></div><div><b>Mum</b><span>Sarah</span></div></div>
+          <div class="person"><div class="sq g2"></div><div><b>Dad</b><span>James</span></div></div>
+          <div class="person"><div class="sq g3"></div><div><b>Nana</b><span>Margaret</span></div></div>
+          <div class="addp">+ Add a person</div>
+        </div>
+        <div class="editorbox">
+          <div style="font-size:12px;font-weight:900;margin-bottom:4px">Add a person</div>
+          <div class="lbl">Name</div><div class="inp">Margaret</div>
+          <div class="lbl">Role</div>
+          <div class="seg"><span class="pill">Mum</span><span class="pill">Dad</span><span class="pill on">Nana</span><span class="pill">Pop</span><span class="pill">Sister</span><span class="pill">+</span></div>
+          <div class="lbl">A few words about Margaret</div>
+          <div class="inp" style="height:42px;font-style:italic;color:var(--muted)">The best baker in the family…</div>
+        </div>
+      </div>
+      <div class="pros"><b>Good:</b> warm, visual, "family album" feel; scales to many people. <i>Watch:</i> reorder needs a drag handle inside each card.</div>
+    </div>
+
+    <!-- Option B: list rows + side editor -->
+    <div class="opt">
+      <header><div class="where">Option B · Sortable list</div><h3>Compact rows + drag-reorder</h3></header>
+      <div class="body">
+        <div class="listrow"><span class="grip">⠿</span><div class="sq g1" style="width:34px;height:34px"></div><div><b>Sarah</b><span>Mum</span></div><span class="mini">edit · ✕</span></div>
+        <div class="listrow"><span class="grip">⠿</span><div class="sq g2" style="width:34px;height:34px"></div><div><b>James</b><span>Dad</span></div><span class="mini">edit · ✕</span></div>
+        <div class="listrow"><span class="grip">⠿</span><div class="sq g3" style="width:34px;height:34px"></div><div><b>Margaret</b><span>Nana</span></div><span class="mini">edit · ✕</span></div>
+        <div class="listrow"><span class="grip">⠿</span><div class="sq g4" style="width:34px;height:34px"></div><div><b>Theo</b><span>Big brother</span></div><span class="mini">edit · ✕</span></div>
+        <button class="btn">+ Add a person</button>
+      </div>
+      <div class="pros"><b>Good:</b> explicit drag handle = obvious reorder; dense, fast to scan. Mirrors the multi-photo reorder we just built for Firsts. <i>Watch:</i> less "keepsake", more "settings".</div>
+    </div>
+  </div>
+
+  <div class="legend"><b>My lean:</b> <b>Option A roster grid</b> for the warm feel, with a small drag handle added per card for reorder. It matches the album tone of the rest of the app better than a settings-style list. Role = free text + preset chips + auto-inferred category (parent/sibling/grandparent/other) you can override.</div>
+
+  <!-- ───────────── BOOK PAGE ───────────── -->
+  <h2 class="sec">Part 2 · The "About Your People" book page</h2>
+  <p class="sec-sub">Reads family_members live. A book with 4+ people generates multiple pages (handled by the guided book, sv2-s6).</p>
+
+  <div class="pages">
+    <!-- Design 1: two-up -->
+    <div class="pagewrap">
+      <h3>Design 1 · Two-up profiles</h3>
+      <p>Two people side by side — photo, name, role, short bio. The plan's default; fits 2 per page.</p>
+      <div class="canvas" style="padding:30px 26px">
+        <div class="clabel">Your People</div>
+        <div class="ctitle" style="font-size:24px;margin-top:8px">The ones who love you</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 20px">
+          <div style="height:1px;width:44px;background:var(--gold);opacity:.4"></div><span style="color:var(--gold);font-size:11px">♥</span><div style="height:1px;width:44px;background:var(--gold);opacity:.4"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div style="text-align:center">
+            <div class="sq g1" style="width:96px;height:96px;border-radius:12px;margin:0 auto 8px"></div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px">Sarah</div>
+            <div class="role">Mum</div>
+            <div class="bioline" style="width:90%;margin:8px auto 4px"></div><div class="bioline" style="width:80%;margin:0 auto 4px"></div><div class="bioline" style="width:60%;margin:0 auto"></div>
+          </div>
+          <div style="text-align:center">
+            <div class="sq g2" style="width:96px;height:96px;border-radius:12px;margin:0 auto 8px"></div>
+            <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:16px">James</div>
+            <div class="role">Dad</div>
+            <div class="bioline" style="width:90%;margin:8px auto 4px"></div><div class="bioline" style="width:80%;margin:0 auto 4px"></div><div class="bioline" style="width:55%;margin:0 auto"></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- Design 2: spotlight -->
+    <div class="pagewrap">
+      <h3>Design 2 · One-per-page spotlight</h3>
+      <p>A single person gets the whole page — bigger photo, longer bio. Richer, but more pages.</p>
+      <div class="canvas" style="padding:0">
+        <div class="sq g3" style="width:100%;height:200px;border-radius:0"></div>
+        <div style="padding:22px 26px">
+          <div class="clabel" style="text-align:left">About your people</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:26px;margin-top:6px">Margaret</div>
+          <div class="role" style="font-size:18px">— your Nana</div>
+          <div class="bioline" style="width:100%;margin:14px 0 6px"></div><div class="bioline" style="width:96%;margin-bottom:6px"></div><div class="bioline" style="width:92%;margin-bottom:6px"></div><div class="bioline" style="width:70%"></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend"><b>My lean:</b> support <b>both</b> — Design 1 (two-up) as the default the guided book lays out, and Design 2 (spotlight) as an option a parent can pick for a key person. Same renderer, a <code>variant</code> flag. Bio is optional: with no bio the card is just photo + name + role.</div>
+</div>
+</body>
+</html>

@@ -4,6 +4,14 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import LayoutRenderer from '@/components/storybook/LayoutRenderer';
 import MomentHeroCanvas from '@/components/storybook/MomentHeroCanvas';
+import LetterCanvas from '@/components/storybook/LetterCanvas';
+import GalleryCanvas from '@/components/storybook/GalleryCanvas';
+import BirthDayCanvas from '@/components/storybook/BirthDayCanvas';
+import PeopleCanvas from '@/components/storybook/PeopleCanvas';
+import FamilyTreeCanvas from '@/components/storybook/FamilyTreeCanvas';
+import ChapterDividerCanvas from '@/components/storybook/ChapterDividerCanvas';
+import PromptsCanvas from '@/components/storybook/PromptsCanvas';
+import BumpCanvas from '@/components/storybook/BumpCanvas';
 import { formatDate } from '@/lib/formatting';
 import { cleanBodyText } from '@/lib/storybookText';
 import { CANVAS_W, CANVAS_H } from '@/lib/bookCanvas';
@@ -205,7 +213,7 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
   }
 
   // Cover page
-  const { babyName, birthdate, coverPhotoUrl, coverSubtitle } = coverInfo;
+  const { babyName, birthdate, coverPhotoUrl, coverSubtitle, pageData } = coverInfo;
   const coverEl  = buildCoverElement(babyName, birthdate, coverPhotoUrl, coverSubtitle, theme);
   const coverUrl = await captureCoverElement(coverEl, theme?.bg ?? '#fdf9f2');
   addPage(coverUrl);
@@ -221,15 +229,56 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
         // Render the actual LayoutRenderer at 600px wide (scale=1, no CSS transform).
         // At this size LayoutRenderer renders identically to what the user sees on screen.
         const isMomentHero = page.templateId?.startsWith('moment-hero');
+        const isLetter = page.templateId === 'letter';
+        const isGallery = page.templateId === 'gallery';
+        const isBirthDay = page.templateId === 'birth_day';
+        const isPeople = page.templateId === 'people';
+        const isFamilyTree = page.templateId === 'family_tree';
+        const isChapterDivider = page.templateId === 'chapter_divider';
+        const isPrompts = page.templateId === 'prompts';
+        const isBump = page.templateId === 'bump';
         const dataUrl = await captureComponent(
           isMomentHero
             ? React.createElement(MomentHeroCanvas, {
                 blocks: page.blocks || [],
                 orientation: page.templateId === 'moment-hero-landscape' ? 'landscape' : 'portrait',
+                theme,
               })
+            : isLetter
+            ? React.createElement(LetterCanvas, { blocks: page.blocks || [], theme })
+            : isGallery
+            ? React.createElement(GalleryCanvas, { blocks: page.blocks || [], theme })
+            : isBirthDay
+            ? React.createElement(BirthDayCanvas, {
+                birthDetails: pageData?.birthDetails,
+                babyName: pageData?.babyName ?? babyName,
+                birthdate: pageData?.birthdate ?? birthdate,
+                coverPhotoUrl: pageData?.coverPhotoUrl ?? coverPhotoUrl,
+                theme,
+              })
+            : isPeople
+            ? React.createElement(PeopleCanvas, {
+                blocks: page.blocks || [],
+                familyMembers: pageData?.familyMembers,
+                theme,
+              })
+            : isFamilyTree
+            ? React.createElement(FamilyTreeCanvas, {
+                familyMembers: pageData?.familyMembers,
+                babyName: pageData?.babyName ?? babyName,
+                coverPhotoUrl: pageData?.coverPhotoUrl ?? coverPhotoUrl,
+                theme,
+              })
+            : isChapterDivider
+            ? React.createElement(ChapterDividerCanvas, { blocks: page.blocks || [], theme })
+            : isPrompts
+            ? React.createElement(PromptsCanvas, { blocks: page.blocks || [], theme })
+            : isBump
+            ? React.createElement(BumpCanvas, { blocks: page.blocks || [], theme })
             : React.createElement(LayoutRenderer, {
                 layout: { version: 2, pages: [page] },
                 theme,
+                pageData,
               }),
           pageBg,
           theme?.accent

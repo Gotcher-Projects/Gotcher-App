@@ -1,6 +1,13 @@
-# SV2-S7 — Firsts Chapter in Guided Book
+# ❌ DROPPED — Firsts Chapter in Guided Book   *(was sv2-s7; that number is now the Guided shell)*
 
-**Status: Not started**
+**Status: ❌ DROPPED (2026-06-27).** Went with the dropped moment-hero plan — the guided book no longer auto-generates a
+Firsts chapter (it's a pre-designed fill-in book; firsts are user-picked moment-hero pages). See
+`planning.md` 2026-06-27 direction update. This plan was also already stale (written around a removed
+batch note-generation endpoint). Original preserved below for history.
+
+---
+
+**Original status: Not started**
 **Depends on:** sv2-s5 (hero+gallery wiring), sv2-s6 (guided book shell)
 **Reference:** `planning.md` Q3; sv2-s5 plan
 

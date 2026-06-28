@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S2 — Birth Stats Card · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --warm:#fbeede; --cream:#FDF6ED; --ink-soft:#A07860; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 80px; }
+  .wrap { max-width:980px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 30px; font-size:15px; }
+  h2.sec { font-family:'Playfair Display',serif; font-size:23px; margin:42px 0 6px; padding-top:24px; border-top:1px solid var(--line); }
+  .sec-sub { color:var(--muted); font-size:14px; margin:0 0 22px; }
+  .opts { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+  .opt { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:0; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+  .opt > header { padding:14px 18px; border-bottom:1px solid var(--line); background:#fffdf8; }
+  .opt h3 { margin:0; font-size:16px; font-weight:900; }
+  .opt .where { font-size:12px; color:var(--gold); font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+  .opt .body { padding:16px 18px; }
+  .opt .pros { padding:12px 18px 16px; font-size:12.5px; color:var(--muted); border-top:1px dashed var(--line); }
+  .opt .pros b { color:#3a7a4a; } .opt .pros i { color:#a06; font-style:normal; }
+  /* faux form widgets */
+  .lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:10px 0 3px; }
+  .inp { background:var(--warm); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; color:var(--ink); }
+  .row { display:flex; gap:8px; } .row > div { flex:1; }
+  .seg { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill { font-size:12px; padding:4px 11px; border-radius:100px; border:1px solid var(--line); background:#fff; color:var(--muted); }
+  .pill.on { background:rgba(217,123,138,.12); border-color:rgba(217,123,138,.4); color:var(--hi); font-weight:700; }
+  .tabbar { display:flex; gap:4px; background:#f1e7d6; border-radius:100px; padding:4px; margin-bottom:12px; width:max-content; }
+  .tabbar span { font-size:12px; padding:4px 12px; border-radius:100px; color:var(--muted); }
+  .tabbar span.on { background:#fff; color:var(--ink); font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .miniprofile { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  .miniprofile .av { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#f5c6d0,#d9b8a0); }
+  .miniprofile b { font-size:14px; } .miniprofile span { font-size:11px; color:var(--muted); display:block; }
+  .btn { background:var(--hi); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; margin-top:12px; }
+  .wizardstep { font-size:11px; color:var(--muted); margin-bottom:6px; }
+  .dots { display:flex; gap:5px; margin-bottom:12px; }
+  .dots i { width:7px; height:7px; border-radius:50%; background:var(--line); }
+  .dots i.on { background:var(--hi); }
+  /* page canvas */
+  .pages { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:28px; align-items:start; }
+  .pagewrap h3 { font-size:15px; margin:0 0 4px; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .canvas { width:330px; height:440px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 10px 30px rgba(0,0,0,.10); margin:0 auto; position:relative; overflow:hidden; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.24em; color:var(--gold); text-transform:uppercase; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); line-height:1.1; }
+  .csub { text-align:center; font-style:italic; font-size:11px; color:var(--ink-soft); }
+  .photo { background:linear-gradient(135deg,#cdd6cf,#b9c9d2); }
+  .statrow { display:flex; }
+  .stat { flex:1; text-align:center; }
+  .stat .v { font-family:'Playfair Display',serif; font-weight:700; font-size:17px; color:var(--ink); }
+  .stat .k { font-size:7.5px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); margin-top:2px; }
+  .notecard { background:#FFF8E8; border:1px solid #E5CB8A; border-radius:8px; }
+  .noteline { height:4px; background:#4A3728; opacity:.16; border-radius:2px; }
+  .heart { position:absolute; bottom:12px; right:14px; color:#F9A8D4; font-size:14px; }
+  .legend { font-size:12px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S2 — Birth Stats Card</h1>
+  <p class="lead">"The Day We Met You" — birth date, hospital, weight / length / head / time, a hero photo
+     and a short parent-written note. Two questions: <b>where do you enter the data</b>, and <b>how does the book page look</b>.</p>
+
+  <!-- ───────────── FORM PLACEMENT ───────────── -->
+  <h2 class="sec">Part 1 · Where the birth details are entered</h2>
+  <p class="sec-sub">Same fields in all three — only the home differs. Weight/length/head respect your existing growth unit preference (kg/cm shown here; lbs/oz/in if that's your setting).</p>
+
+  <div class="opts">
+    <!-- Option A -->
+    <div class="opt">
+      <header><div class="where">Option A · Dashboard</div><h3>Profile card</h3></header>
+      <div class="body">
+        <div class="miniprofile"><div class="av"></div><div><b>Lily</b><span>12 weeks old</span></div></div>
+        <div style="border:1px dashed var(--line);border-radius:10px;padding:12px;background:#fffdf8">
+          <div style="font-family:'Playfair Display',serif;font-size:14px;margin-bottom:2px">The day you arrived</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Tap to add birth details ✨</div>
+          <div class="row"><div><div class="lbl">Time</div><div class="inp">07:42</div></div><div><div class="lbl">Hospital</div><div class="inp">St Mary's</div></div></div>
+          <div class="row"><div><div class="lbl">Weight</div><div class="inp">3.40 kg</div></div><div><div class="lbl">Length</div><div class="inp">51 cm</div></div><div><div class="lbl">Head</div><div class="inp">35 cm</div></div></div>
+        </div>
+      </div>
+      <div class="pros"><b>Good:</b> discoverable, sits with core baby info, one-tap. <i>Watch:</i> Dashboard is already busy.</div>
+    </div>
+
+    <!-- Option B -->
+    <div class="opt">
+      <header><div class="where">Option B · Health tab</div><h3>Beside growth</h3></header>
+      <div class="body">
+        <div class="tabbar"><span>Growth</span><span class="on">Birth</span><span>Vaccines</span><span>Appts</span></div>
+        <div class="lbl">Birth measurements</div>
+        <div class="row"><div><div class="lbl">Weight</div><div class="inp">3.40 kg</div></div><div><div class="lbl">Length</div><div class="inp">51 cm</div></div><div><div class="lbl">Head</div><div class="inp">35 cm</div></div></div>
+        <div class="lbl">Time of birth</div><div class="inp">07:42</div>
+        <div class="lbl">Hospital</div><div class="inp">St Mary's</div>
+      </div>
+      <div class="pros"><b>Good:</b> sits naturally with the other measurements; medical mental-model. <i>Watch:</i> the birth <i>story</i> note feels less at home next to clinical data.</div>
+    </div>
+
+    <!-- Option C -->
+    <div class="opt">
+      <header><div class="where">Option C · Book flow</div><h3>Guided step</h3></header>
+      <div class="body">
+        <div class="wizardstep">Adding "The Day We Met You"</div>
+        <div class="dots"><i></i><i class="on"></i><i></i><i></i></div>
+        <div style="font-family:'Playfair Display',serif;font-size:15px;margin-bottom:8px">Tell us about the day</div>
+        <div class="row"><div><div class="lbl">Weight</div><div class="inp">3.40 kg</div></div><div><div class="lbl">Length</div><div class="inp">51 cm</div></div></div>
+        <div class="lbl">A few words about meeting them</div>
+        <div class="inp" style="height:54px;font-style:italic;color:var(--muted)">The morning you arrived it was raining…</div>
+        <button class="btn">Next →</button>
+      </div>
+      <div class="pros"><b>Good:</b> data captured in the emotional moment of building the book. <i>Watch:</i> data is "trapped" in the book flow unless also surfaced elsewhere.</div>
+    </div>
+  </div>
+
+  <div class="legend"><b>My lean:</b> <b>A (Dashboard card)</b> as the canonical home — it's where a parent thinks "record the birth," it's reusable outside the book, and the page reads it live. The book-flow step (C) can come later as a <i>shortcut</i> into the same data, not a separate store.</div>
+
+  <!-- ───────────── BOOK PAGE ───────────── -->
+  <h2 class="sec">Part 2 · The book page design</h2>
+  <p class="sec-sub">Both read the same birth_details live. Pick the layout language; we build it as a renderer like LetterCanvas / MomentHeroCanvas.</p>
+
+  <div class="pages">
+    <!-- Page Design 1 -->
+    <div class="pagewrap">
+      <h3>Design 1 · Keepsake (Precious-Five style)</h3>
+      <p>Centered, hero photo, stat strip, warm note card. Closest to the competitor reference.</p>
+      <div class="canvas" style="padding:26px 24px">
+        <div class="clabel">The moment our world changed</div>
+        <div class="ctitle" style="font-size:25px;margin-top:8px">The day we met you</div>
+        <div class="csub" style="margin-top:4px">14 March 2025 · St Mary's Hospital</div>
+        <div style="display:flex;justify-content:center;margin:16px 0">
+          <div style="background:#fff;padding:8px 8px 18px;box-shadow:0 6px 18px rgba(0,0,0,.18);transform:rotate(-1.4deg)">
+            <div class="photo" style="width:150px;height:104px"></div>
+          </div>
+        </div>
+        <div class="statrow" style="margin:4px 0 14px">
+          <div class="stat"><div class="v">3.40<span style="font-size:9px">kg</span></div><div class="k">Weight</div></div>
+          <div class="stat"><div class="v">51<span style="font-size:9px">cm</span></div><div class="k">Length</div></div>
+          <div class="stat"><div class="v">35<span style="font-size:9px">cm</span></div><div class="k">Head</div></div>
+          <div class="stat"><div class="v">07:42</div><div class="k">Time</div></div>
+        </div>
+        <div class="notecard" style="padding:10px 12px">
+          <div style="font-size:7.5px;font-weight:900;letter-spacing:.2em;color:#B8860B;margin-bottom:6px">OUR NOTE</div>
+          <div class="noteline" style="width:96%"></div><div class="noteline" style="width:90%;margin-top:5px"></div><div class="noteline" style="width:70%;margin-top:5px"></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- Page Design 2 -->
+    <div class="pagewrap">
+      <h3>Design 2 · Editorial</h3>
+      <p>Photo leads the top third; stats as a tidy 2×2 card; note runs full width. More modern / magazine.</p>
+      <div class="canvas" style="padding:0">
+        <div class="photo" style="height:150px;width:100%"></div>
+        <div style="padding:18px 22px">
+          <div class="clabel" style="text-align:left">Birth day · 14 Mar 2025</div>
+          <div class="ctitle" style="text-align:left;font-size:23px;margin-top:4px">Hello, Lily</div>
+          <div class="csub" style="text-align:left;margin:2px 0 14px">St Mary's Hospital, 07:42am</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            <div class="notecard" style="background:#fff;border-color:var(--line);padding:8px 10px"><div class="stat" style="text-align:left"><div class="v">3.40kg</div><div class="k">Weight</div></div></div>
+            <div class="notecard" style="background:#fff;border-color:var(--line);padding:8px 10px"><div class="stat" style="text-align:left"><div class="v">51cm</div><div class="k">Length</div></div></div>
+            <div class="notecard" style="background:#fff;border-color:var(--line);padding:8px 10px"><div class="stat" style="text-align:left"><div class="v">35cm</div><div class="k">Head</div></div></div>
+            <div class="notecard" style="background:#fff;border-color:var(--line);padding:8px 10px"><div class="stat" style="text-align:left"><div class="v">Natural</div><div class="k">Birth</div></div></div>
+          </div>
+          <div class="noteline" style="width:100%"></div><div class="noteline" style="width:94%;margin-top:6px"></div><div class="noteline" style="width:88%;margin-top:6px"></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend"><b>My lean:</b> <b>Design 1</b> for the keepsake feel that matches the book's existing moment-hero / letter pages (same warm palette, polaroid, note card). Design 2 is a strong alternative if you want the book to feel more contemporary overall — but then we'd want moment-hero/letter to evolve too, for consistency.</div>
+</div>
+</body>
+</html>

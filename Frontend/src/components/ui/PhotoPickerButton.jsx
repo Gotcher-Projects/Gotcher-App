@@ -7,17 +7,24 @@ import { pickPhoto } from "@/lib/camera";
 // hidden web file input. The chosen file goes through the shared crop modal; the cropped result is
 // reported via `onPicked({ blob, orientation })`. Renders a <Camera> icon followed by `children`
 // (the label). Manages its own in-flight crop-modal cleanup on unmount.
-export default function PhotoPickerButton({ onPicked, className, children }) {
+// `shape="circle"` opts into the 1:1 circular crop (sv2-s3.5); omit it for the default crop.
+export default function PhotoPickerButton({ onPicked, className, children, shape }) {
   const inputRef = useRef(null);
   const cancelCropRef = useRef(null);
   useEffect(() => () => cancelCropRef.current?.(), []);
 
   const startCrop = (file) => {
     if (!file) return;
-    cancelCropRef.current = openCropModal(file, (result) => {
-      cancelCropRef.current = null;
-      onPicked(result);
-    });
+    cancelCropRef.current = openCropModal(
+      file,
+      (result) => {
+        cancelCropRef.current = null;
+        onPicked(result);
+      },
+      // Clear the ref on cancel too, so the unmount cleanup never calls a stale (already-closed) modal.
+      () => { cancelCropRef.current = null; },
+      { shape },
+    );
   };
 
   const open = async () => {

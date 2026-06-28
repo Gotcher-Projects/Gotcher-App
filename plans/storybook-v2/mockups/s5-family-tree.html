@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S5 — Family Tree · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --cream:#FDF6ED; --ink-soft:#A07860; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 80px; }
+  .wrap { max-width:980px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 30px; font-size:15px; max-width:780px; }
+  .pages { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:30px; align-items:start; }
+  .pagewrap h3 { font-size:15px; margin:0 0 4px; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .canvas { width:360px; height:480px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 10px 30px rgba(0,0,0,.10); margin:0 auto; position:relative; overflow:hidden; padding:26px 14px 14px; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.24em; color:var(--gold); text-transform:uppercase; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); font-size:22px; line-height:1.1; margin-top:6px; }
+  .div { display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0 4px; }
+  .div .l { height:1px; width:40px; background:var(--gold); opacity:.4; } .div .h { color:var(--gold); font-size:11px; }
+  .heart { position:absolute; bottom:12px; right:14px; color:#F9A8D4; font-size:14px; }
+  .legend { font-size:12.5px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:12px 16px; margin-top:26px; }
+  .legend b { color:var(--ink); } .legend code { background:#f3ead7; padding:1px 5px; border-radius:4px; font-size:11.5px; }
+  .pillrow { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0; }
+  .pill { font-size:11.5px; padding:4px 10px; border-radius:100px; border:1px solid var(--line); background:#fff; color:var(--muted); }
+  .pill b { color:var(--hi); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S5 — Family Tree</h1>
+  <p class="lead">A single book page that renders the <b>Your People</b> data (already collected in S3) as a
+     connected tree: grandparents → parents → you. SVG lines + circular avatars (initials when there's no
+     photo). Auto-fills — nothing to type. This is page <b>#8</b> of the guided book (the "Your People" section).</p>
+
+  <div class="pillrow">
+    <span class="pill"><b>auto</b> &nbsp;reads <code>family_members</code> live</span>
+    <span class="pill">places by <code>role_category</code> + <code>sort_order</code></span>
+    <span class="pill">hidden if &lt; 2 parents/grandparents</span>
+  </div>
+
+  <div class="pages" style="margin-top:26px">
+    <!-- Design 1 -->
+    <div class="pagewrap">
+      <h3>Design 1 · Classic three-tier</h3>
+      <p>4 grandparents → 2 parents → baby. The Precious-Five layout. Marriage bars + drop lines. Symmetric.</p>
+      <div class="canvas">
+        <div class="clabel">Where You Come From</div>
+        <div class="ctitle" style="font-size:21px">Your Family Tree</div>
+        <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+        <svg id="tree1" width="100%" viewBox="0 0 332 392" style="margin-top:2px"></svg>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- Design 2 -->
+    <div class="pagewrap">
+      <h3>Design 2 · With siblings + missing-slot fallback</h3>
+      <p>Siblings sit beside the baby. A person with no photo shows an <b>initial circle</b> (here: Grandpa "R").
+         Demonstrates the empty / partial-data cases the renderer must survive.</p>
+      <div class="canvas">
+        <div class="clabel">Where You Come From</div>
+        <div class="ctitle" style="font-size:21px">Your Family Tree</div>
+        <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+        <svg id="tree2" width="100%" viewBox="0 0 332 392" style="margin-top:2px"></svg>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>My lean:</b> ship <b>Design 1</b> as the default render and let Design 2's behaviours (sibling row,
+    initial-circle fallback, missing-grandparent slots) be the same renderer reacting to data — not a separate
+    variant. <b>Rendering:</b> inline <code>&lt;svg&gt;</code> for the connector lines + circular avatars (the
+    plan's recommendation). Avoid <code>foreignObject</code> — it doesn't capture in html2canvas, so the page
+    wouldn't export to PDF. Keep all avatars/labels as native SVG <code>&lt;circle&gt;</code>/<code>&lt;text&gt;</code>
+    so screen and PDF match.
+  </div>
+</div>
+
+<script>
+const GRAD = {
+  gA:['#f5c6d0','#d9b8a0'], gB:['#b9c9d2','#cdd6cf'], gC:['#cfe0c0','#a8c89a'],
+  gD:['#e6d3a8','#d8b58a'], gE:['#cfc0e0','#b8a0d0'], baby:['#C9B6F5','#A0C4F0'],
+};
+function defs() {
+  return '<defs>' + Object.entries(GRAD).map(([k,[a,b]]) =>
+    `<linearGradient id="${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`
+  ).join('') + '</defs>';
+}
+function node(n) {
+  const ly = n.y + n.r + 14;
+  const fill = n.initial ? '#efe6d4' : `url(#${n.g})`;
+  const stroke = n.initial ? '#d9c9aa' : '#fff';
+  return `
+    <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${fill}" stroke="${stroke}" stroke-width="3"/>
+    ${n.initial ? `<text x="${n.x}" y="${n.y+6}" text-anchor="middle" font-family="'Playfair Display',serif" font-size="18" fill="#a07860">${n.initial}</text>` : ''}
+    <text x="${n.x}" y="${ly}" text-anchor="middle" font-family="'Playfair Display',serif" font-weight="700" font-size="11" fill="#2C1810">${n.name}</text>
+    <text x="${n.x}" y="${ly+13}" text-anchor="middle" font-family="'Dancing Script',cursive" font-size="13" fill="#A07860">${n.role}</text>`;
+}
+function line(x1,y1,x2,y2) {
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#cbb89a" stroke-width="1.5" stroke-linecap="round"/>`;
+}
+
+// ── Design 1 : classic ───────────────────────────────────────────
+(function () {
+  const nodes = [
+    { x:58, y:54, r:24, g:'gA', name:'Margaret', role:'Nana' },
+    { x:130,y:54, r:24, g:'gD', name:'George',   role:'Pop' },
+    { x:202,y:54, r:24, g:'gE', name:'Linda',    role:'Grandma' },
+    { x:274,y:54, r:24, g:'gB', name:'Robert',   role:'Grandpa' },
+    { x:94, y:196,r:30, g:'gA', name:'Sarah',    role:'Mum' },
+    { x:238,y:196,r:30, g:'gB', name:'James',    role:'Dad' },
+    { x:166,y:330,r:38, g:'baby',name:'Emma',    role:'— you —' },
+  ];
+  const lines = [
+    // maternal couple → mum
+    line(82,54,106,54), line(94,54,94,166),
+    // paternal couple → dad
+    line(226,54,250,54), line(238,54,238,166),
+    // parents → baby
+    line(124,196,208,196), line(166,196,166,292),
+  ];
+  document.getElementById('tree1').innerHTML =
+    defs() + lines.join('') + nodes.map(node).join('');
+})();
+
+// ── Design 2 : siblings + initial fallback ───────────────────────
+(function () {
+  const nodes = [
+    { x:58, y:54, r:24, g:'gA', name:'Margaret', role:'Nana' },
+    { x:130,y:54, r:24, g:'gD', name:'George',   role:'Pop' },
+    { x:202,y:54, r:24, g:'gE', name:'Linda',    role:'Grandma' },
+    { x:274,y:54, r:24, initial:'R', name:'Robert', role:'Grandpa' },  // no photo → initial
+    { x:94, y:196,r:30, g:'gA', name:'Sarah',    role:'Mum' },
+    { x:238,y:196,r:30, g:'gB', name:'James',    role:'Dad' },
+    { x:120,y:330,r:34, g:'baby',name:'Emma',    role:'— you —' },
+    { x:236,y:330,r:26, g:'gC', name:'Theo',     role:'Big brother' },
+  ];
+  const lines = [
+    line(82,54,106,54), line(94,54,94,166),
+    line(226,54,250,54), line(238,54,238,166),
+    // parents marriage bar → shared drop → sibling bar
+    line(124,196,208,196), line(166,196,166,288),
+    line(120,288,236,288), line(120,288,120,296), line(236,288,236,304),
+  ];
+  document.getElementById('tree2').innerHTML =
+    defs() + lines.join('') + nodes.map(node).join('');
+})();
+</script>
+</body>
+</html>

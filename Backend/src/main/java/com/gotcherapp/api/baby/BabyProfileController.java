@@ -87,6 +87,19 @@ public class BabyProfileController {
         }
     }
 
+    @PostMapping("/photo")
+    public ResponseEntity<?> uploadPhoto(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            String url = babyProfileService.uploadPhoto(principal.userId(), file);
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (Exception e) {
+            return ApiError.serverError(e.getMessage());
+        }
+    }
+
     @PatchMapping("/cover-subtitle")
     public ResponseEntity<?> updateCoverSubtitle(
         @AuthenticationPrincipal AuthPrincipal principal,

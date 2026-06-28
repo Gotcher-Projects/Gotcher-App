@@ -11,7 +11,10 @@ function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
   )
 }
 
-function CropModal({ file, onComplete, onCancel }) {
+function CropModal({ file, onComplete, onCancel, shape }) {
+  // Opt-in circular mode (sv2-s3.5): locks a 1:1 square crop with a round preview overlay. Used only
+  // by callers that pass { shape: 'circle' } (Your People photos + baby avatar). Default is unchanged.
+  const isCircle = shape === 'circle'
   const [imgSrc, setImgSrc] = useState('')
   const [orientation, setOrientation] = useState('landscape')
   const [crop, setCrop] = useState()
@@ -19,7 +22,7 @@ function CropModal({ file, onComplete, onCancel }) {
   const [loadError, setLoadError] = useState(false)
   const imgRef = useRef(null)
 
-  const aspect = orientation === 'landscape' ? 4 / 3 : 3 / 4
+  const aspect = isCircle ? 1 : (orientation === 'landscape' ? 4 / 3 : 3 / 4)
 
   useEffect(() => {
     const reader = new FileReader()
@@ -68,34 +71,40 @@ function CropModal({ file, onComplete, onCancel }) {
     ctx.drawImage(image, sourceX, sourceY, sourceW, sourceH, 0, 0, canvas.width, canvas.height)
 
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85))
-    onComplete({ blob, orientation })
+    onComplete({ blob, orientation: isCircle ? 'square' : orientation })
   }
 
   return (
+    // pointer-events-auto: when this modal is opened from inside a Radix modal Dialog, Radix sets
+    // `pointer-events: none` on <body>. We're portaled to body (outside the dialog), so without this
+    // the whole crop modal would be click/drag-dead.
     <div
-      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4"
+      data-crop-overlay
+      className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4 pointer-events-auto"
       onClick={onCancel}
     >
       <div
         className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="font-bold text-lg text-slate-800">Crop Photo</h2>
+        <h2 className="font-bold text-lg text-slate-800">{isCircle ? 'Position Photo' : 'Crop Photo'}</h2>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleOrientationChange('landscape')}
-            className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${orientation === 'landscape' ? 'bg-sky-100 border-sky-400 text-sky-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-          >
-            &#9645; Landscape (4:3)
-          </button>
-          <button
-            onClick={() => handleOrientationChange('portrait')}
-            className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${orientation === 'portrait' ? 'bg-sky-100 border-sky-400 text-sky-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-          >
-            &#9646; Portrait (3:4)
-          </button>
-        </div>
+        {!isCircle && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleOrientationChange('landscape')}
+              className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${orientation === 'landscape' ? 'bg-sky-100 border-sky-400 text-sky-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+            >
+              &#9645; Landscape (4:3)
+            </button>
+            <button
+              onClick={() => handleOrientationChange('portrait')}
+              className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${orientation === 'portrait' ? 'bg-sky-100 border-sky-400 text-sky-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+            >
+              &#9646; Portrait (3:4)
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-center overflow-auto" style={{ maxHeight: '320px' }}>
           {loadError ? (
@@ -108,6 +117,7 @@ function CropModal({ file, onComplete, onCancel }) {
               onChange={c => setCrop(c)}
               onComplete={c => setCompletedCrop(c)}
               aspect={aspect}
+              circularCrop={isCircle}
             >
               <img
                 ref={imgRef}
@@ -223,9 +233,17 @@ function mountModal(render) {
   document.body.appendChild(container)
   const root = ReactDOM.createRoot(container)
 
+  let closed = false
   function close() {
-    root.unmount()
-    container.remove()
+    if (closed) return
+    closed = true
+    // Defer the unmount: close() may be invoked from inside a React commit (e.g. a parent Radix
+    // Dialog unmounting the trigger that owns this modal), and synchronously unmounting another
+    // root mid-render triggers React's "synchronously unmount a root while rendering" warning.
+    queueMicrotask(() => {
+      root.unmount()
+      container.remove()
+    })
   }
 
   root.render(render(close))
@@ -253,7 +271,9 @@ export async function uploadCroppedPhoto(onUpload, blob) {
   return res.url;
 }
 
-export function openCropModal(file, onComplete, onCancel) {
+// `options.shape: 'circle'` opts into a 1:1 circular crop (sv2-s3.5). Omitted → unchanged
+// portrait/landscape behaviour. Only the People photos + baby avatar pass it.
+export function openCropModal(file, onComplete, onCancel, options = {}) {
   // Defense-in-depth: the picker's accept="image/*" is only a UX hint and is bypassable
   // (drag-drop, "All files" in the OS dialog, non-browser clients). A non-image file can't be
   // decoded — feeding it to the cropper leaves the <img> unloaded and crashes ReactCrop on the
@@ -267,6 +287,7 @@ export function openCropModal(file, onComplete, onCancel) {
   return mountModal(close => (
     <CropModal
       file={file}
+      shape={options.shape}
       onComplete={result => { close(); onComplete(result) }}
       onCancel={() => { close(); onCancel?.() }}
     />

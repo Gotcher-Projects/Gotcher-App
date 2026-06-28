@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S6 — Fill-in Page Types · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --cream:#FDF6ED; --ink-soft:#A07860; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 80px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 22px; font-size:15px; max-width:840px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  .legend b { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .d-fill{ background:var(--hi); } .d-auto{ background:var(--gold); }
+
+  .pages { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:30px; align-items:start; margin-top:24px; }
+  .pagewrap h3 { font-size:15px; margin:0 0 3px; }
+  .pagewrap .badge { font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:100px; }
+  .b-fill{ background:rgba(217,123,138,.14); color:var(--hi); } .b-auto{ background:rgba(194,163,107,.18); color:#9a7b3a; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:8px 0 12px; }
+  .canvas { width:330px; height:440px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 10px 30px rgba(0,0,0,.10); margin:0 auto; position:relative; overflow:hidden; }
+  .pad { padding:30px 26px; height:100%; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.22em; color:var(--gold); text-transform:uppercase; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); line-height:1.1; }
+  .div { display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0; }
+  .div .l { height:1px; width:36px; background:var(--gold); opacity:.4; } .div .h { color:var(--hi); font-size:11px; }
+  .script { font-family:'Dancing Script',cursive; color:var(--ink-soft); }
+  .tl { height:4px; background:#4A3728; opacity:.15; border-radius:2px; }
+  .ph { border-radius:5px; }
+  .gA{background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .gB{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .gC{background:linear-gradient(135deg,#cfe0c0,#a8c89a);} .gD{background:linear-gradient(135deg,#e6d3a8,#d8b58a);}
+  .gE{background:linear-gradient(135deg,#cfc0e0,#b8a0d0);}
+  .note { background:#FFF8E8; border:1px solid #E5CB8A; border-radius:5px; }
+  .heart { position:absolute; bottom:12px; right:14px; color:#F9A8D4; font-size:14px; }
+  .legendbox { font-size:12.5px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:12px 16px; margin-top:26px; }
+  .legendbox b { color:var(--ink); } .legendbox code { background:#f3ead7; padding:1px 5px; border-radius:4px; font-size:11.5px; }
+  .float { position:absolute; opacity:.5; }
+  .kv { font-size:9px; letter-spacing:.12em; color:var(--ink-soft); text-transform:uppercase; }
+  .sizetag { position:absolute; left:7px; bottom:7px; background:rgba(255,255,255,.92); border:1px solid rgba(0,0,0,.06);
+             color:var(--ink); border-radius:100px; padding:3px 8px; font-size:10px; font-weight:700;
+             display:flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .sizetag .em { font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S6 — Fill-in Page Types</h1>
+  <p class="lead">The handful of <b>new</b> designed pages the guided book needs that don't exist yet. Each is a
+     locked layout (template + renderer in the book canvas, same pattern as Letter/Birth/People) — <i>we</i> set the
+     design, <b>you drop photos &amp; type into the slots</b>. Shown at the real 600×800 page ratio. Photos are placeholders.</p>
+  <div class="legend">
+    <b><span class="dot d-fill"></span> fill — you drag photos / type</b>
+    <b><span class="dot d-auto"></span> auto — a tag fills itself from your data</b>
+  </div>
+
+  <div class="pages">
+
+    <!-- 1 · Chapter divider -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>1 · Chapter divider</h3><span class="badge b-fill">fill</span></div>
+      <p>Opens each section. "CHAPTER N", an icon badge, title + italic subtitle, and html2canvas-safe floating
+         decoratives (absolutely-positioned spans — no pseudo-elements).</p>
+      <div class="canvas">
+        <span class="float" style="top:34px;left:30px;font-size:22px">✿</span>
+        <span class="float" style="top:70px;right:40px;font-size:16px">❀</span>
+        <span class="float" style="bottom:60px;left:46px;font-size:18px">✦</span>
+        <span class="float" style="bottom:38px;right:34px;font-size:24px">✿</span>
+        <div class="pad" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+          <div class="clabel" style="color:var(--ink-soft)">Chapter Three</div>
+          <div style="width:54px;height:54px;border-radius:50%;background:rgba(217,123,138,.14);display:flex;align-items:center;justify-content:center;font-size:26px;margin:14px 0">🌱</div>
+          <div class="ctitle" style="font-size:30px">Watch Me<br>Grow</div>
+          <div class="script" style="font-size:18px;margin-top:12px">from tiny to tumbling</div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- 2 · Month-by-month growth spread -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>2 · Month-by-month growth</h3><span class="badge b-fill">fill</span></div>
+      <p>One page per quarter (0–3 / 3–6 / 6–9 / 9–12). ~3 photos + a note. <b>Likely reuses the photo-grid
+         template</b> with a caption zone rather than a net-new renderer.</p>
+      <div class="canvas">
+        <div class="pad">
+          <div class="clabel">Watch Me Grow</div>
+          <div class="ctitle" style="font-size:26px;margin-top:6px">Months 0–3</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="ph gA" style="flex:1;height:130px"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div class="ph gB" style="height:61px"></div>
+              <div class="ph gC" style="height:61px"></div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:14px;padding:10px">
+            <div class="kv" style="margin-bottom:6px">In these months you…</div>
+            <div class="tl" style="width:94%;margin-bottom:6px"></div>
+            <div class="tl" style="width:88%;margin-bottom:6px"></div>
+            <div class="tl" style="width:60%"></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- 3 · All About You (prompts) -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>3 · Prompt page — "All About You"</h3><span class="badge b-fill">fill</span></div>
+      <p>Preset labelled lines you fill in. A light text-template with fixed labels. Same shape powers other
+         prompt pages.</p>
+      <div class="canvas">
+        <div class="pad">
+          <div class="clabel">At One Year Old</div>
+          <div class="ctitle" style="font-size:26px;margin-top:6px">All About You</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div style="margin-top:6px">
+            <!-- prettier-ignore -->
+            <div style="margin-bottom:15px"><div class="kv">Your nickname</div><div class="tl" style="width:70%;margin-top:5px"></div></div>
+            <div style="margin-bottom:15px"><div class="kv">Favourite food</div><div class="tl" style="width:82%;margin-top:5px"></div></div>
+            <div style="margin-bottom:15px"><div class="kv">You love</div><div class="tl" style="width:88%;margin-top:5px"></div></div>
+            <div style="margin-bottom:15px"><div class="kv">What makes you laugh</div><div class="tl" style="width:78%;margin-top:5px"></div></div>
+            <div><div class="kv">Your best friend</div><div class="tl" style="width:60%;margin-top:5px"></div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- 4 · Hands & Feet -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>4 · Your Hands &amp; Feet</h3><span class="badge b-fill">fill</span></div>
+      <p>Two large slots for hand/foot photos (or scanned prints) + a one-line caption. The "so small" keepsake page.</p>
+      <div class="canvas">
+        <div class="pad" style="display:flex;flex-direction:column">
+          <div class="clabel">So Small</div>
+          <div class="ctitle" style="font-size:26px;margin-top:6px">Your Hands &amp; Feet</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div style="display:flex;gap:12px;margin-top:8px;flex:1">
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div class="ph gD" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:48px">✋</div>
+              <div class="script" style="text-align:center;font-size:15px;margin-top:8px">your hands</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div class="ph gE" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:48px">👣</div>
+              <div class="script" style="text-align:center;font-size:15px;margin-top:8px">your feet</div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:14px;padding:9px"><div class="tl" style="width:80%"></div></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- 5 · Bump page (2-up) -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>5 · Bump page (2-up)</h3><span class="badge b-fill">fill</span><span class="badge b-auto">+ auto tag</span></div>
+      <p><b>Two</b> bump photos + a note. Each photo carries a small <b>auto week→size tag</b> (light pill,
+         bottom-left) from the 37-row dataset — only when the photo has a week. One reusable template, used
+         twice by the guided book as <b>"Early Days"</b> &amp; <b>"Full Bloom"</b> (~4 bump photos/book total).</p>
+      <div class="canvas">
+        <div class="pad" style="display:flex;flex-direction:column">
+          <div class="clabel">The Bump Grows</div>
+          <div class="ctitle" style="font-size:24px;margin-top:6px">The Bump — Early Days</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div style="display:flex;gap:12px;margin-top:6px;flex:1">
+            <div style="flex:1;position:relative">
+              <div class="ph gB" style="height:100%"></div>
+              <div class="sizetag"><span class="em">🍋</span> Wk 14 · lemon</div>
+            </div>
+            <div style="flex:1;position:relative">
+              <div class="ph gA" style="height:100%"></div>
+              <div class="sizetag"><span class="em">🍌</span> Wk 22 · banana</div>
+            </div>
+          </div>
+          <div class="note" style="margin-top:14px;padding:10px">
+            <div class="tl" style="width:90%;margin-bottom:6px"></div>
+            <div class="tl" style="width:62%"></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legendbox">
+    <b>Notes / calls to make at build:</b>
+    <ul style="margin:8px 0 0;padding-left:18px;line-height:1.7">
+      <li><b>Growth spread (open Q1):</b> lean <b>reuse the photo-grid template</b> + a caption zone over a
+          purpose-built renderer — less code, same look.</li>
+      <li><b>Prompt pages (open Q2):</b> fixed preset labels (shown) vs a couple of configurable prompt slots —
+          lean <b>fixed presets</b> for the guided book; configurable can come with the scrapbook.</li>
+      <li><b>Bump page (open Q3):</b> one photo per page (shown) with the size tag <b>bottom-left</b>; tag only
+          renders when the photo has an associated <code>week</code>.</li>
+      <li>All five must be <b>html2canvas-clean at 600×800</b> for PDF — decoratives are positioned spans, the
+          size tag is a real element (no <code>::before</code>, no <code>mask-image</code>).</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

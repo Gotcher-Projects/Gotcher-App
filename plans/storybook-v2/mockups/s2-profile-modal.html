@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Profile → modal refactor · mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f3fb; --card:#fff; --ink:#1e2440; --muted:#7b8198; --line:#e9e8f2;
+    --indigo:#6d5fe0; --indigo-soft:#eeebfb; --warm:#fff7e9; --warm-line:#f0dcb0;
+    --pink:#e9577d; --green-bg:#eaf6ee; --green-line:#cfe8d6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;padding:34px 20px 90px;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  a.back{color:var(--indigo);text-decoration:none;font-size:13px;font-weight:600;}
+  h1{font-family:'Poppins',sans-serif;font-size:27px;margin:8px 0 4px;}
+  .lead{color:var(--muted);font-size:14.5px;margin:0 0 26px;}
+  h2.sec{font-family:'Poppins',sans-serif;font-size:19px;margin:40px 0 4px;padding-top:22px;border-top:1px solid var(--line);}
+  .sec-sub{color:var(--muted);font-size:13.5px;margin:0 0 18px;}
+  .shell{background:var(--card);border-radius:20px;box-shadow:0 8px 30px rgba(40,40,90,.07);padding:26px 28px;}
+  .greet{font-family:'Poppins',sans-serif;font-weight:800;font-size:22px;display:flex;gap:8px;align-items:center;margin-bottom:16px;}
+  .ql-label{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--indigo);margin-bottom:8px;}
+  .ql{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+  .ql div{border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;font-size:12.5px;color:var(--muted);}
+  .ql div b{display:block;font-size:18px;margin-bottom:4px;}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+  .colh{font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;margin:6px 0 12px;}
+  /* OLD vs NEW chips */
+  .tagrow{display:flex;gap:10px;margin-bottom:12px;align-items:center;}
+  .chip{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;}
+  .chip.bad{background:#fdeaea;color:#c0392b;} .chip.good{background:var(--green-bg);color:#2f8a4e;}
+  /* profile summary card (NEW) */
+  .pcard{border:1px solid var(--line);border-radius:16px;padding:18px;}
+  .pcard .top{display:flex;gap:14px;align-items:center;}
+  .av{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#c9b6f5,#a0c4f0);flex-shrink:0;}
+  .pcard .nm{font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;}
+  .pcard .sub{font-size:12.5px;color:var(--muted);}
+  .pcard .meta{display:flex;gap:18px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .pcard .meta div{font-size:12px;color:var(--muted);}
+  .pcard .meta b{display:block;color:var(--ink);font-size:13px;font-weight:600;}
+  .editbtn{margin-top:16px;width:100%;border:1px solid var(--indigo);color:var(--indigo);background:var(--indigo-soft);
+           border-radius:11px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;}
+  .miss{margin-top:10px;font-size:12px;color:#b07d2a;background:var(--warm);border:1px solid var(--warm-line);border-radius:10px;padding:8px 11px;}
+  /* old form mock */
+  .oldform .fld{margin-bottom:10px;}
+  .oldform .fl{font-size:12px;font-weight:600;margin-bottom:3px;}
+  .oldform .fi{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12.5px;color:var(--muted);background:#fafaff;}
+  .savebtn{background:var(--indigo);color:#fff;border:none;border-radius:10px;padding:10px;width:100%;font-weight:700;font-size:13px;margin-top:6px;}
+  .faded{opacity:.6;}
+  /* modal */
+  .modal-stage{position:relative;background:linear-gradient(180deg,#e7e5f4,#eceaf6);border-radius:18px;padding:30px;display:flex;justify-content:center;}
+  .modal{width:440px;max-width:100%;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(30,30,70,.28);overflow:hidden;}
+  .modal header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .modal header b{font-family:'Poppins',sans-serif;font-size:16px;}
+  .modal header .x{color:var(--muted);font-size:18px;cursor:pointer;}
+  .tabs{display:flex;gap:4px;padding:12px 20px 0;}
+  .tabs span{font-size:12.5px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:9px 9px 0 0;cursor:pointer;}
+  .tabs span.on{color:var(--indigo);background:var(--indigo-soft);}
+  .mbody{padding:16px 20px 4px;max-height:360px;overflow:auto;}
+  .grouph{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px;}
+  .grouph::after{content:"";flex:1;height:1px;background:var(--line);}
+  .fld{margin-bottom:11px;} .fl{font-size:12px;font-weight:600;margin-bottom:4px;}
+  .fi{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--ink);background:#fafaff;}
+  .fi.ph{color:var(--muted);} .row{display:flex;gap:10px;} .row>div{flex:1;}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{font-size:12px;padding:5px 12px;border-radius:100px;border:1px solid var(--line);background:#fff;color:var(--muted);}
+  .pill.on{background:var(--indigo-soft);border-color:var(--indigo);color:var(--indigo);font-weight:700;}
+  .mfoot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--line);background:#fbfbfe;}
+  .mfoot .ghost{flex:1;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:10px;padding:10px;font-weight:600;font-size:13px;}
+  .mfoot .save{flex:2;border:none;background:var(--indigo);color:#fff;border-radius:10px;padding:10px;font-weight:700;font-size:13px;}
+  .legend{font-size:12.5px;color:var(--muted);background:#fbfbfe;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:14px;}
+  .legend b{color:var(--ink);}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+  @media(max-width:760px){.cols,.two{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>Profile → modal refactor (home for birth details)</h1>
+  <p class="lead">Replace the always-open "Profile Setup" form on the dashboard with a compact summary card +
+     an <b>Edit profile</b> button that opens a modal. The modal is where the detailed info — including birth
+     details — lives. Colours/fonts approximate the real app.</p>
+
+  <!-- ───────── BEFORE / AFTER DASHBOARD ───────── -->
+  <h2 class="sec">1 · The dashboard left column — before &amp; after</h2>
+  <p class="sec-sub">Today the form occupies the whole left half. After: a small card that frees the space and hides the rarely-touched fields.</p>
+
+  <div class="two">
+    <!-- BEFORE -->
+    <div>
+      <div class="tagrow"><span class="chip bad">Before</span><span style="font-size:12.5px;color:var(--muted)">always-open form</span></div>
+      <div class="shell oldform faded">
+        <div class="colh">Profile Setup</div>
+        <div class="fld"><div class="fl">Baby's Name</div><div class="fi">Lily</div></div>
+        <div class="fld"><div class="fl">Birthdate</div><div class="fi">11/02/2025</div></div>
+        <div class="fld"><div class="fl">Sex</div><div class="fi">Boy</div></div>
+        <div class="fld"><div class="fl">Your Name</div><div class="fi">Test test</div></div>
+        <div class="fld"><div class="fl">Email</div><div class="fi ph">your@email.com</div></div>
+        <div class="fld"><div class="fl">Phone</div><div class="fi">555-012-3456</div></div>
+        <button class="savebtn">Save Profile</button>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div>
+      <div class="tagrow"><span class="chip good">After</span><span style="font-size:12.5px;color:var(--muted)">summary + Edit button</span></div>
+      <div class="shell">
+        <div class="colh">Profile</div>
+        <div class="pcard">
+          <div class="top">
+            <div class="av"></div>
+            <div>
+              <div class="nm">Lily</div>
+              <div class="sub">7 months, 23 days · Boy</div>
+            </div>
+          </div>
+          <div class="meta">
+            <div>Born<b>11 Feb 2025</b></div>
+            <div>Weight<b>3.40 kg</b></div>
+            <div>Parent<b>Test test</b></div>
+          </div>
+          <button class="editbtn">✎ Edit profile</button>
+          <div class="miss">Add birth details to unlock "The Day We Met You" book page →</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px">The freed space can show a baby photo, recent activity, or just breathe.</div>
+    </div>
+  </div>
+
+  <!-- ───────── MODAL — OPTION A (tabs) ───────── -->
+  <h2 class="sec">2 · The Edit Profile modal — Option A: tabbed</h2>
+  <p class="sec-sub">Sections as tabs keep it short. "Birth details" is one tab — the new S2 fields live here.</p>
+  <div class="modal-stage">
+    <div class="modal">
+      <header><b>Edit profile</b><span class="x">✕</span></header>
+      <div class="tabs"><span>Basics</span><span class="on">Birth details</span><span>Parent &amp; contact</span></div>
+      <div class="mbody">
+        <div class="fld"><div class="fl">Time of birth</div><div class="fi">07:42 AM</div></div>
+        <div class="fld"><div class="fl">Hospital / birth place</div><div class="fi">St Mary's Hospital</div></div>
+        <div class="row">
+          <div class="fld"><div class="fl">Weight</div><div class="fi">3.40 kg</div></div>
+          <div class="fld"><div class="fl">Length</div><div class="fi">51 cm</div></div>
+          <div class="fld"><div class="fl">Head</div><div class="fi">35 cm</div></div>
+        </div>
+        <div class="fld"><div class="fl">Birth type</div>
+          <div class="seg"><span class="pill on">Natural</span><span class="pill">C-section</span><span class="pill">Induced</span><span class="pill">Other</span></div>
+        </div>
+        <div class="fld"><div class="fl">The story of the day you arrived</div>
+          <div class="fi ph" style="height:60px;font-style:italic">The morning you arrived it was raining, and your dad…</div>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);margin:2px 0 6px">Units follow your existing measurement preference. All fields optional.</div>
+      </div>
+      <div class="mfoot"><button class="ghost">Cancel</button><button class="save">Save profile</button></div>
+    </div>
+  </div>
+  <div class="legend"><b>Pros:</b> stays short regardless of how much we add; clear separation. <b>Watch:</b> a brand-new user has to discover the Birth-details tab (mitigate with the dashboard nudge + maybe a dot on the tab when empty).</div>
+
+  <!-- ───────── MODAL — OPTION B (single scroll, grouped) ───────── -->
+  <h2 class="sec">3 · The Edit Profile modal — Option B: one scroll, grouped</h2>
+  <p class="sec-sub">Everything on one scrolling sheet with section headers. No hidden tabs — you see it all exists.</p>
+  <div class="modal-stage">
+    <div class="modal">
+      <header><b>Edit profile</b><span class="x">✕</span></header>
+      <div class="mbody" style="max-height:400px">
+        <div class="grouph">Basics</div>
+        <div class="fld"><div class="fl">Baby's name</div><div class="fi">Lily</div></div>
+        <div class="row">
+          <div class="fld"><div class="fl">Birthdate</div><div class="fi">11 Feb 2025</div></div>
+          <div class="fld"><div class="fl">Sex</div><div class="fi">Boy</div></div>
+        </div>
+
+        <div class="grouph">Birth details <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--indigo)">· new</span></div>
+        <div class="row">
+          <div class="fld"><div class="fl">Time</div><div class="fi">07:42 AM</div></div>
+          <div class="fld"><div class="fl">Hospital</div><div class="fi">St Mary's</div></div>
+        </div>
+        <div class="row">
+          <div class="fld"><div class="fl">Weight</div><div class="fi">3.40 kg</div></div>
+          <div class="fld"><div class="fl">Length</div><div class="fi">51 cm</div></div>
+          <div class="fld"><div class="fl">Head</div><div class="fi">35 cm</div></div>
+        </div>
+        <div class="fld"><div class="fl">Birth type</div>
+          <div class="seg"><span class="pill on">Natural</span><span class="pill">C-section</span><span class="pill">Induced</span><span class="pill">Other</span></div>
+        </div>
+        <div class="fld"><div class="fl">Birth story</div><div class="fi ph" style="height:48px;font-style:italic">A few words about the day…</div></div>
+
+        <div class="grouph">Parent &amp; contact</div>
+        <div class="fld"><div class="fl">Your name</div><div class="fi">Test test</div></div>
+        <div class="row">
+          <div class="fld"><div class="fl">Email</div><div class="fi ph">your@email.com</div></div>
+          <div class="fld"><div class="fl">Phone</div><div class="fi">555-012-3456</div></div>
+        </div>
+      </div>
+      <div class="mfoot"><button class="ghost">Cancel</button><button class="save">Save profile</button></div>
+    </div>
+  </div>
+  <div class="legend"><b>Pros:</b> nothing hidden; everything discoverable by scrolling; simplest to build. <b>Watch:</b> gets long as we add more later.</div>
+
+  <div class="legend" style="margin-top:22px;background:var(--indigo-soft);border-color:#d9d2f6">
+    <b>My lean:</b> ship the <b>summary card + Edit button</b> on the dashboard, and start with <b>Option B (grouped single scroll)</b> — simplest, nothing hidden, and birth details are clearly "there". Move to tabs (Option A) only if the sheet gets unwieldy. Birth details still get their own <code>birth_details</code> table + live-read by the book page; the modal is just the form that writes them.
+  </div>
+</div>
+</body>
+</html>

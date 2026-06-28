@@ -1,10 +1,40 @@
-# SV2-S9 — Family Tree Visualizer
+# SV2-S5 — Family Tree (book page)   *(was sv2-s9; renumbered 2026-06-27)*
 
-**Status: DEFERRED — do not start until guided book (sv2-s6 through sv2-s8) is verified working**
-**Depends on:** sv2-s3 (Your People data model exists), sv2-s6 (guided book shell)
-**Reference:** `planning.md` Q6 — substantial build, tech debt item
+**Status: Needs Verification** (implemented 2026-06-27 — `FamilyTreeCanvas` built, wired into builder/
+read/PDF + TemplateSheet thumb; frontend build + 248 tests pass. Verify in-app: add it as a page in the
+scrapbook builder with people in "Your People", check tree render + PDF export, then mark Complete.)
+
+**Post-baseline fixes (2026-06-27, after first in-app test):**
+- **"Edit people" from the tree** — the Family Tree page now shows the same Edit-people button as the
+  People page; opens `FamilyRosterPopup` in a new `mode="roster"` (no per-page selection/variant UI).
+- **Published/PDF tree was missing grandparents** — `StorybookTab` only fetched `family_members` on
+  mount, so people added inside the builder never reached `pageData`. Fixed: it now re-pulls
+  birth/family data **on builder close** (`loadPageData`). This fixed both the published view and PDF.
+- **Circular avatars in PDF** — added `border-radius:50%` on the `<img>` itself (html2canvas doesn't
+  reliably clip a rounded parent's overflow). Re-verify the PDF circles after this.
+
+**Known-rough / deferred → [`sv2-s5.5-family-relationships.md`](sv2-s5.5-family-relationships.md):** the
+role→tier mapping is guessed from free-text role and grandparent *side* is roster-order only (Nana/Pop
+landing under Dad is hardcoded-ish, not modelled); no step-parent/step-grandparent model; `role` conflates
+relationship with display title. That refinement is its own plan.
+
+The family tree is a **page in the default guided book** (the People section —
+see the mockups + `planning.md` 2026-06-27 direction update), so it's built **before the shell (sv2-s7)**.
+Build it as a book page type (the family-member data
+already exists from sv2-s3); a standalone/interactive tree view can come later if wanted.
+**Depends on:** sv2-s3 (Your People data — shipped). No longer blocked on the shell.
+**Reference:** `planning.md` Q6 + 2026-06-27 direction update.
+**Mockup:** `mockups/s5-family-tree.html` (2 designs — classic three-tier + a siblings/initial-fallback
+variant; full 600×800 page ratio). Authoritative for the page design.
 
 ---
+
+## Decisions locked (2026-06-27)
+- **Render scope:** grandparents → parents → baby **+ siblings beside the baby** (Design 2 in the mockup).
+  The renderer handles the sibling row + missing-slot / no-photo **initial-circle** fallbacks as data-driven
+  behaviour, not a separate variant.
+- **Rendering:** inline `<svg>` for connector lines + circular avatars. **No `foreignObject`** (won't
+  capture in html2canvas → wouldn't export to PDF).
 
 ## Goal
 

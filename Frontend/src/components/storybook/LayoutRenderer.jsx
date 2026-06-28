@@ -1,9 +1,17 @@
 import React, { useState, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { CANVAS_W, CANVAS_H, renderBlocks, useCanvasScale } from "@/lib/bookCanvas";
+import { CANVAS_W, CANVAS_H, renderBlocks, useCanvasScale, DROP_CAP_FREE_TEMPLATES } from "@/lib/bookCanvas";
 import MomentHeroCanvas from "@/components/storybook/MomentHeroCanvas";
+import LetterCanvas from "@/components/storybook/LetterCanvas";
+import GalleryCanvas from "@/components/storybook/GalleryCanvas";
+import BirthDayCanvas from "@/components/storybook/BirthDayCanvas";
+import PeopleCanvas from "@/components/storybook/PeopleCanvas";
+import FamilyTreeCanvas from "@/components/storybook/FamilyTreeCanvas";
+import ChapterDividerCanvas from "@/components/storybook/ChapterDividerCanvas";
+import PromptsCanvas from "@/components/storybook/PromptsCanvas";
+import BumpCanvas from "@/components/storybook/BumpCanvas";
 
-export default function LayoutRenderer({ layout, theme }) {
+export default function LayoutRenderer({ layout, theme, pageData }) {
   const containerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
   const touchStartX = useRef(null);
@@ -43,9 +51,37 @@ export default function LayoutRenderer({ layout, theme }) {
                 <MomentHeroCanvas
                   blocks={blocks}
                   orientation={page.templateId === 'moment-hero-landscape' ? 'landscape' : 'portrait'}
+                  theme={theme}
                 />
+              ) : page.templateId === 'letter' ? (
+                <LetterCanvas blocks={blocks} theme={theme} />
+              ) : page.templateId === 'gallery' ? (
+                <GalleryCanvas blocks={blocks} theme={theme} />
+              ) : page.templateId === 'birth_day' ? (
+                <BirthDayCanvas
+                  birthDetails={pageData?.birthDetails}
+                  babyName={pageData?.babyName}
+                  birthdate={pageData?.birthdate}
+                  coverPhotoUrl={pageData?.coverPhotoUrl}
+                  theme={theme}
+                />
+              ) : page.templateId === 'people' ? (
+                <PeopleCanvas blocks={blocks} familyMembers={pageData?.familyMembers} theme={theme} />
+              ) : page.templateId === 'family_tree' ? (
+                <FamilyTreeCanvas
+                  familyMembers={pageData?.familyMembers}
+                  babyName={pageData?.babyName}
+                  coverPhotoUrl={pageData?.coverPhotoUrl}
+                  theme={theme}
+                />
+              ) : page.templateId === 'chapter_divider' ? (
+                <ChapterDividerCanvas blocks={blocks} theme={theme} />
+              ) : page.templateId === 'prompts' ? (
+                <PromptsCanvas blocks={blocks} theme={theme} />
+              ) : page.templateId === 'bump' ? (
+                <BumpCanvas blocks={blocks} theme={theme} />
               ) : (
-                renderBlocks(blocks, theme)
+                renderBlocks(blocks, theme, { suppressDropCap: DROP_CAP_FREE_TEMPLATES.has(page.templateId) })
               )}
             </div>
           )}

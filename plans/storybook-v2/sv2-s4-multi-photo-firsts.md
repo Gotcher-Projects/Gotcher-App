@@ -1,8 +1,59 @@
 # SV2-S4 — Multi-Photo First Times
 
-**Status: Not started**
+**Status: Needs Verification** (implemented 2026-06-25 — backend compiles, frontend builds, 244 FE tests pass; verify in-app then mark Complete)
+
+## ✅ Implementation log (2026-06-25)
+
+Built unattended per request. Decisions taken on the open questions (defaults, documented here):
+
+**Open Q1 (empty gallery cells):** GalleryCanvas shows **only filled cells** in read/PDF (adaptive
+grid — 1 photo = single column, 2–4 = 2-col grid). The builder shows all 4 droppable slots so they
+can be filled. No dashed placeholders in the final page.
+**Open Q2 (captions):** **optional.** Caption input per photo in the Firsts edit UI and per cell in
+the gallery page; hidden on the page when blank.
+**Open Q3 (hero in gallery):** gallery is **strictly the additional photos** — the hero
+(`first_times.image_url`) is not duplicated into it.
+**Open Q4 (max photos):** capped at **8 additional photos** per first time (`MAX_ADDITIONAL_PHOTOS`,
+enforced server-side and in the UI).
+
+### What was built
+- **Migration `V38__create_first_time_photos.sql`** — the table from the schema below (sort_order
+  `NOT NULL DEFAULT 0`).
+- **Backend** (`com.gotcherapp.api.firsttimes`): `FirstTimePhoto` record; `FirstTime` gains
+  `List<FirstTimePhoto> additionalPhotos` (populated on GET in one grouped query); service
+  add/updateCaption/remove/reorder with ownership checks; controller sub-endpoints
+  `POST /first-times/{id}/photos`, `PATCH /first-times/{id}/photos/{photoId}` (caption),
+  `DELETE /first-times/{id}/photos/{photoId}`, `PATCH /first-times/{id}/photos/order`.
+- **No multipart endpoint / no SecurityConfig change** (corrects the plan): the image is uploaded
+  via the existing `POST /upload?context=first_times` → URL, then recorded as JSON. SecurityConfig
+  is `anyRequest().authenticated()`, so the new routes are already protected.
+- **Frontend:** `CradleHq.jsx` handlers + props; `MemoriesTab.jsx` — `GalleryStrip` (read-mode
+  thumbnail strip on the card) + `MorePhotosEditor` (edit-mode add/caption/reorder via ◀ ▶/remove).
+  Reorder uses move buttons rather than dnd (robust; dnd can be added later).
+- **`GalleryCanvas.jsx`** renderer + `gallery` template + dispatch in ScrapbookBuilder /
+  LayoutRenderer / storybookPdf + `GalleryThumb` in TemplateSheet. Photos fill from the photo tray;
+  wiring it to `first_time_photos` **data** is deferred to sv2-s5/s7 per this plan.
+
+### To verify in-app (needs Docker/DB + a session)
+1. Memories → Firsts → edit a first → "More photos" → add 2–3 photos, caption them, reorder, remove one. Persists across reload.
+2. Read-mode card shows the thumbnail strip.
+3. Book builder → add a **Gallery** layout page → drop photos → renders; PDF export includes it.
+4. Existing single-photo firsts unaffected (empty `additionalPhotos`).
+
+---
+
+**Status (original): Not started**
 **Depends on:** sv2-s3 complete (or can run independently — no shared dependencies)
 **Reference:** `planning.md` Q4 — first_time_photos table; enables gallery pages
+
+---
+
+**⭐ Page-type pattern (DECIDED 2026-06-24 — see `planning.md` §0 + `sv2-s1`):** this session is mostly the
+**data layer** (`first_time_photos` table + Firsts UI). When the **`GalleryPage`** renderer it unlocks gets
+built (here or in sv2-s5), build it as a **layout template + renderer in the book canvas** (the moment-hero
+pattern) — a `renderer: 'gallery'` template in `lib/storybookTemplates.js` dispatched in `ScrapbookBuilder`
+/ `LayoutRenderer` / `storybookPdf.js` — **NOT an `anchor_type` chapter.** The photo **data** lives in
+`first_time_photos`; the **page** is just a layout reading it.
 
 ---
 
