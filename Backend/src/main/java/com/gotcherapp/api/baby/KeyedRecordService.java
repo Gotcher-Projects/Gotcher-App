@@ -3,6 +3,7 @@ package com.gotcherapp.api.baby;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public abstract class KeyedRecordService {
@@ -29,6 +30,22 @@ public abstract class KeyedRecordService {
             "SELECT " + keyColumn + " FROM " + tableName +
             " WHERE baby_profile_id = ? ORDER BY " + orderByColumn,
             String.class, profileId.get()
+        );
+    }
+
+    /**
+     * Achieved records with the date they were marked, as `[{ key, achievedAt }]` (achievedAt is a
+     * noon-anchorable `YYYY-MM-DD` string). The order column is a timestamp for every subclass
+     * (milestones.achieved_at, vaccine_records.administered_at), so to_char is safe.
+     */
+    public List<Map<String, Object>> getAchieved(Long userId) {
+        Optional<Long> profileId = repo.findProfileIdByUserId(userId);
+        if (profileId.isEmpty()) return List.of();
+        return jdbc.queryForList(
+            "SELECT " + keyColumn + " AS key, to_char(" + orderByColumn + ", 'YYYY-MM-DD') AS \"achievedAt\"" +
+            " FROM " + tableName +
+            " WHERE baby_profile_id = ? ORDER BY " + orderByColumn,
+            profileId.get()
         );
     }
 

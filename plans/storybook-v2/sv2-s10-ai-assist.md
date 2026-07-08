@@ -117,7 +117,7 @@ Each is a small change: import the component, pass the descriptor + value/onChan
 
 ## Dependency / gating note
 
-- **Payments (`plans/payments/`) is `Not started`.** Until it lands there's **no upgrade path**, so the
+- **Payments (`plans/storybook-v2/payments/`) is `Not started`.** Until it lands there's **no upgrade path**, so the
   assist ships **visible-but-inert for everyone except already-paid/seeded accounts**. The `tier` +
   `ai_credits_remaining` columns exist, so the gating *code* is real now; only the buy flow is missing.
 - This session + `sv2-ai-retrofit` + print + share are the **paid bundle** lit up once Payments ships.

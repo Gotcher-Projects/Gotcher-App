@@ -22,7 +22,12 @@ public class MilestoneController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAll(@AuthenticationPrincipal AuthPrincipal principal) {
         List<String> keys = milestoneService.getKeys(principal.userId());
-        return ResponseEntity.ok(Map.of("keys", keys));
+        // `achieved` adds the date each milestone was marked (for the Storybook "How You Grew" page);
+        // `keys` is kept for the existing milestone checklist consumer.
+        return ResponseEntity.ok(Map.of(
+            "keys", keys,
+            "achieved", milestoneService.getAchieved(principal.userId())
+        ));
     }
 
     @PostMapping("/{key}")

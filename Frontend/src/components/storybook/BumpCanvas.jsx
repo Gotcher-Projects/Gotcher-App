@@ -25,11 +25,11 @@ function ZoneText({ block, placeholder, style }) {
   return <span style={{ ...style, opacity: 0.3, fontStyle: 'italic' }}>{placeholder}</span>;
 }
 
-function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, children, style }) {
+function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, textColor, children, style }) {
   if (isEditing && block) {
     return (
       <div style={{ ...style, position: 'relative', minHeight: 20 }}>
-        <RichTextEditor block={block} fontClass={fontClass || 'font-sans'} onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
+        <RichTextEditor block={block} fontClass={fontClass || 'font-sans'} textColor={textColor} onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
       </div>
     );
   }
@@ -115,7 +115,7 @@ export default function BumpCanvas({
         <div style={{ marginTop: 12, textAlign: 'center', minHeight: 26 }}>
           {editing(weekId) ? (
             <div style={{ position: 'relative', minHeight: 24, maxWidth: 130, margin: '0 auto' }}>
-              <RichTextEditor block={week} fontClass="font-sans" onReady={onEditorReady} onStopEdit={(c) => onStopEdit?.(week.id, c)} />
+              <RichTextEditor block={week} fontClass="font-sans" textColor={ink} onReady={onEditorReady} onStopEdit={(c) => onStopEdit?.(week.id, c)} />
             </div>
           ) : isBuilder ? (
             <div onClick={() => onActivate?.(week?.id)} style={{ cursor: 'pointer', display: 'inline-block' }}>
@@ -157,7 +157,7 @@ export default function BumpCanvas({
 
       {/* Editable title */}
       <TextZone block={title} isEditing={editing(title?.id)} isBuilder={isBuilder}
-        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-playf"
+        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-playf" textColor={ink}
         style={{ marginTop: 10, textAlign: 'center', flexShrink: 0 }}>
         <ZoneText block={title} placeholder="The Bump — Early Days"
           style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 28, fontWeight: 700, color: ink, display: 'block' }} />

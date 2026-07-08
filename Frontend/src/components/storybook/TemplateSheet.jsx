@@ -166,6 +166,30 @@ function BumpThumb() {
   );
 }
 
+function MilestonesThumb() {
+  return (
+    <div style={{ width: 58, height: 77, background: '#FBF7EF', border: '1px solid #DDD0B8', borderRadius: 3, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      {/* section label + title (left aligned) */}
+      <div style={{ position: 'absolute', top: 7, left: 7, width: 16, height: 2, background: '#C2A36B', borderRadius: 100 }} />
+      <div style={{ position: 'absolute', top: 12, left: 7, width: 28, height: 3, background: '#3A2E22', opacity: 0.5, borderRadius: 1 }} />
+      {/* milestone list — left column, ticked rows */}
+      {[0, 1, 2, 3].map(i => (
+        <React.Fragment key={i}>
+          <div style={{ position: 'absolute', top: 23 + i * 9, left: 7, width: 4, height: 4, borderRadius: '50%', background: 'rgba(123,168,107,0.5)' }} />
+          <div style={{ position: 'absolute', top: 24 + i * 9, left: 13, width: 18, height: 2, background: '#3A2E22', opacity: 0.3, borderRadius: 1 }} />
+        </React.Fragment>
+      ))}
+      {/* two tilted polaroids, right corners */}
+      <div style={{ position: 'absolute', top: 19, right: 4, width: 18, height: 20, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.22)', transform: 'rotate(5deg)', padding: 1.5 }}>
+        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#f5c6d0,#d9b8a0)' }} />
+      </div>
+      <div style={{ position: 'absolute', bottom: 7, right: 7, width: 19, height: 21, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.22)', transform: 'rotate(-6deg)', padding: 1.5 }}>
+        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#cfe0c0,#a8c89a)' }} />
+      </div>
+    </div>
+  );
+}
+
 // Generic preview built from a template's normalized block boxes — works for any
 // template without per-id markup.
 function TemplateThumb({ template }) {
@@ -178,6 +202,7 @@ function TemplateThumb({ template }) {
   if (template.renderer === 'chapter_divider') return <ChapterDividerThumb />;
   if (template.renderer === 'prompts') return <PromptsThumb />;
   if (template.renderer === 'bump') return <BumpThumb />;
+  if (template.renderer === 'milestones') return <MilestonesThumb />;
 
   // l-wrap is a single block; the generic box renderer would show one flat
   // rectangle. Draw the float shape instead: photo top-right, text bars wrapping.

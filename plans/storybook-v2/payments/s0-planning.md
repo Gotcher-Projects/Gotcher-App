@@ -53,9 +53,10 @@ Free trial (e.g., 7 days) before first charge could improve conversion.
 Stripe supports this natively. Do we want it?
 
 ### 6. Lulu one-time purchases
-Physical book orders go through Lulu's own checkout (user redirected to Lulu).
-No Stripe charge on our side for print orders — Lulu handles payment.
-Confirm this is still the intended model.
+~~Physical book orders go through Lulu's own checkout (user redirected to Lulu). No Stripe charge on our
+side — Lulu handles payment.~~ **CORRECTED (2026-07-01): Lulu's Print API checkout is *external* — we
+collect the customer's payment via our own **Stripe** checkout, then POST a paid print job (Lulu auto-charges
+a company card). Print depends on Payments/Stripe. See `plans/storybook-v2/handoffs/`.**
 
 ### 7. Subscription cancellation UX
 - Self-serve cancel in app (Stripe billing portal)?
@@ -93,5 +94,5 @@ Stripe is the system of record for billing state; webhooks keep our DB in sync.
 - [ ] Pricing page design decided
 - [ ] Lapse/grace period behavior decided
 - [ ] Trial period decision
-- [ ] Lulu purchase model confirmed (Lulu-hosted checkout, no Stripe on our side)
+- [x] Lulu purchase model confirmed — **Print API checkout is external; we collect via Stripe, pay Lulu via a company card (2026-07-01). See `plans/storybook-v2/handoffs/`.**
 - [ ] Cancellation UX decided

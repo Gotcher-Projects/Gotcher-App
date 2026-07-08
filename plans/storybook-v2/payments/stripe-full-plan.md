@@ -21,7 +21,7 @@ All open questions from s0-planning.md are answered here. Do not re-litigate the
 | Downgrade content | **Preserve everything** — generated chapters are never hidden or deleted on downgrade |
 | AI credits (Plus) | **10 credits/month**, resets on billing anniversary |
 | Cancellation UX | **Stripe Billing Portal** — zero custom cancel UI to build |
-| Lulu physical print | **Lulu-hosted checkout** — no Stripe on our side for print orders |
+| Lulu physical print | **We collect via Stripe; pay Lulu wholesale via a company card on file** — the Print API checkout is *external to Lulu* (corrected 2026-07-01; print depends on this Payments work). See `plans/storybook-v2/handoffs/`. |
 | Pricing page | **Modal first** (triggered by PaidGate); add a dedicated `/pricing` page in a later session |
 
 ---
@@ -312,7 +312,7 @@ Gate with a role check (e.g., a hardcoded admin email list or an `is_admin` colu
 
 ```
 Payments S1 — Stripe backend integration.
-Plan: plans/payments/stripe-full-plan.md (Session 1 section)
+Plan: plans/storybook-v2/payments/stripe-full-plan.md (Session 1 section)
 Branch: payments-stripe (cut from main)
 
 Decisions are locked in the plan — do not re-ask them.
@@ -339,7 +339,7 @@ All Stripe calls must catch Exception (not RuntimeException) in the controller.
 
 ```
 Payments S2 — Stripe frontend integration.
-Plan: plans/payments/stripe-full-plan.md (Session 2 section)
+Plan: plans/storybook-v2/payments/stripe-full-plan.md (Session 2 section)
 Branch: payments-stripe (continue from S1 or cut from main after S1 merges)
 Depends on: S1 backend endpoints live and reachable
 

@@ -3,7 +3,8 @@
 **Status: Hand-off — needs an owner. BLOCKS `sv2-print` (see `planning.md` §6).**
 **Audience:** whoever owns the Lulu account / vendor relationship (likely Michael, or a delegate).
 **Created:** 2026-06-22
-**Companion:** detailed spec in `plans/storybook/sDeferred-print.md`; placement in `planning.md` §6.
+**Companion:** detailed spec in `plans/storybook-v2/sv2-s12-print.md`; placement in `planning.md` §6;
+**account-setup hand-offs in `plans/storybook-v2/handoffs/`**.
 
 ---
 
@@ -37,10 +38,16 @@ reach them (env vars — see "Hand-back format"). Once these land, we unblock `s
 3. **Credentials:** obtain client id/secret (or API key) for **both sandbox and production**.
 
 ### B. Checkout & payment flow (this decides our whole UX)
-4. Does Lulu support a **redirect-to-hosted-checkout** flow (user pays Lulu directly), **or** does the
-   API require *us* to collect payment and POST a paid order? — Our plan assumes **redirect; no Stripe
-   charge on our side for the print.** Confirm this is possible. *If Lulu requires us to collect
-   payment, that's a significant scope change — flag immediately.*
+
+> **✅ Q4 RESOLVED (2026-07-01).** Lulu's Print API checkout is **"External to Lulu"** — **CradleHQ is the
+> merchant of record.** We collect the customer's payment via **our own Stripe checkout**, then POST a paid
+> print job; Lulu auto-charges a **company card on file** for print + ship (no payout bank account). This is
+> the flagged "significant scope change": **print now depends on Payments/Stripe**
+> (`plans/storybook-v2/payments/stripe-full-plan.md`). Evidence: Lulu's selling-tools comparison ("Checkout Experience:
+> External to Lulu") + Lulu developer docs. **Account setup hand-offs: `plans/storybook-v2/handoffs/`.**
+
+4. ~~Does Lulu support a redirect-to-hosted-checkout flow, or must we collect payment and POST a paid
+   order?~~ **Resolved above — we collect via Stripe and POST paid orders.**
 5. **Multi-copy orders** (e.g. 3 copies for grandparents): supported in one order? Quantity selected
    before or during Lulu checkout?
 6. Can we show the user an **estimated price + shipping + delivery time before** the redirect (is there
@@ -67,7 +74,7 @@ reach them (env vars — see "Hand-back format"). Once these land, we unblock `s
     branding customization available? (We don't want the keepsake to feel third-party.)
 16. **Terms of service:** any restrictions on **reselling**, on **subscription-model apps**, or on
     automated order submission via API? Confirm our use case is permitted.
-17. **Economics sanity-check** (informational — see `sDeferred-print.md` "Rough Economics"): confirm the
+17. **Economics sanity-check** (informational — see `sv2-s12-print.md` "Rough Economics"): confirm the
     actual print cost for the chosen product so we can set/verify any retail markup.
 
 ---
@@ -94,7 +101,7 @@ reach them (env vars — see "Hand-back format"). Once these land, we unblock `s
 
 - **`sv2-print` is BLOCKED on this hand-off.** Engineering cannot finalize the print PDF renderer
   (trim size, bleed, color) or the order flow (redirect vs POST) without these answers.
-- It is **also** gated on **Payments S1** (`plans/payments/`, currently *Not started*) for real
+- It is **also** gated on **Payments S1** (`plans/storybook-v2/payments/`, currently *Not started*) for real
   paid-tier gating — the `tier` column exists, but there's no upgrade path for users yet.
 - **Owner: TBD** — assign someone with Lulu account access. Until assigned, print stays the last,
   blocked v2 workstream. Re-evaluate the rest of `planning.md` §4 Q8 once answers return.

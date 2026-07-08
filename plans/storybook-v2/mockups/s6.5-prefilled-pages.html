@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S6.5 — Prefilled Pages · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --cream:#FDF6ED; --ink-soft:#A07860; --green:#7BA86B; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 80px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  h2 { font-family:'Playfair Display',serif; font-size:21px; margin:34px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 22px; font-size:15px; max-width:860px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  .legend b { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .d-prefill{ background:#7E9FD6; } .d-reuse{ background:var(--gold); }
+
+  .pages { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:30px; align-items:start; margin-top:20px; }
+  .pagewrap h3 { font-size:15px; margin:0 0 3px; }
+  .pagewrap .badge { font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; padding:2px 8px; border-radius:100px; }
+  .b-prefill{ background:rgba(126,159,214,.16); color:#4f6fb0; } .b-new{ background:rgba(217,123,138,.14); color:var(--hi); }
+  .b-reuse{ background:rgba(194,163,107,.18); color:#9a7b3a; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:8px 0 12px; }
+  .canvas { width:330px; height:440px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 10px 30px rgba(0,0,0,.10); margin:0 auto; position:relative; overflow:hidden; }
+  .pad { padding:30px 26px; height:100%; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.22em; color:var(--gold); text-transform:uppercase; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); line-height:1.1; }
+  .div { display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0 4px; }
+  .div .l { height:1px; width:36px; background:var(--gold); opacity:.4; } .div .h { color:var(--hi); font-size:11px; }
+  .script { font-family:'Dancing Script',cursive; color:var(--ink-soft); }
+  .heart { position:absolute; bottom:12px; right:14px; color:#F9A8D4; font-size:14px; }
+  .ph { border-radius:5px; }
+  .gA{background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .gB{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .gC{background:linear-gradient(135deg,#cfe0c0,#a8c89a);}
+  .tl { height:4px; background:#4A3728; opacity:.15; border-radius:2px; }
+  .note { background:#FFF8E8; border:1px solid #E5CB8A; border-radius:5px; }
+
+  /* milestone list */
+  .ms { margin-top:10px; }
+  .ms .row { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px dashed rgba(160,120,96,.22); }
+  .ms .row:last-child { border-bottom:0; }
+  .tick { flex:0 0 auto; width:18px; height:18px; border-radius:50%; background:rgba(123,168,107,.18);
+          color:var(--green); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; margin-top:1px; }
+  .tick.empty { background:transparent; border:1.5px dashed rgba(160,120,96,.4); color:transparent; }
+  .ms .name { font-size:13px; color:var(--ink); font-weight:700; line-height:1.2; }
+  .ms .name .edited { font-weight:400; font-style:italic; color:var(--ink-soft); }
+  .ms .date { font-size:10.5px; color:var(--muted); margin-top:1px; letter-spacing:.02em; }
+  .ms .placeholder { font-size:12px; color:#bba; font-style:italic; }
+  .pencil { margin-left:5px; color:#c9b9a6; font-size:10px; }
+
+  .refresh { position:absolute; left:0; right:0; bottom:30px; display:flex; justify-content:center; }
+  .refresh .pill { background:#fffdf8; border:1px solid var(--line); border-radius:100px; padding:5px 12px;
+                   font-size:10.5px; color:var(--ink-soft); font-weight:700; display:inline-flex; align-items:center; gap:6px;
+                   box-shadow:0 2px 6px rgba(0,0,0,.06); }
+
+  .legendbox { font-size:12.5px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin-top:30px; }
+  .legendbox b { color:var(--ink); } .legendbox code { background:#f3ead7; padding:1px 5px; border-radius:4px; font-size:11.5px; }
+  .small { width:200px; height:267px; }
+  .reuse-row { display:flex; gap:24px; flex-wrap:wrap; margin-top:14px; }
+  .cap { font-size:11px; }
+  /* extra photo-layout variants */
+  .banner { width:100%; }
+  .rowR { display:flex; align-items:center; padding:5px 0; border-bottom:1px dashed rgba(160,120,96,.22); }
+  .rowR:last-child { border-bottom:0; }
+  .tline { position:relative; margin-top:10px; padding-left:24px; }
+  .tspine { position:absolute; left:7px; top:6px; bottom:6px; width:2px; background:rgba(194,163,107,.45); border-radius:2px; }
+  .tnode { position:relative; padding:8px 0; }
+  .tdot { position:absolute; left:-21px; top:11px; width:12px; height:12px; border-radius:50%; background:var(--gold); border:2px solid var(--cream); box-shadow:0 0 0 1px rgba(194,163,107,.5); }
+  .poly { background:#fff; padding:6px 6px 16px; border-radius:3px; box-shadow:0 7px 18px rgba(0,0,0,.18); }
+  .poly .pcap { font-family:'Dancing Script',cursive; font-size:13px; color:var(--ink-soft); text-align:center; margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S6.5 — Prefilled Pages</h1>
+  <p class="lead">S6.5 ships <b>one genuinely new page type</b> — <b>How You Grew</b> (milestones) — plus a reusable
+     <b>prefill</b> behavior. Everything else the arc needs is a <i>reuse</i> of templates that already exist (shown at
+     the bottom for reference). Pages shown at the real 600×800 page ratio.</p>
+  <div class="legend">
+    <b><span class="dot d-prefill"></span> prefill — seeded from your data, but editable</b>
+    <b><span class="dot d-reuse"></span> reuse — an existing template, no new code</b>
+  </div>
+
+  <h2>NEW · How You Grew  <span style="font-size:13px;font-weight:400;color:var(--muted)">(milestones renderer)</span></h2>
+
+  <div class="pages">
+
+    <!-- A · seeded -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>A · Seeded from your milestones</h3><span class="badge b-new">new</span><span class="badge b-prefill">prefill</span></div>
+      <p>Opens already filled in from the milestones you tracked — name + the date you marked it. No blank box to
+         dread; the page feels done on day one.</p>
+      <div class="canvas">
+        <div class="pad">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:26px;margin-top:6px">How You Grew</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div class="ms">
+            <div class="row"><div class="tick">✓</div><div><div class="name">First smile</div><div class="date">March 2</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Rolled over</div><div class="date">April 18</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Sat up on your own</div><div class="date">June 5</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">First tooth</div><div class="date">July 12</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Started crawling</div><div class="date">August 20</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">First word</div><div class="date">October 1</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">First steps</div><div class="date">December 28</div></div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- B · edited -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>B · Edited &amp; personalized</h3><span class="badge b-prefill">prefill</span></div>
+      <p>It's still <b>your</b> page: reword any line in your own voice, clear ones you'd rather skip, or add your own.
+         The blue rows show edited/added entries.</p>
+      <div class="canvas">
+        <div class="pad">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:26px;margin-top:6px">How You Grew</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div class="ms">
+            <div class="row"><div class="tick">✓</div><div><div class="name">That first gummy smile<span class="pencil">✎</span></div><div class="date">March 2 · on the changing table!</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Rolled over</div><div class="date">April 18</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Sat up on your own</div><div class="date">June 5</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">First word — "dada" <span class="edited">(of course)</span><span class="pencil">✎</span></div><div class="date">October 1</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">Waved bye-bye <span class="edited">· added by you</span></div><div class="date">November 9</div></div></div>
+            <div class="row"><div class="tick">✓</div><div><div class="name">First wobbly steps<span class="pencil">✎</span></div><div class="date">December 28 · across the living room</div></div></div>
+            <div class="row"><div class="tick empty">✓</div><div><div class="placeholder">+ add your own…</div></div></div>
+          </div>
+        </div>
+        <div class="refresh"><span class="pill">↻ Refresh from my milestones</span></div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- C · with photos -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>C · With a photo or two</h3><span class="badge b-new">new</span><span class="badge b-prefill">prefill</span><span class="badge b-new">+ fill</span></div>
+      <p>Same prefilled milestones, now with <b>one or two photo slots</b> you drop into — a standing-up shot, a gummy
+         grin. The list stays seeded from your data; the photos are yours to add (so this variant is part prefill, part fill).</p>
+      <div class="canvas">
+        <div class="pad">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:24px;margin-top:6px">How You Grew</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div style="display:flex;gap:11px;margin-top:6px">
+            <div class="ph gC" style="width:45%;height:128px"></div>
+            <div style="flex:1" class="ms">
+              <div class="row" style="padding:5px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">First smile</div><div class="date">Mar 2</div></div></div>
+              <div class="row" style="padding:5px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Rolled over</div><div class="date">Apr 18</div></div></div>
+              <div class="row" style="padding:5px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Sat up on your own</div><div class="date">Jun 5</div></div></div>
+              <div class="row" style="padding:5px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">First tooth</div><div class="date">Jul 12</div></div></div>
+              <div class="row" style="padding:5px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Started crawling</div><div class="date">Aug 20</div></div></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:11px;margin-top:13px;align-items:center">
+            <div class="ph gA" style="width:40%;height:96px"></div>
+            <div style="flex:1">
+              <div class="ms">
+                <div class="row" style="padding:5px 0;border-bottom:0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">First steps</div><div class="date">December 28</div></div></div>
+              </div>
+              <div class="script" style="font-size:16px;margin-top:6px">look how far you've come</div>
+            </div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legendbox">
+    <b>How "prefill" works (this is the reusable bit):</b>
+    <ul style="margin:8px 0 0;padding-left:18px;line-height:1.7">
+      <li><b>Seed-on-display:</b> each row shows your saved text if you've edited it, otherwise it falls back to the
+          live milestone (name + date). So a fresh page looks <i>full</i>, never blank.</li>
+      <li><b>Editable:</b> reword, clear, or add rows — your edits persist as overrides.</li>
+      <li><b>↻ Refresh from my milestones:</b> re-seeds the rows from your current data (with a confirm, since it
+          overwrites edits). The one extra control prefill adds over a plain <code>auto</code> page.</li>
+      <li>Source = <code>GET /milestones</code> + the <code>MILESTONES</code> names in <code>babyData.js</code>,
+          threaded into <code>pageData</code>. Must be html2canvas-clean at 600×800 for PDF.</li>
+    </ul>
+  </div>
+
+  <h2>More photo layouts to choose from</h2>
+  <p class="lead" style="margin-bottom:0">Same prefilled milestone list, different ways to bring photos in. Pick the
+     direction you like (or mix) — the renderer gets built to match.</p>
+  <div class="pages">
+
+    <!-- D · photo banner -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>D · Photo banner</h3><span class="badge b-prefill">prefill</span><span class="badge b-new">+ fill</span></div>
+      <p>One wide photo across the top, then the full list below — clean and magazine-like. Best with a strong
+         landscape shot; dates sit on the right.</p>
+      <div class="canvas">
+        <div class="pad" style="padding:28px 24px">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:24px;margin-top:5px">How You Grew</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div class="ph gC banner" style="height:120px;margin-top:2px"></div>
+          <div style="margin-top:8px">
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">First smile</div><div class="date" style="margin-left:auto">Mar 2</div></div>
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">Rolled over</div><div class="date" style="margin-left:auto">Apr 18</div></div>
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">Sat up on your own</div><div class="date" style="margin-left:auto">Jun 5</div></div>
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">First tooth</div><div class="date" style="margin-left:auto">Jul 12</div></div>
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">Started crawling</div><div class="date" style="margin-left:auto">Aug 20</div></div>
+            <div class="rowR"><div class="tick">✓</div><div class="name" style="font-size:12px;margin-left:9px">First steps</div><div class="date" style="margin-left:auto">Dec 28</div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- E · timeline + photos -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>E · Timeline + photos</h3><span class="badge b-prefill">prefill</span><span class="badge b-new">+ fill</span></div>
+      <p>A vertical timeline with a couple of photos pinned along the way — it reads like a journey from first
+         smile to first steps.</p>
+      <div class="canvas">
+        <div class="pad" style="padding:28px 24px">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:24px;margin-top:5px">How You Grew</div>
+          <div class="div"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+          <div class="tline">
+            <div class="tspine"></div>
+            <div class="tnode"><div class="tdot"></div><div class="name" style="font-size:12px">First smile</div><div class="date">March 2</div></div>
+            <div class="tnode" style="display:flex;gap:10px;align-items:center"><div class="tdot"></div><div style="flex:1"><div class="name" style="font-size:12px">Sat up on your own</div><div class="date">June 5</div></div><div class="ph gA" style="width:74px;height:56px"></div></div>
+            <div class="tnode"><div class="tdot"></div><div class="name" style="font-size:12px">Started crawling</div><div class="date">August 20</div></div>
+            <div class="tnode" style="display:flex;gap:10px;align-items:center"><div class="tdot"></div><div style="flex:1"><div class="name" style="font-size:12px">First steps</div><div class="date">December 28</div></div><div class="ph gC" style="width:74px;height:56px"></div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- F · polaroid scatter -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>F · Polaroid scatter</h3><span class="badge b-prefill">prefill</span><span class="badge b-new">+ fill</span><span class="badge" style="background:#7BA86B;color:#fff">✓ chosen</span></div>
+      <p>The list down the left with two tilted polaroid snaps tucked into the corners — playful, scrapbook feel.
+         (Polaroids are positioned spans — html2canvas-safe.)</p>
+      <div class="canvas">
+        <div class="poly" style="position:absolute;top:58px;right:14px;width:92px;transform:rotate(4deg);z-index:2"><div class="ph gA" style="height:68px"></div><div class="pcap">hi there!</div></div>
+        <div class="poly" style="position:absolute;bottom:26px;right:30px;width:96px;transform:rotate(-5deg);z-index:2"><div class="ph gC" style="height:70px"></div><div class="pcap">one!</div></div>
+        <div class="pad" style="padding:28px 24px;position:relative;z-index:1">
+          <div class="clabel">You at One</div>
+          <div class="ctitle" style="font-size:24px;margin-top:5px;text-align:left">How You Grew</div>
+          <div style="width:160px"><div class="div" style="justify-content:flex-start"><span class="l"></span><span class="h">♥</span></div></div>
+          <div class="ms" style="margin-top:6px;max-width:170px">
+            <div class="row" style="padding:6px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">First smile</div><div class="date">Mar 2</div></div></div>
+            <div class="row" style="padding:6px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Rolled over</div><div class="date">Apr 18</div></div></div>
+            <div class="row" style="padding:6px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Sat up</div><div class="date">Jun 5</div></div></div>
+            <div class="row" style="padding:6px 0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">Crawled</div><div class="date">Aug 20</div></div></div>
+            <div class="row" style="padding:6px 0;border-bottom:0"><div class="tick">✓</div><div><div class="name" style="font-size:12px">First steps</div><div class="date">Dec 28</div></div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>For reference · the rest of S6.5 is reuse, not new</h2>
+  <p class="lead" style="margin-bottom:0">These pages in the arc map onto templates that already exist — S6.5 just
+     <b>verifies</b> they look right at book scale (and the People page is already data-driven). No renderers built.</p>
+  <div class="reuse-row">
+
+    <!-- spotlight reuse -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>photocap / closing</h3><span class="badge b-reuse">reuse · spotlight</span></div>
+      <p class="cap">Coming Home · Tiny &amp; New · Your Story Continues… → <b>Spotlight</b> (photo + caption/note below).</p>
+      <div class="canvas small">
+        <div class="pad" style="padding:22px 20px">
+          <div class="ph gA" style="height:150px"></div>
+          <div class="note" style="margin-top:14px;padding:9px"><div class="tl" style="width:92%;margin-bottom:6px"></div><div class="tl" style="width:64%"></div></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- moment_hero reuse -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>birthday</h3><span class="badge b-reuse">reuse · moment_hero</span></div>
+      <p class="cap">Happy First Birthday → <b>Moment Hero</b> with the "first" badge left blank.</p>
+      <div class="canvas small">
+        <div class="pad" style="padding:22px 20px;text-align:center">
+          <div class="ctitle" style="font-size:17px">Happy First<br>Birthday</div>
+          <div class="ph gC" style="height:120px;margin-top:12px;border-radius:50%"></div>
+          <div class="note" style="margin-top:12px;padding:8px"><div class="tl" style="width:80%;margin:0 auto"></div></div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+    <!-- people reuse -->
+    <div class="pagewrap">
+      <div style="display:flex;align-items:center;gap:8px"><h3>your people</h3><span class="badge b-prefill">prefill · existing</span></div>
+      <p class="cap">Your People · The Wider Circle → existing <b>PeopleCanvas</b> (already live-reads family members).</p>
+      <div class="canvas small">
+        <div class="pad" style="padding:22px 20px;text-align:center">
+          <div class="clabel">The Ones Who Love You</div>
+          <div class="ctitle" style="font-size:16px;margin-top:4px">Your People</div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <div style="flex:1"><div class="ph gA" style="height:64px;border-radius:50%"></div><div class="tl" style="width:60%;margin:6px auto 0"></div></div>
+            <div style="flex:1"><div class="ph gB" style="height:64px;border-radius:50%"></div><div class="tl" style="width:60%;margin:6px auto 0"></div></div>
+          </div>
+        </div>
+        <div class="heart">♥</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

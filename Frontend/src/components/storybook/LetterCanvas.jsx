@@ -30,13 +30,14 @@ function ZoneText({ block, placeholder, style }) {
 
 // A text zone: RichTextEditor when editing, click-to-activate in builder, plain render otherwise.
 // (No droppable — letter text is written, not dragged from memories.)
-function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, children, style }) {
+function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, textColor, children, style }) {
   if (isEditing && block) {
     return (
       <div style={{ ...style, position: 'relative', minHeight: 24 }}>
         <RichTextEditor
           block={block}
           fontClass={fontClass || 'font-serif'}
+          textColor={textColor}
           onReady={onEditorReady}
           onStopEdit={(content) => onStopEdit?.(block.id, content)}
         />
@@ -56,6 +57,10 @@ function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEdito
 export default function LetterCanvas({
   blocks = [],
   theme,
+  // The small uppercase chrome line at the top. Defaults to the keepsake "A Letter to You";
+  // guided pages pass their page label (e.g. "One Year of You", "A Letter Before You Arrived")
+  // so each letter page reads distinctly instead of a fixed string (sv2-s7.5b).
+  eyebrow = 'A Letter to You',
   // Builder-only props — all undefined in read-only (StorybookTab / PDF).
   editingBlockId,
   onActivate,
@@ -99,7 +104,7 @@ export default function LetterCanvas({
         color: GOLD,
         flexShrink: 0,
       }}>
-        A Letter To You
+        {eyebrow}
       </div>
 
       {/* Title (role block) */}
@@ -111,6 +116,7 @@ export default function LetterCanvas({
         onStopEdit={onStopEdit}
         onEditorReady={onEditorReady}
         fontClass="font-playf"
+        textColor={ink}
         style={{ textAlign: 'center', marginTop: 12, flexShrink: 0 }}
       >
         <ZoneText
@@ -140,6 +146,7 @@ export default function LetterCanvas({
           <RichTextEditor
             block={body}
             fontClass="font-merri"
+            textColor={ink}
             onReady={onEditorReady}
             onStopEdit={(content) => onStopEdit?.(body.id, content)}
           />
@@ -169,6 +176,7 @@ export default function LetterCanvas({
         onStopEdit={onStopEdit}
         onEditorReady={onEditorReady}
         fontClass="font-merri"
+        textColor={ink}
         style={{ textAlign: 'right', marginTop: 22, flexShrink: 0 }}
       >
         <ZoneText

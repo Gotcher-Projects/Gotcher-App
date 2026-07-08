@@ -1,6 +1,6 @@
 # SV2-S6 — Fill-in Page Types (for the guided book)
 
-**Status: Needs Verification** (implemented 2026-06-27). Built as builder-pickable templates:
+**Status: Complete — confirmed 2026-07-02 (all sub-9 sessions finished).** (implemented 2026-06-27). Built as builder-pickable templates:
 - **chapter_divider** → `ChapterDividerCanvas` (editable label/title/subtitle + decoratives)
 - **prompts** ("All About You") → `PromptsCanvas` (fixed preset labels + editable values)
 - **bump** → `BumpCanvas` (2-up, editable per-photo week → auto size tag via `sizeForWeek`, + note)

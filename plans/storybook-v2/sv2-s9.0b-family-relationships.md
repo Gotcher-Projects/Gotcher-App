@@ -1,7 +1,37 @@
-# SV2-S5.5 — Family relationships & editable titles
+# SV2-S9.0b — Family relationships & editable titles   *(was sv2-s5.5; rescheduled 2026-07-02)*
 
-**Status: Not started.** Refinement of the sv2-s5 family tree baseline. Captures the modelling
-problems the hardcoded role→tier mapping leaves open.
+**Status: Complete (2026-07-02).** Confirmed working by Michael. Option 1 (hybrid linked-parent) shipped;
+step-relations dropped. Family_members schema is final, so `sv2-s9.1` demo seed can set `linked_member_id`.
+Housekeeping: restart the app once so V45 drops the now-vestigial `is_step` column (no DB wipe).
+
+**Scope note — step-relations DROPPED (2026-07-02).** We prototyped step-parents (an `is_step` flag +
+step-as-side-node tree rendering — see `mockups/s9.0b-family-tree-step-nodes.html`) but cut it: rare for a
+first-year keepsake and it forced awkward >2-parent tree layouts. The tree keeps its clean 2-parent shape.
+The **linked-parent** fix (the valuable part) stayed.
+
+**As built (2026-07-02):**
+- **Migrations** — end state: `family_members` gains **`linked_member_id`** (FK → family_members,
+  `ON DELETE SET NULL`). Two files: **V44** adds `linked_member_id` + `is_step`, **V45** drops `is_step`.
+  (V44 was left intact rather than edited so already-applied dev DBs pass Flyway validation and V45 cleans
+  up the column on next startup — no DB wipe.) `role` stays the **display title**; `role_category` is now
+  **user-set**. Existing rows: link NULL → tree falls back to roster order (backward compatible).
+- **Backend** — `FamilyMember` + `FamilyMemberRequest` gain `linkedMemberId`; service `create`/`update`/
+  `mapRow` handle it, with a `validLinkedId` ownership guard (no cross-profile links) and auto-clear of the
+  side-link when the tier changes away from grandparent.
+- **Roster form** (`FamilyRosterPopup`) — "Role" relabelled **Title**; new **Relationship** picker
+  (Parent/Grandparent/Sibling/Other, seeded from `inferCategory`); grandparent-only **"Whose parent?"**
+  select (lists parent members). No step control.
+- **Tree** (`FamilyTreeCanvas`) — grandparents now placed on the side of their **linked parent** (Nana→Mum
+  sits over Mum), unlinked fall back to left-then-right order. Connectors + gradients follow the placement.
+  Parents still cap at 2 (a first-year lineage tree) — acceptable now that steps are out of scope.
+
+**Verify in-app:** add two parents, add a grandparent linked to Mum → appears over Mum (not by add-order);
+change a link → side moves; step toggle persists; People page still shows the title; PDF export of the tree
+still renders. Backend compiles ✓, frontend builds ✓, 337 FE tests pass ✓ (static only — needs the DB up).
+
+---
+
+_(Original plan below — the modelling problems the hardcoded role→tier mapping left open.)_
 **Depends on:** sv2-s5 (Family Tree — Needs Verification) + sv2-s3 (`family_members` data).
 **Reference:** mockup `mockups/s5-family-tree.html`; the shipped `FamilyMember` model + `inferCategory`.
 

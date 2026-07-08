@@ -1,0 +1,252 @@
+<style>
+  :root{
+    --paper:#FBF7EF; --ink:#2C1810; --gold:#C2A36B; --line:#cbb89a;
+    --frame:#302a23; --frame-2:#3b342b; --chrome:#e9e1d3; --chrome-dim:#b9ad98;
+  }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{
+    font-family:-apple-system,system-ui,"Segoe UI",sans-serif;
+    background:radial-gradient(120% 80% at 50% -10%,var(--frame-2),var(--frame));
+    color:var(--chrome); min-height:100vh; padding:44px 20px 64px;
+  }
+  .inner{max-width:940px;margin:0 auto}
+  .eyebrow{
+    font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--gold);margin:0 0 12px;
+  }
+  h1{
+    font-family:Georgia,"Times New Roman",serif;font-weight:600;
+    font-size:clamp(26px,4.2vw,38px);line-height:1.12;margin:0 0 10px;color:#fbf6ec;
+    text-wrap:balance;letter-spacing:.01em;
+  }
+  .lede{max-width:60ch;font-size:15.5px;line-height:1.65;color:var(--chrome);opacity:.9;margin:0}
+  .lede b{color:#fbf6ec;font-weight:600}
+
+  .panels{display:flex;flex-direction:column;gap:30px;margin-top:38px}
+  .panel-head{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+  .panel-head h2{
+    font-family:Georgia,serif;font-weight:600;font-size:19px;margin:0;color:#fbf6ec;letter-spacing:.01em;
+  }
+  .tag{
+    font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;
+  }
+  .tag.rec{color:#22301f;background:#cbd8b4}
+  .tag.watch{color:#3a2c17;background:#e6cf9b}
+  .caption{font-size:13.5px;line-height:1.6;color:var(--chrome-dim);margin:12px 2px 0;max-width:62ch}
+  .caption b{color:var(--chrome)}
+
+  /* the cream "book page" that floats on the dark frame */
+  .page{
+    background:var(--paper);border-radius:12px;overflow:hidden;
+    box-shadow:0 24px 60px -22px rgba(0,0,0,.65),0 3px 10px rgba(0,0,0,.35);
+    border:1px solid rgba(0,0,0,.06);
+  }
+  .page svg{display:block;width:100%;height:auto}
+  .page.compact{max-width:440px}
+
+  .two{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start}
+  .two>.col{flex:1 1 360px;min-width:300px}
+
+  /* how-to-read key */
+  .key{
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:20px 22px;flex:1 1 300px;min-width:260px;
+  }
+  .key h3{margin:0 0 14px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+  .key ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+  .key li{display:flex;gap:13px;align-items:flex-start;font-size:14px;line-height:1.5}
+  .key .swatch{flex:none;margin-top:2px}
+  .key b{color:#fbf6ec;font-weight:600}
+  .key span.d{color:var(--chrome);opacity:.82}
+
+  .note{
+    margin-top:34px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);
+    font-size:12.5px;line-height:1.6;color:var(--chrome-dim);max-width:70ch;
+  }
+  .note b{color:var(--chrome)}
+
+  @media (prefers-reduced-motion:no-preference){
+    .page,.key{animation:rise .5s cubic-bezier(.2,.7,.3,1) both}
+    .panels .panels-item:nth-child(2) .page{animation-delay:.06s}
+    @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  }
+</style>
+
+<div class="wrap">
+  <div class="inner">
+    <p class="eyebrow">CradleHQ · Family Tree page · design preview</p>
+    <h1>Step-parents as side nodes</h1>
+    <p class="lede">The bloodline holds the main row — <b>two parents and their grandparents</b>. A
+      step-parent is drawn as a <b>smaller node beside the parent they're paired with</b>, tethered by a
+      dashed “step” link. Everyone appears; the lineage still reads at a glance. Below: one step-parent,
+      then the busier two-step case so you can judge it at print size.</p>
+
+    <div class="panels">
+
+      <!-- ================= PANEL A — one step-parent ================= -->
+      <div class="panels-item">
+        <div class="panel-head">
+          <h2>One step-parent</h2>
+          <span class="tag rec">The common case</span>
+        </div>
+        <div class="page">
+          <svg viewBox="0 0 600 800" role="img" aria-label="Family tree with Marcus as a step-dad side node beside Tom">
+            <defs>
+              <linearGradient id="gPink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5c6d0"/><stop offset="1" stop-color="#d9b8a0"/></linearGradient>
+              <linearGradient id="gTan"  x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6d3a8"/><stop offset="1" stop-color="#d8b58a"/></linearGradient>
+              <linearGradient id="gLav"  x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfc0e0"/><stop offset="1" stop-color="#b8a0d0"/></linearGradient>
+              <linearGradient id="gBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9c9d2"/><stop offset="1" stop-color="#cdd6cf"/></linearGradient>
+              <linearGradient id="gBaby" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B6F5"/><stop offset="1" stop-color="#A0C4F0"/></linearGradient>
+              <linearGradient id="gStep" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9e2d5"/><stop offset="1" stop-color="#d7cdba"/></linearGradient>
+              <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.16"/></filter>
+            </defs>
+
+            <rect width="600" height="800" fill="#FBF7EF"/>
+
+            <!-- header -->
+            <text x="300" y="66" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,system-ui,sans-serif" font-size="12" font-weight="700" letter-spacing="4.2">WHERE YOU COME FROM</text>
+            <text x="300" y="106" text-anchor="middle" fill="#2C1810" font-family="Georgia,serif" font-size="30" font-weight="700">Your Family Tree</text>
+            <g><line x1="252" y1="124" x2="288" y2="124" stroke="#C2A36B" stroke-opacity=".35"/><text x="300" y="128" text-anchor="middle" fill="#C2A36B" font-size="12">♥</text><line x1="312" y1="124" x2="348" y2="124" stroke="#C2A36B" stroke-opacity=".35"/></g>
+
+            <!-- connectors -->
+            <g stroke="#cbb89a" stroke-width="1.6" stroke-linecap="round" fill="none">
+              <!-- left grandparents -> Sarah(Mum) -->
+              <line x1="95" y1="262" x2="215" y2="262"/><line x1="95" y1="252" x2="95" y2="262"/><line x1="215" y1="252" x2="215" y2="262"/><line x1="155" y1="262" x2="155" y2="348"/>
+              <!-- right grandparents -> Tom(Dad) -->
+              <line x1="385" y1="262" x2="505" y2="262"/><line x1="385" y1="252" x2="385" y2="262"/><line x1="505" y1="252" x2="505" y2="262"/><line x1="445" y1="262" x2="445" y2="348"/>
+              <!-- parents -> baby -->
+              <line x1="155" y1="462" x2="445" y2="462"/><line x1="155" y1="452" x2="155" y2="462"/><line x1="445" y1="452" x2="445" y2="462"/><line x1="300" y1="462" x2="300" y2="520"/><line x1="300" y1="520" x2="300" y2="560"/>
+            </g>
+            <!-- dashed step tether: Tom -> Marcus -->
+            <line x1="497" y1="400" x2="516" y2="400" stroke="#C2A36B" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round"/>
+
+            <!-- ===== nodes ===== -->
+            <!-- grandparents r=42 -->
+            <g font-family="Georgia,serif">
+              <!-- Rose / Nana -->
+              <circle cx="95" cy="210" r="42" fill="#fff" filter="url(#soft)"/><circle cx="95" cy="210" r="39" fill="url(#gPink)"/>
+              <text x="95" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">R</text>
+              <text x="95" y="270" text-anchor="middle" fill="#2C1810" font-size="16" font-weight="700">Rose</text>
+              <text x="95" y="285" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">NANA</text>
+              <!-- Bill / Pop -->
+              <circle cx="215" cy="210" r="42" fill="#fff" filter="url(#soft)"/><circle cx="215" cy="210" r="39" fill="url(#gTan)"/>
+              <text x="215" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">B</text>
+              <text x="215" y="270" text-anchor="middle" fill="#2C1810" font-size="16" font-weight="700">Bill</text>
+              <text x="215" y="285" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">POP</text>
+              <!-- Sue / Grandma -->
+              <circle cx="385" cy="210" r="42" fill="#fff" filter="url(#soft)"/><circle cx="385" cy="210" r="39" fill="url(#gLav)"/>
+              <text x="385" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">S</text>
+              <text x="385" y="270" text-anchor="middle" fill="#2C1810" font-size="16" font-weight="700">Sue</text>
+              <text x="385" y="285" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">GRANDMA</text>
+              <!-- Gerald / Grandad -->
+              <circle cx="505" cy="210" r="42" fill="#fff" filter="url(#soft)"/><circle cx="505" cy="210" r="39" fill="url(#gBlue)"/>
+              <text x="505" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">G</text>
+              <text x="505" y="270" text-anchor="middle" fill="#2C1810" font-size="16" font-weight="700">Gerald</text>
+              <text x="505" y="285" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">GRANDAD</text>
+
+              <!-- parents r=52 -->
+              <circle cx="155" cy="400" r="52" fill="#fff" filter="url(#soft)"/><circle cx="155" cy="400" r="49" fill="url(#gPink)"/>
+              <text x="155" y="400" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="42">S</text>
+              <text x="155" y="472" text-anchor="middle" fill="#2C1810" font-size="20" font-weight="700">Sarah</text>
+              <text x="155" y="488" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.6">MUM</text>
+              <circle cx="445" cy="400" r="52" fill="#fff" filter="url(#soft)"/><circle cx="445" cy="400" r="49" fill="url(#gTan)"/>
+              <text x="445" y="400" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="42">T</text>
+              <text x="445" y="472" text-anchor="middle" fill="#2C1810" font-size="20" font-weight="700">Tom</text>
+              <text x="445" y="488" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.6">DAD</text>
+
+              <!-- step-dad r=32, dashed ring, muted -->
+              <circle cx="548" cy="400" r="32" fill="#fff" filter="url(#soft)"/><circle cx="548" cy="400" r="29" fill="url(#gStep)"/>
+              <circle cx="548" cy="400" r="31" fill="none" stroke="#C2A36B" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <text x="548" y="400" text-anchor="middle" dominant-baseline="central" fill="#8a7a5e" font-size="26">M</text>
+              <text x="548" y="450" text-anchor="middle" fill="#2C1810" font-size="14" font-weight="700">Marcus</text>
+              <text x="548" y="464" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">STEP-DAD</text>
+
+              <!-- baby r=60 -->
+              <circle cx="300" cy="620" r="60" fill="#fff" filter="url(#soft)"/><circle cx="300" cy="620" r="57" fill="url(#gBaby)"/>
+              <text x="300" y="620" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="48">L</text>
+              <text x="300" y="700" text-anchor="middle" fill="#2C1810" font-size="22" font-weight="700">Lily</text>
+              <text x="300" y="716" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.6">— YOU —</text>
+            </g>
+          </svg>
+        </div>
+        <p class="caption"><b>Marcus</b> sits beside <b>Tom</b> as a smaller, muted node on a dashed link —
+          clearly “part of the family, added on,” without competing with the bloodline. Rose &amp; Bill stay
+          over Sarah, Sue &amp; Gerald over Tom, because they're <b>linked</b> to the right parent.</p>
+      </div>
+
+      <!-- ================= PANEL B — two step-parents ================= -->
+      <div class="panels-item">
+        <div class="panel-head">
+          <h2>Two step-parents</h2>
+          <span class="tag watch">Watch the crowding</span>
+        </div>
+        <div class="two">
+          <div class="col">
+            <div class="page compact">
+              <svg viewBox="0 0 600 800" role="img" aria-label="Family tree with a step-parent on each side">
+                <defs>
+                  <linearGradient id="bPink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5c6d0"/><stop offset="1" stop-color="#d9b8a0"/></linearGradient>
+                  <linearGradient id="bTan"  x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6d3a8"/><stop offset="1" stop-color="#d8b58a"/></linearGradient>
+                  <linearGradient id="bLav"  x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cfc0e0"/><stop offset="1" stop-color="#b8a0d0"/></linearGradient>
+                  <linearGradient id="bBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9c9d2"/><stop offset="1" stop-color="#cdd6cf"/></linearGradient>
+                  <linearGradient id="bBaby" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B6F5"/><stop offset="1" stop-color="#A0C4F0"/></linearGradient>
+                  <linearGradient id="bStep" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9e2d5"/><stop offset="1" stop-color="#d7cdba"/></linearGradient>
+                  <filter id="soft2" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.16"/></filter>
+                </defs>
+                <rect width="600" height="800" fill="#FBF7EF"/>
+                <text x="300" y="66" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="12" font-weight="700" letter-spacing="4.2">WHERE YOU COME FROM</text>
+                <text x="300" y="106" text-anchor="middle" fill="#2C1810" font-family="Georgia,serif" font-size="30" font-weight="700">Your Family Tree</text>
+
+                <g stroke="#cbb89a" stroke-width="1.6" stroke-linecap="round" fill="none">
+                  <line x1="95" y1="262" x2="215" y2="262"/><line x1="95" y1="252" x2="95" y2="262"/><line x1="215" y1="252" x2="215" y2="262"/><line x1="155" y1="262" x2="155" y2="348"/>
+                  <line x1="385" y1="262" x2="505" y2="262"/><line x1="385" y1="252" x2="385" y2="262"/><line x1="505" y1="252" x2="505" y2="262"/><line x1="445" y1="262" x2="445" y2="348"/>
+                  <line x1="155" y1="462" x2="445" y2="462"/><line x1="155" y1="452" x2="155" y2="462"/><line x1="445" y1="452" x2="445" y2="462"/><line x1="300" y1="462" x2="300" y2="520"/><line x1="300" y1="520" x2="300" y2="560"/>
+                </g>
+                <line x1="497" y1="400" x2="516" y2="400" stroke="#C2A36B" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round"/>
+                <line x1="84" y1="400" x2="103" y2="400" stroke="#C2A36B" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round"/>
+
+                <g font-family="Georgia,serif">
+                  <circle cx="95" cy="210" r="42" fill="#fff" filter="url(#soft2)"/><circle cx="95" cy="210" r="39" fill="url(#bPink)"/><text x="95" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">R</text><text x="95" y="270" text-anchor="middle" fill="#2C1810" font-size="15" font-weight="700">Rose</text><text x="95" y="284" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">NANA</text>
+                  <circle cx="215" cy="210" r="42" fill="#fff" filter="url(#soft2)"/><circle cx="215" cy="210" r="39" fill="url(#bTan)"/><text x="215" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">B</text><text x="215" y="270" text-anchor="middle" fill="#2C1810" font-size="15" font-weight="700">Bill</text><text x="215" y="284" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">POP</text>
+                  <circle cx="385" cy="210" r="42" fill="#fff" filter="url(#soft2)"/><circle cx="385" cy="210" r="39" fill="url(#bLav)"/><text x="385" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">S</text><text x="385" y="270" text-anchor="middle" fill="#2C1810" font-size="15" font-weight="700">Sue</text><text x="385" y="284" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">GRANDMA</text>
+                  <circle cx="505" cy="210" r="42" fill="#fff" filter="url(#soft2)"/><circle cx="505" cy="210" r="39" fill="url(#bBlue)"/><text x="505" y="210" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="34">G</text><text x="505" y="270" text-anchor="middle" fill="#2C1810" font-size="15" font-weight="700">Gerald</text><text x="505" y="284" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">GRANDAD</text>
+
+                  <circle cx="155" cy="400" r="52" fill="#fff" filter="url(#soft2)"/><circle cx="155" cy="400" r="49" fill="url(#bPink)"/><text x="155" y="400" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="42">S</text><text x="155" y="472" text-anchor="middle" fill="#2C1810" font-size="19" font-weight="700">Sarah</text><text x="155" y="488" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">MUM</text>
+                  <circle cx="445" cy="400" r="52" fill="#fff" filter="url(#soft2)"/><circle cx="445" cy="400" r="49" fill="url(#bTan)"/><text x="445" y="400" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="42">T</text><text x="445" y="472" text-anchor="middle" fill="#2C1810" font-size="19" font-weight="700">Tom</text><text x="445" y="488" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">DAD</text>
+
+                  <!-- step-mum (left) -->
+                  <circle cx="64" cy="400" r="30" fill="#fff" filter="url(#soft2)"/><circle cx="64" cy="400" r="27" fill="url(#bStep)"/><circle cx="64" cy="400" r="29" fill="none" stroke="#C2A36B" stroke-width="1.5" stroke-dasharray="3 3"/><text x="64" y="400" text-anchor="middle" dominant-baseline="central" fill="#8a7a5e" font-size="24">D</text><text x="64" y="448" text-anchor="middle" fill="#2C1810" font-size="13" font-weight="700">Diane</text><text x="64" y="461" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="8" font-weight="700" letter-spacing="1">STEP-MUM</text>
+                  <!-- step-dad (right) -->
+                  <circle cx="548" cy="400" r="30" fill="#fff" filter="url(#soft2)"/><circle cx="548" cy="400" r="27" fill="url(#bStep)"/><circle cx="548" cy="400" r="29" fill="none" stroke="#C2A36B" stroke-width="1.5" stroke-dasharray="3 3"/><text x="548" y="400" text-anchor="middle" dominant-baseline="central" fill="#8a7a5e" font-size="24">M</text><text x="548" y="448" text-anchor="middle" fill="#2C1810" font-size="13" font-weight="700">Marcus</text><text x="548" y="461" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="8" font-weight="700" letter-spacing="1">STEP-DAD</text>
+
+                  <circle cx="300" cy="620" r="60" fill="#fff" filter="url(#soft2)"/><circle cx="300" cy="620" r="57" fill="url(#bBaby)"/><text x="300" y="620" text-anchor="middle" dominant-baseline="central" fill="#fff" fill-opacity=".92" font-size="48">L</text><text x="300" y="700" text-anchor="middle" fill="#2C1810" font-size="22" font-weight="700">Lily</text><text x="300" y="716" text-anchor="middle" fill="#C2A36B" font-family="-apple-system,sans-serif" font-size="10" font-weight="700" letter-spacing="1.6">— YOU —</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="key">
+            <h3>How to read it</h3>
+            <ul>
+              <li><svg class="swatch" width="30" height="30"><circle cx="15" cy="15" r="13" fill="#e0d6c4"/><circle cx="15" cy="15" r="12" fill="none" stroke="#C2A36B" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span><b>Dashed ring + muted fill</b> <span class="d">= a step-relation, drawn smaller so it reads as secondary.</span></span></li>
+              <li><svg class="swatch" width="30" height="30"><line x1="4" y1="15" x2="26" y2="15" stroke="#C2A36B" stroke-width="2" stroke-dasharray="3 3" stroke-linecap="round"/></svg><span><b>Dashed tether</b> <span class="d">= the step-parent is paired with the parent they sit beside.</span></span></li>
+              <li><svg class="swatch" width="30" height="30"><circle cx="15" cy="15" r="13" fill="url(#gTan)"/></svg><span><b>Solid nodes + lines</b> <span class="d">= the bloodline: two parents and their linked grandparents.</span></span></li>
+            </ul>
+            <p style="margin:16px 0 0;font-size:13px;line-height:1.55;color:#b9ad98">With <b style="color:#e9e1d3">one</b> step it's clean. With <b style="color:#e9e1d3">two</b>, the outer nodes crowd the page edges and shrink — legible on screen, tight in a printed 6×8&nbsp;book. That's the trade to weigh.</p>
+          </div>
+        </div>
+        <p class="caption">Both step-parents show, but the row now spans nearly the full page width and the
+          step nodes press against the margins. Beyond two, it stops fitting — so if we go this route, the
+          sane cap is <b>the two bio parents + one step each side</b>, with anyone further on the People page.</p>
+      </div>
+
+    </div>
+
+    <p class="note"><b>Fidelity note:</b> colours, node gradients, connector routing and the 600×800 page
+      geometry match the real <b>FamilyTreeCanvas</b>. The display face is shown in <b>Georgia</b> — the
+      component's own <code>Playfair&nbsp;Display, Georgia</code> fallback (webfonts are blocked here), so the
+      shipped page renders in Playfair. Avatars show initials; real members use their cropped circular photos.</p>
+  </div>
+</div>

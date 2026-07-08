@@ -21,7 +21,16 @@ function inferCategory(role) {
   return "other";
 }
 
-const EMPTY_FORM = { name: "", role: "", bio: "", photoUrl: "" };
+// The relationship tier drives family-tree placement. The user sets it explicitly (inferCategory only
+// seeds a sensible default from the title).
+const RELATIONSHIPS = [
+  { v: "parent", l: "Parent" },
+  { v: "grandparent", l: "Grandparent" },
+  { v: "sibling", l: "Sibling" },
+  { v: "other", l: "Other" },
+];
+
+const EMPTY_FORM = { name: "", role: "", bio: "", photoUrl: "", roleCategory: "", linkedMemberId: null };
 
 // "Your People" roster manager + per-page selection. Self-contained: does its own CRUD against
 // /family-members. On Done, reports the selected member ids + variant + the fresh roster so the
@@ -68,7 +77,10 @@ export default function FamilyRosterPopup({ open, onClose, initialSelectedIds = 
   }
 
   function startEdit(m) {
-    setForm({ name: m.name || "", role: m.role || "", bio: m.bio || "", photoUrl: m.photoUrl || "" });
+    setForm({
+      name: m.name || "", role: m.role || "", bio: m.bio || "", photoUrl: m.photoUrl || "",
+      roleCategory: m.roleCategory || "", linkedMemberId: m.linkedMemberId ?? null,
+    });
     setEditingId(m.id);
     setShowForm(true);
   }
@@ -91,10 +103,12 @@ export default function FamilyRosterPopup({ open, onClose, initialSelectedIds = 
       return;
     }
     setSaving(true);
+    const category = form.roleCategory || inferCategory(form.role);
     const payload = {
       name: form.name.trim(),
       role: form.role.trim(),
-      roleCategory: inferCategory(form.role),
+      roleCategory: category,
+      linkedMemberId: category === "grandparent" ? (form.linkedMemberId ?? null) : null,
       photoUrl: form.photoUrl || null,
       bio: form.bio || null,
     };
@@ -138,6 +152,8 @@ export default function FamilyRosterPopup({ open, onClose, initialSelectedIds = 
 
   const maxForVariant = variant === "spotlight" ? 1 : 2;
   const selectedCount = members.filter(m => selected.has(m.id)).length;
+  // Parents a grandparent can be linked to (exclude the person being edited).
+  const parentOptions = members.filter(m => m.roleCategory === "parent" && m.id !== editingId);
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
@@ -229,17 +245,55 @@ export default function FamilyRosterPopup({ open, onClose, initialSelectedIds = 
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Grandma Jo" />
               </div>
               <div>
-                <Label className="text-xs">Role</Label>
-                <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="e.g., Nana" />
+                <Label className="text-xs">Title <span className="text-muted-foreground">(what they're called)</span></Label>
+                <Input value={form.role}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value, roleCategory: f.roleCategory || inferCategory(e.target.value) }))}
+                  placeholder="e.g., Nana" />
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {ROLE_PRESETS.map(r => (
-                    <button key={r} type="button" onClick={() => setForm(f => ({ ...f, role: r }))}
+                    <button key={r} type="button"
+                      onClick={() => setForm(f => ({ ...f, role: r, roleCategory: f.roleCategory || inferCategory(r) }))}
                       className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40">
                       {r}
                     </button>
                   ))}
                 </div>
               </div>
+              <div>
+                <Label className="text-xs">Relationship</Label>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {RELATIONSHIPS.map(o => (
+                    <button key={o.v} type="button"
+                      onClick={() => setForm(f => ({ ...f, roleCategory: o.v, linkedMemberId: o.v === "grandparent" ? f.linkedMemberId : null }))}
+                      className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                        form.roleCategory === o.v ? "bg-primary/10 border-primary text-primary font-medium" : "border-border text-muted-foreground hover:text-foreground"
+                      }`}>
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Sets where they sit on the family tree.</p>
+              </div>
+              {form.roleCategory === "grandparent" && (
+                <div>
+                  <Label className="text-xs">Whose parent are they?</Label>
+                  {parentOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-1">Add the parents first, then come back to link grandparents to the right side.</p>
+                  ) : (
+                    <select
+                      value={form.linkedMemberId ?? ""}
+                      onChange={e => setForm(f => ({ ...f, linkedMemberId: e.target.value ? Number(e.target.value) : null }))}
+                      className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">— not set —</option>
+                      {parentOptions.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}{p.role ? ` (${p.role})` : ""}</option>
+                      ))}
+                    </select>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">Puts them on the correct side of the tree, over that parent.</p>
+                </div>
+              )}
               <div>
                 <Label className="text-xs">A few words about them <span className="text-muted-foreground">(optional)</span></Label>
                 <Textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} rows={3} placeholder="What makes them special…" className="mt-1" />

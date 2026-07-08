@@ -5,7 +5,7 @@ import { pickPhoto } from "@/lib/camera";
 import { apiUpload, apiRequest } from "@/lib/api";
 import { formatDate } from "@/lib/formatting";
 
-export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSubtitle, theme, onCoverPhotoChange, onCoverSubtitleChange, onError }) {
+export default function BookCover({ bookId, babyName, birthdate, coverPhotoUrl, coverSubtitle, theme, onCoverPhotoChange, onCoverSubtitleChange, onError }) {
   const [editingSubtitle, setEditingSubtitle] = useState(false);
   const [subtitleDraft, setSubtitleDraft] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -26,9 +26,9 @@ export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSub
     const val = subtitleDraft.trim();
     setEditingSubtitle(false);
     try {
-      await apiRequest('/baby-profile/cover-subtitle', {
+      await apiRequest(`/books/${bookId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ subtitle: val }),
+        body: JSON.stringify({ coverSubtitle: val }),
       });
       onCoverSubtitleChange?.(val);
     } catch {
@@ -59,7 +59,7 @@ export default function BookCover({ babyName, birthdate, coverPhotoUrl, coverSub
       file,
       async ({ blob }) => {
         try {
-          const url = await uploadCroppedPhoto(f => apiUpload('/baby-profile/cover-photo', f), blob);
+          const url = await uploadCroppedPhoto(f => apiUpload(`/books/${bookId}/cover-photo`, f), blob);
           onCoverPhotoChange?.(url);
         } catch {
           onError?.('Failed to upload cover photo');

@@ -31,13 +31,14 @@ function HeroText({ block, placeholder, style }) {
 }
 
 // Text zone: shows RichTextEditor when active, DroppableZone wrapper in builder, plain div in read-only.
-function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, children, style }) {
+function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, textColor, children, style }) {
   if (isEditing && block) {
     return (
       <div style={{ ...style, position: 'relative', minHeight: 28 }}>
         <RichTextEditor
           block={block}
           fontClass={fontClass || 'font-sans'}
+          textColor={textColor}
           onReady={onEditorReady}
           onStopEdit={(content) => onStopEdit?.(block.id, content)}
         />
@@ -160,6 +161,11 @@ export default function MomentHeroCanvas({
       overflow: 'hidden',
     }}>
 
+      {/* Flexible spacers bracket the content so a short note centres the whole composition instead of
+          leaving the note card ballooned with empty space (sv2-s7.5b fix 1). When content is tall the
+          spacers collapse to 0 and it top-packs, so the header is never clipped. */}
+      <div style={{ flex: 1, minHeight: 0 }} />
+
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', width: '100%', marginBottom: 26, flexShrink: 0 }}>
 
@@ -198,6 +204,7 @@ export default function MomentHeroCanvas({
           onStopEdit={onStopEdit}
           onEditorReady={onEditorReady}
           fontClass="font-playf"
+          textColor={titleColor}
           style={{ marginBottom: 6 }}
         >
           <HeroText
@@ -223,6 +230,7 @@ export default function MomentHeroCanvas({
           onStopEdit={onStopEdit}
           onEditorReady={onEditorReady}
           fontClass="font-sans"
+          textColor={dateColor}
           style={{}}
         >
           <HeroText
@@ -266,9 +274,11 @@ export default function MomentHeroCanvas({
       </div>
 
       {/* ── Note card ──────────────────────────────────────────────────── */}
+      {/* flex:'0 1 auto' — hug the note's content (don't grow to fill), but allow shrinking so a very
+          long note clips gracefully instead of pushing the layout off the page. */}
       <div style={{
         width: '100%',
-        flex: 1,
+        flex: '0 1 auto',
         minHeight: 0,
         background: '#FFF8E8',
         border: '1px solid #E5CB8A',
@@ -319,6 +329,9 @@ export default function MomentHeroCanvas({
           />
         </TextZone>
       </div>
+
+      {/* Bottom spacer — equal flex to the top one, so short content sits centred. */}
+      <div style={{ flex: 1, minHeight: 0 }} />
 
       {/* ── Heart ──────────────────────────────────────────────────────── */}
       <div style={{ position: 'absolute', bottom: 18, right: 24, fontSize: 18, color: '#F9A8D4', lineHeight: 1, pointerEvents: 'none' }}>

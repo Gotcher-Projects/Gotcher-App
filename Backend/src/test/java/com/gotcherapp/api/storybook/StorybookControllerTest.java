@@ -35,6 +35,7 @@ class StorybookControllerTest {
 
     private static final Long USER_ID = 1L;
     private static final Long CHAPTER_ID = 50L;
+    private static final Long BOOK_ID = 7L;
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(USER_ID, "test@example.com");
 
     private static ChapterResponse sampleChapter() {
@@ -44,17 +45,25 @@ class StorybookControllerTest {
     }
 
     private static WizardRequest wizardReq() {
-        return new WizardRequest("8-12", "Weeks 8–12", 8, 12, List.of(5L), null, null, null, null);
+        return new WizardRequest(BOOK_ID, "8-12", "Weeks 8–12", 8, 12, List.of(5L), null, null, null, null);
     }
 
     // ── GET /storybook ──────────────────────────────────────────────────────────
 
     @Test
     void getAll_returns200_withList() {
-        when(storybookService.findAll(USER_ID)).thenReturn(List.of(sampleChapter()));
-        var r = controller.getAll(PRINCIPAL);
+        when(storybookService.findAll(USER_ID, BOOK_ID)).thenReturn(List.of(sampleChapter()));
+        var r = controller.getAll(PRINCIPAL, BOOK_ID);
         assertEquals(HttpStatus.OK, r.getStatusCode());
         assertEquals(1, r.getBody().size());
+    }
+
+    @Test
+    void getAll_returns200_emptyList_whenNoBookId() {
+        var r = controller.getAll(PRINCIPAL, null);
+        assertEquals(HttpStatus.OK, r.getStatusCode());
+        assertEquals(0, r.getBody().size());
+        verify(storybookService, never()).findAll(anyLong(), anyLong());
     }
 
     // ── PUT /storybook/order ──────────────────────────────────────────────────────

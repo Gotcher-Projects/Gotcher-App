@@ -18,11 +18,11 @@ function ZoneText({ block, placeholder, style }) {
   return <span style={{ ...style, opacity: 0.3, fontStyle: 'italic' }}>{placeholder}</span>;
 }
 
-function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, children, style }) {
+function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, textColor, children, style }) {
   if (isEditing && block) {
     return (
       <div style={{ ...style, position: 'relative', minHeight: 24 }}>
-        <RichTextEditor block={block} fontClass={fontClass || 'font-sans'} onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
+        <RichTextEditor block={block} fontClass={fontClass || 'font-sans'} textColor={textColor} onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
       </div>
     );
   }
@@ -50,6 +50,7 @@ export default function ChapterDividerCanvas({
 
   const bg  = theme?.bg ?? '#FBF7EF';
   const ink = theme?.isDark ? (theme.textColor ?? '#e8eaf6') : '#2C1810';
+  const subColor = sub(theme);
 
   const label    = blk('label');
   const title    = blk('title');
@@ -73,10 +74,10 @@ export default function ChapterDividerCanvas({
 
       {/* Chapter label */}
       <TextZone block={label} isEditing={editing(label?.id)} isBuilder={isBuilder}
-        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-sans"
+        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-sans" textColor={subColor}
         style={{ flexShrink: 0 }}>
         <ZoneText block={label} placeholder="Chapter One"
-          style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.28em', textTransform: 'uppercase', color: sub(theme) }} />
+          style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.28em', textTransform: 'uppercase', color: subColor }} />
       </TextZone>
 
       {/* Icon badge */}
@@ -87,7 +88,7 @@ export default function ChapterDividerCanvas({
 
       {/* Title */}
       <TextZone block={title} isEditing={editing(title?.id)} isBuilder={isBuilder}
-        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-playf"
+        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-playf" textColor={ink}
         style={{ flexShrink: 0 }}>
         <ZoneText block={title} placeholder="Chapter Title"
           style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 40, fontWeight: 700, lineHeight: 1.12, color: ink, display: 'block' }} />
@@ -95,10 +96,10 @@ export default function ChapterDividerCanvas({
 
       {/* Subtitle */}
       <TextZone block={subtitle} isEditing={editing(subtitle?.id)} isBuilder={isBuilder}
-        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-merri"
+        onActivate={onActivate} onStopEdit={onStopEdit} onEditorReady={onEditorReady} fontClass="font-merri" textColor={subColor}
         style={{ marginTop: 16, flexShrink: 0 }}>
         <ZoneText block={subtitle} placeholder="a few words to set the scene"
-          style={{ fontFamily: "'Dancing Script', cursive", fontSize: 22, color: sub(theme), display: 'block' }} />
+          style={{ fontFamily: "'Dancing Script', cursive", fontSize: 22, color: subColor, display: 'block' }} />
       </TextZone>
     </div>
   );

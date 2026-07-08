@@ -10,8 +10,9 @@ import FamilyTreeCanvas from "@/components/storybook/FamilyTreeCanvas";
 import ChapterDividerCanvas from "@/components/storybook/ChapterDividerCanvas";
 import PromptsCanvas from "@/components/storybook/PromptsCanvas";
 import BumpCanvas from "@/components/storybook/BumpCanvas";
+import MilestonesCanvas from "@/components/storybook/MilestonesCanvas";
 
-export default function LayoutRenderer({ layout, theme, pageData }) {
+export default function LayoutRenderer({ layout, theme, pageData, letterEyebrow }) {
   const containerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
   const touchStartX = useRef(null);
@@ -54,7 +55,7 @@ export default function LayoutRenderer({ layout, theme, pageData }) {
                   theme={theme}
                 />
               ) : page.templateId === 'letter' ? (
-                <LetterCanvas blocks={blocks} theme={theme} />
+                <LetterCanvas blocks={blocks} theme={theme} eyebrow={letterEyebrow} />
               ) : page.templateId === 'gallery' ? (
                 <GalleryCanvas blocks={blocks} theme={theme} />
               ) : page.templateId === 'birth_day' ? (
@@ -80,6 +81,8 @@ export default function LayoutRenderer({ layout, theme, pageData }) {
                 <PromptsCanvas blocks={blocks} theme={theme} />
               ) : page.templateId === 'bump' ? (
                 <BumpCanvas blocks={blocks} theme={theme} />
+              ) : page.templateId === 'milestones' ? (
+                <MilestonesCanvas blocks={blocks} theme={theme} achievedMilestones={pageData?.achievedMilestones} />
               ) : (
                 renderBlocks(blocks, theme, { suppressDropCap: DROP_CAP_FREE_TEMPLATES.has(page.templateId) })
               )}

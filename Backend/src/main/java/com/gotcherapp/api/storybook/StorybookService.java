@@ -47,13 +47,15 @@ public class StorybookService {
 
     // ── List ──────────────────────────────────────────────────────────────────
 
-    public List<ChapterResponse> findAll(Long userId) {
+    // Book-scoped (sv2-s7a): scoping by baby_profile_id AND book_id is the IDOR boundary — a book_id
+    // belonging to another tenant won't match this profile's baby_profile_id, so it returns empty.
+    public List<ChapterResponse> findAll(Long userId, Long bookId) {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
         return jdbc.queryForList(
-            "SELECT " + CHAPTER_COLS + " FROM storybook_chapters WHERE baby_profile_id = ? " +
+            "SELECT " + CHAPTER_COLS + " FROM storybook_chapters WHERE baby_profile_id = ? AND book_id = ? " +
             "ORDER BY COALESCE(sort_order, 999999), created_at",
-            profileId.get()
+            profileId.get(), bookId
         ).stream().map(this::mapRow).toList();
     }
 
@@ -74,6 +76,9 @@ public class StorybookService {
     // Creates or updates the period chapter row from the wizard's memory selection.
     // Page content is produced separately by generatePages() (batched, per-page).
     public ChapterResponse wizard(Long userId, WizardRequest req) {
+        if (req.bookId() == null) {
+            throw new IllegalArgumentException("bookId is required");
+        }
         if (req.anchorKey() == null || req.anchorLabel() == null
                 || req.periodStartWeeks() == null || req.periodEndWeeks() == null) {
             throw new IllegalArgumentException("anchorKey, anchorLabel, periodStartWeeks, and periodEndWeeks are required");
@@ -84,6 +89,9 @@ public class StorybookService {
 
         Long profileId = babyProfileRepository.requireProfileId(userId);
 
+        // SECURITY: the book must belong to this profile (IDOR boundary for the book container).
+        assertBookOwned(profileId, req.bookId());
+
         // SECURITY: reject selections that reference another tenant's memories (s3 IDOR fix).
         assertSelectionsOwned(profileId, req.selectedJournalIds(), req.selectedFirstTimeIds());
 
@@ -93,8 +101,8 @@ public class StorybookService {
         String entryNotesJson = serializeJsonMap(req.entryNotes());
 
         List<Map<String, Object>> existing = jdbc.queryForList(
-            "SELECT id FROM storybook_chapters WHERE baby_profile_id = ? AND anchor_type = 'period' AND anchor_key = ?",
-            profileId, req.anchorKey()
+            "SELECT id FROM storybook_chapters WHERE book_id = ? AND anchor_type = 'period' AND anchor_key = ?",
+            req.bookId(), req.anchorKey()
         );
 
         long chapterId;
@@ -110,10 +118,10 @@ public class StorybookService {
         } else {
             Map<String, Object> newRow = jdbc.queryForMap(
                 "INSERT INTO storybook_chapters " +
-                "(baby_profile_id, anchor_type, anchor_key, anchor_label, period_start_weeks, period_end_weeks, " +
+                "(baby_profile_id, book_id, anchor_type, anchor_key, anchor_label, period_start_weeks, period_end_weeks, " +
                 "wizard_journal_ids, wizard_first_time_ids, supplementary_notes, photo_overrides, wizard_entry_notes, status) " +
-                "VALUES (?, 'period', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unlocked') RETURNING id",
-                profileId, req.anchorKey(), req.anchorLabel(),
+                "VALUES (?, ?, 'period', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unlocked') RETURNING id",
+                profileId, req.bookId(), req.anchorKey(), req.anchorLabel(),
                 req.periodStartWeeks(), req.periodEndWeeks(),
                 journalIdsCsv, firstTimeIdsCsv, req.supplementaryNotes(), photoOverridesJson, entryNotesJson
             );
@@ -388,6 +396,17 @@ public class StorybookService {
     // Fails loudly if any selected journal/first-time id does not belong to the caller's profile.
     // This is the write-side boundary check; buildBatchPagesPrompt also scopes its reads as
     // defense-in-depth (and to protect any ids stored before this check existed).
+    // Fails loudly if the book does not belong to the caller's profile (sv2-s7a IDOR boundary).
+    private void assertBookOwned(Long profileId, Long bookId) {
+        Integer owned = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM books WHERE id = ? AND baby_profile_id = ?",
+            Integer.class, bookId, profileId
+        );
+        if (owned == null || owned == 0) {
+            throw new IllegalArgumentException("Book not found");
+        }
+    }
+
     private void assertSelectionsOwned(Long profileId, List<Long> journalIds, List<Long> firstTimeIds) {
         assertOwned("journal_entries", profileId, journalIds, "journal entries");
         assertOwned("first_times", profileId, firstTimeIds, "first-time memories");

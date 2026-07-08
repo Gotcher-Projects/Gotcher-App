@@ -29,7 +29,6 @@ function loadLocal(key) {
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner, onUserUpdate }) {
   const { theme } = useTheme();
-  const tier = user?.tier ?? 'free';
   const [data, setData] = useState({
     profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "", dueDate: "", phase: "", photoUrl: "" },
     milestones: {},
@@ -43,10 +42,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
   const [bumpPhotos, setBumpPhotos] = useState([]);
-  const [chapters, setChapters] = useState([]);
-  const [bookTheme, setBookTheme] = useState('classic');
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState(null);
-  const [coverSubtitle, setCoverSubtitle] = useState(null);
   const [birthDetails, setBirthDetails] = useState(null);
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
@@ -108,9 +103,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             photoUrl: profile.photoUrl || d.profile.photoUrl,
           }
         }));
-        if (profile.bookTheme) setBookTheme(profile.bookTheme);
-        if (profile.coverPhotoUrl) setCoverPhotoUrl(profile.coverPhotoUrl);
-        if (profile.coverSubtitle !== undefined) setCoverSubtitle(profile.coverSubtitle);
         setNeedsOnboarding(false);
       })
       .catch(err => {
@@ -195,12 +187,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   useEffect(() => {
     apiRequest('/bump-photos')
       .then(list => setBumpPhotos(list))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    apiRequest('/storybook')
-      .then(list => setChapters(list))
       .catch(() => {});
   }, []);
 
@@ -377,31 +363,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     setFirsts(f => [ft, ...f]);
   }
 
-  async function updateChapter(id, patch) {
-    const chapter = await apiRequest(`/storybook/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(patch),
-    });
-    setChapters(c => c.map(ch => ch.id === id ? chapter : ch));
-    return chapter;
-  }
-
-  async function deleteChapter(id) {
-    await apiRequest(`/storybook/${id}`, { method: 'DELETE' });
-    setChapters(c => c.filter(ch => ch.id !== id));
-  }
-
-  async function wizardGenerate(payload) {
-    const chapter = await apiRequest('/storybook/wizard', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    setChapters(c => c.some(x => x.id === chapter.id)
-      ? c.map(x => x.id === chapter.id ? chapter : x)
-      : [chapter, ...c]
-    );
-    return chapter;
-  }
 
   async function updateFirstTime(id, patch) {
     const ft = await apiRequest(`/first-times/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
@@ -782,16 +743,6 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               onDeleteFirst={deleteFirstTime}
               onUpload={img => apiUpload('/upload?context=first_times', img)}
               onError={onError}
-              tier={tier}
-              chapters={chapters}
-              initialCredits={user?.ai_credits_remaining ?? null}
-              onChapterUpdate={updateChapter}
-              onChapterDelete={deleteChapter}
-              onWizardGenerate={wizardGenerate}
-              bookTheme={bookTheme}
-              onUpdateBookTheme={setBookTheme}
-              coverPhotoUrl={coverPhotoUrl}
-              coverSubtitle={coverSubtitle}
               dueDate={data.profile?.dueDate}
               bumpPhotos={bumpPhotos}
               onAddBump={addBumpPhoto}

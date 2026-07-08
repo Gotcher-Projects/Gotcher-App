@@ -1,7 +1,9 @@
 package com.gotcherapp.api.family;
 
-// A baby's family member (sv2-s3). role is free text; roleCategory is the structured bucket
-// ('parent' | 'sibling' | 'grandparent' | 'other') the future family-tree renderer uses.
+// A baby's family member (sv2-s3 + sv2-s9.0b). `role` is the DISPLAY TITLE (what the book prints,
+// e.g. "Nana"); roleCategory is the user-set relationship tier ('parent' | 'sibling' | 'grandparent'
+// | 'other') the family tree uses for placement. linkedMemberId ties a grandparent to the parent
+// they belong to, so the tree places them on the correct side.
 public record FamilyMember(
     Long id,
     Long babyProfileId,
@@ -10,5 +12,6 @@ public record FamilyMember(
     String roleCategory,
     String photoUrl,
     String bio,
-    Integer sortOrder
+    Integer sortOrder,
+    Long linkedMemberId
 ) {}

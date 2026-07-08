@@ -44,6 +44,7 @@ class StorybookServiceTest {
     private static final Long USER_ID    = 1L;
     private static final Long PROFILE_ID  = 99L;
     private static final Long CHAPTER_ID  = 5001L;
+    private static final Long BOOK_ID     = 7L;
 
     @BeforeEach
     void setUp() {
@@ -53,10 +54,15 @@ class StorybookServiceTest {
 
     private WizardRequest wizardReq(List<Long> journalIds, List<Long> firstTimeIds) {
         return new WizardRequest(
-            "8-12", "Weeks 8–12", 8, 12,
+            BOOK_ID, "8-12", "Weeks 8–12", 8, 12,
             journalIds, firstTimeIds,
             null, null, null
         );
+    }
+
+    // Stubs the book-ownership COUNT(*) so wizard() reaches the selection-ownership check.
+    private void stubBookOwned() {
+        when(jdbc.queryForObject(contains("FROM books"), eq(Integer.class), any(Object[].class))).thenReturn(1);
     }
 
     // ── wizard() ownership boundary ─────────────────────────────────────────────
@@ -64,6 +70,7 @@ class StorybookServiceTest {
     @Test
     void wizard_rejectsForeignJournalId() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
+        stubBookOwned();
         // 1 id requested, COUNT(*) of owned rows = 0 → not owned
         when(jdbc.queryForObject(contains("journal_entries"), eq(Integer.class), any(Object[].class))).thenReturn(0);
 
@@ -77,6 +84,7 @@ class StorybookServiceTest {
     @Test
     void wizard_rejectsForeignFirstTimeId() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
+        stubBookOwned();
         when(jdbc.queryForObject(contains("first_times"), eq(Integer.class), any(Object[].class))).thenReturn(0);
 
         var req = wizardReq(null, List.of(777L));
@@ -87,10 +95,11 @@ class StorybookServiceTest {
     @Test
     void wizard_acceptsOwnedIds_andCreatesChapter() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
+        stubBookOwned();
         // 1 id requested, 1 owned → passes the ownership check
         when(jdbc.queryForObject(contains("journal_entries"), eq(Integer.class), any(Object[].class))).thenReturn(1);
         // no existing chapter for this anchor → INSERT path
-        when(jdbc.queryForList(contains("anchor_key = ?"), eq(PROFILE_ID), eq("8-12")))
+        when(jdbc.queryForList(contains("anchor_key = ?"), eq(BOOK_ID), eq("8-12")))
             .thenReturn(List.of());
         when(jdbc.queryForMap(contains("INSERT INTO storybook_chapters"), any(Object[].class)))
             .thenReturn(Map.of("id", CHAPTER_ID));
@@ -284,24 +293,25 @@ class StorybookServiceTest {
 
     @Test
     void wizard_missingRequiredFields_throwsIllegalArgument() {
-        // anchorKey null → rejected before any DB/profile interaction.
-        var req = new WizardRequest(null, "Weeks 8–12", 8, 12, List.of(5L), null, null, null, null);
+        // anchorKey null → rejected before any DB/profile interaction (bookId is valid here).
+        var req = new WizardRequest(BOOK_ID, null, "Weeks 8–12", 8, 12, List.of(5L), null, null, null, null);
         assertThrows(IllegalArgumentException.class, () -> service.wizard(USER_ID, req));
         verifyNoInteractions(babyProfileRepository);
     }
 
     @Test
     void wizard_noSelections_throwsIllegalArgument() {
-        var req = new WizardRequest("8-12", "Weeks 8–12", 8, 12, null, null, null, null, null);
+        var req = new WizardRequest(BOOK_ID, "8-12", "Weeks 8–12", 8, 12, null, null, null, null, null);
         assertThrows(IllegalArgumentException.class, () -> service.wizard(USER_ID, req));
     }
 
     @Test
     void wizard_existingChapter_takesUpdateBranch() {
         when(babyProfileRepository.requireProfileId(USER_ID)).thenReturn(PROFILE_ID);
+        stubBookOwned();
         when(jdbc.queryForObject(contains("journal_entries"), eq(Integer.class), any(Object[].class))).thenReturn(1);
         // A chapter already exists for this anchor → UPDATE, not INSERT.
-        when(jdbc.queryForList(contains("anchor_key = ?"), eq(PROFILE_ID), eq("8-12")))
+        when(jdbc.queryForList(contains("anchor_key = ?"), eq(BOOK_ID), eq("8-12")))
             .thenReturn(List.of(Map.of("id", CHAPTER_ID)));
         when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ?"), eq(CHAPTER_ID)))
             .thenReturn(List.of(rowWithId(CHAPTER_ID)));

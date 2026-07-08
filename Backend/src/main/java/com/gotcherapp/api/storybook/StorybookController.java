@@ -30,8 +30,13 @@ public class StorybookController {
     // ── Authenticated endpoints ───────────────────────────────────────────────
 
     @GetMapping("/storybook")
-    public ResponseEntity<List<ChapterResponse>> getAll(@AuthenticationPrincipal AuthPrincipal principal) {
-        return ResponseEntity.ok(storybookService.findAll(principal.userId()));
+    public ResponseEntity<List<ChapterResponse>> getAll(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @RequestParam(required = false) Long bookId
+    ) {
+        // Chapters are book-scoped (sv2-s7a). With no book context there is nothing to return.
+        if (bookId == null) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(storybookService.findAll(principal.userId(), bookId));
     }
 
     @PutMapping("/storybook/order")

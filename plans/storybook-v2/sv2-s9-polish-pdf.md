@@ -1,8 +1,28 @@
 # SV2-S9 — Polish + PDF Integration   *(was sv2-s8; renumbered 2026-06-27)*
 
-**Status: Not started.** Note (2026-06-27 direction update): the **auto Firsts chapter is dropped** — the
+**Status: Complete (2026-07-02).** Wrapped as done — its two headline deliverables shipped incrementally
+during s7/s8/s8.5, not in a dedicated session:
+- **Guided + freeform "Download PDF" flow** — `StorybookTab.handleDownloadPdf` → `generateStorybookPdf` →
+  `downloadPdf`; button wired in both `GuidedBookView.jsx` and the freeform view. (Plan §2's "Option A" —
+  one PDF fn taking an abstract `chapters` + `pageData` array regardless of source — is what was built.)
+- **PDF dispatch for every v2 page type** — `storybookPdf.js` branches all renderers (moment-hero, letter,
+  gallery, birth_day, people, family_tree, chapter_divider, prompts, bump, milestones); fonts/image-load
+  waits + `--book-accent` handled in `captureElement`/`captureComponent`.
+
+Michael has verified each card type's PDF output as part of the per-session verification along the way, so
+no separate audit is needed here. **The final eyes-on sweep lives in `sv2-s9.5-verification.md`.** To make
+that sweep testable at a glance, the demo seed (`sv2-s9.1`) should place **every page type in the demo
+freeform book** — see s9.1's Freeform-book note.
+
+Everything below is the ORIGINAL (stale) plan text, kept for reference. Note stale names: page renderers
+shipped as `*Canvas.jsx` (not `*Page.jsx`), the shell as `GuidedBookView.jsx`, canvas helpers in
+`lib/bookCanvas.jsx`; the "hero+gallery pairs" page order (§2) was dropped.
+
+---
+
+Note (2026-06-27 direction update): the **auto Firsts chapter is dropped** — the
 book page order no longer has "hero+gallery pairs" (line 49 below is stale). The guided book is the
-pre-designed fill-in arc (25 / 30 pages — see the mockups); the PDF just chains that fixed page sequence.
+pre-designed fill-in arc (30 / 35 interior pages incl. dividers — see `sv2-s7-plan-default-book.md`); the PDF just chains that fixed page sequence.
 New page types to audit also include the growth spread, prompt pages, bump page, and family-tree page.
 **Depends on:** sv2-s7 complete (all page types exist and the guided fill-in book is functional)
 **Reference:** `feedback_html2canvas_limitations.md` — what doesn't render in html2canvas

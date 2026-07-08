@@ -93,6 +93,16 @@ describe('TEMPLATES invariants', () => {
     expect(ids).toEqual(expect.arrayContaining(['title', 'photo1', 'week1', 'photo2', 'week2', 'note']));
   });
 
+  it('gives milestones the role ids its renderer reads', () => {
+    const ms = TEMPLATES.find(t => t.id === 'milestones');
+    expect(ms.renderer).toBe('milestones');
+    expect(ms.maxPhotos).toBe(2);
+    const ids = ms.blocks.map(b => b.id);
+    expect(ids).toEqual(expect.arrayContaining(['photo1', 'cap1', 'photo2', 'cap2', 'date0', 'date1', 'date2', 'date3', 'date4', 'date5', 'date6']));
+    // it carries no title block — the renderer hardcodes the title (like prompts)
+    expect(ids).not.toContain('title');
+  });
+
   it('gives moment_hero templates a photo block with an aspect ratio', () => {
     const heroes = TEMPLATES.filter(t => t.renderer === 'moment_hero');
     expect(heroes.length).toBeGreaterThan(0);

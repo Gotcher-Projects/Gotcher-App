@@ -270,6 +270,61 @@ ProfileEditModal.jsx first. Verify cover/firsts/journal/bump/birth-hero crops ar
 
 ---
 
+## SV2-S9.0a — Rethink Multi-Photo First Times UX  (was sv2-s4.5)  ❌ DROPPED 2026-07-02
+
+> DROPPED — decided against. The s4 in-card editor was already removed; the data layer stays dormant. Reopen only if revived.
+
+```
+Session SV2-S9.0a — redesign multi-photo First Times (was sv2-s4.5).
+Plan: plans/storybook-v2/sv2-s9.0a-multi-photo-firsts-ux.md
+Run BEFORE sv2-s9.1 demo seed — it changes how first_time_photos is used, which the seed writes.
+Depends on: sv2-s4 (data layer + Gallery page shipped). The disliked in-card editor was already REMOVED.
+
+⚠️ DESIGN DISCUSSION FIRST — the redesign is not decided. Work through the plan's open questions before
+any code: where multi-photo lives (edit form vs a "manage photos" view vs album mental model), the
+hero-vs-gallery split, the add/manage interaction (multi-select, reorder, captions), what the card shows,
+the Gallery-page data binding (auto-populate vs independent — the key integration Q), and the scope-creep
+check (is this "multi-photo per First" or a broader "albums/moments" concept?).
+
+Backend data layer (first_time_photos V38 + /first-times/{id}/photos endpoints) is KEPT dormant — reuse it,
+don't re-migrate. Keep GalleryCanvas + the gallery template + its dispatch points untouched.
+
+Build order once decisions land:
+1. Verify the s4 in-card editor removal is clean (already removed — check no dangling props/handlers).
+2. Build the redesigned add/manage interaction.
+3. Wire the Gallery-page data binding decided above.
+
+Read sv2-s9.0a-…md, MemoriesTab.jsx (FirstTimesTab/FirstTimeCard), CradleHq.jsx first-photo handlers,
+first_time_photos backend, imageUtils.jsx before coding.
+```
+
+---
+
+## SV2-S9.0b — Family relationships & editable titles  (was sv2-s5.5)  ✅ COMPLETE 2026-07-02
+
+```
+Session SV2-S9.0b — real family-relationship model + editable titles (was sv2-s5.5).
+Plan: plans/storybook-v2/sv2-s9.0b-family-relationships.md
+Run BEFORE sv2-s9.1 demo seed — it changes the family_members schema the seed writes.
+Depends on: sv2-s5 (Family Tree) + sv2-s3 (family_members data).
+
+⚠️ DESIGN DISCUSSION FIRST. Resolve: the relationship model (structured enum vs linked-member edges vs
+hybrid — plan leans linked-parent for grandparents), step/blended-family support + how many parent-tier
+people to allow + how steps render, and migration/backfill from existing role/role_category.
+
+Full-stack, once decisions land:
+1. Migration: add display_title + relationship/linked_member_id + is_step to family_members; backfill from role.
+2. Backend com.gotcherapp.api.family — DTO + service columns; keep or derive roleCategory.
+3. FamilyRosterPopup — split role into display title + relationship; grandparent "whose parent?" picker; step toggle.
+4. FamilyTreeCanvas — place grandparents by linked parent (not roster-slot order); handle >2 parents / steps / overflow.
+5. PeopleCanvas — show the display title.
+
+Read sv2-s9.0b-…md, FamilyRosterPopup.jsx (inferCategory), FamilyTreeCanvas.jsx, FamilyMember.java,
+V41__create_family_members.sql, PeopleCanvas.jsx before coding.
+```
+
+---
+
 ## SV2-S9 — Polish + PDF Integration  (was sv2-s8)
 
 ```
@@ -327,7 +382,7 @@ Read sv2-s8-pregnancy-chapter.md, GuidedBook.jsx, BumpCard.jsx, the Firsts-chapt
 
 ```
 Session SV2-PRINT — physical book ordering via Lulu print-on-demand.
-Plan: planning.md §6 + plans/storybook/sDeferred-print.md (detailed spec).
+Plan: planning.md §6 + plans/storybook-v2/sv2-s12-print.md (detailed spec).
 External blocker: plans/storybook-v2/lulu-print-handoff.md MUST be filled in first
   (Lulu account, API creds, confirmed trim size / bleed / color profile / min pages,
   redirect-vs-POST checkout, white-label, ToS). Someone with Lulu access owns that.
@@ -344,7 +399,7 @@ Sub-sessions:
 3. sv2-print-s2 — Frontend: "Order a Printed Book" UI (plus/pro only), quantity picker,
    redirect to Lulu checkout, order confirmation.
 
-Read sDeferred-print.md, lulu-print-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
+Read sv2-s12-print.md, lulu-print-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
 ```
 
 ---

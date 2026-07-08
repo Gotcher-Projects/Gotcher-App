@@ -73,11 +73,36 @@ export default function FamilyTreeCanvas({ familyMembers = [], babyName, coverPh
   const sub = theme?.isDark ? (theme.textColor ?? '#cdd2ee') : '#A07860';
 
   const roster = familyMembers || [];
-  const grandparents = roster.filter(m => m.roleCategory === 'grandparent').slice(0, 4);
   const parents      = roster.filter(m => m.roleCategory === 'parent').slice(0, 2);
   const siblings     = roster.filter(m => m.roleCategory === 'sibling').slice(0, 3);
+  const allGrand     = roster.filter(m => m.roleCategory === 'grandparent').slice(0, 4);
 
-  const hasAny = grandparents.length + parents.length > 0;
+  // Place grandparents on the SIDE of the parent they're linked to (linkedMemberId → parents[0] = left
+  // over Mum, parents[1] = right over Dad). Anyone without a link falls back to filling the remaining
+  // slots left-then-right — which reproduces the old roster-order behaviour for un-linked (pre-sv2-s9.0b)
+  // data, so existing rosters render unchanged.
+  const p0 = parents[0], p1 = parents[1];
+  const leftLinked = [], rightLinked = [], loose = [];
+  for (const g of allGrand) {
+    if (p0 && g.linkedMemberId === p0.id) leftLinked.push(g);
+    else if (p1 && g.linkedMemberId === p1.id) rightLinked.push(g);
+    else loose.push(g);
+  }
+  const leftGP = leftLinked.slice(0, 2);
+  const rightGP = rightLinked.slice(0, 2);
+  for (const g of loose) {
+    if (leftGP.length < 2) leftGP.push(g);
+    else if (rightGP.length < 2) rightGP.push(g);
+  }
+  // Slot indices: left → 0,1 (over Mum) ; right → 2,3 (over Dad).
+  const placedGP = [
+    ...leftGP.map((m, i) => ({ m, x: G.slots[i], gi: i })),
+    ...rightGP.map((m, i) => ({ m, x: G.slots[2 + i], gi: 2 + i })),
+  ];
+  const leftXs = leftGP.map((_, i) => G.slots[i]);
+  const rightXs = rightGP.map((_, i) => G.slots[2 + i]);
+
+  const hasAny = placedGP.length + parents.length > 0;
 
   // Children row: baby first, then any siblings, centered as a group on C.centerX.
   const baby = { name: babyName || 'You', photoUrl: coverPhotoUrl || null, isBaby: true };
@@ -99,9 +124,8 @@ export default function FamilyTreeCanvas({ familyMembers = [], babyName, coverPh
     centers.forEach(cx => seg(cx, gBottom, cx, G.barY));        // stub up from each grandparent
     seg(parentX, G.barY, parentX, pTop);                        // drop to the parent
   }
-  const gXs = grandparents.map((_, i) => G.slots[i]);
-  linkGrandparents(gXs.filter((_, i) => i < 2), P.mumX, parents.length >= 1);
-  linkGrandparents(gXs.filter((_, i) => i >= 2), P.dadX, parents.length >= 2);
+  linkGrandparents(leftXs, P.mumX, parents.length >= 1);
+  linkGrandparents(rightXs, P.dadX, parents.length >= 2);
 
   // parents → children
   const parentXs = [];
@@ -151,9 +175,9 @@ export default function FamilyTreeCanvas({ familyMembers = [], babyName, coverPh
             ))}
           </svg>
 
-          {/* Grandparent nodes */}
-          {grandparents.map((m, i) => (
-            <Node key={m.id} x={G.slots[i]} y={G.y} r={G.r} gradient={NODE_GRADIENTS[i % NODE_GRADIENTS.length]}
+          {/* Grandparent nodes — placed by their linked parent's side */}
+          {placedGP.map(({ m, x, gi }) => (
+            <Node key={m.id} x={x} y={G.y} r={G.r} gradient={NODE_GRADIENTS[gi % NODE_GRADIENTS.length]}
                   name={m.name} role={m.role} photoUrl={m.photoUrl} ink={ink} />
           ))}
 

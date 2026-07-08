@@ -21,7 +21,9 @@ Lulu handles printing, shipping, and payment — we handle PDF assembly and orde
 - **Vendor:** Lulu (lulu.com) — print-on-demand, no inventory
 - **Who can order:** `plus` and `pro` users only
 - **Multi-copy ordering:** Users must be able to order multiple copies (e.g., for grandparents)
-- **Lulu handles checkout:** User is redirected to Lulu's hosted checkout — no Stripe charge on our side for print orders
+- **Checkout:** ~~Lulu handles checkout (redirect, no Stripe on our side)~~ **→ CORRECTED (2026-07-01):
+  Lulu's Print API checkout is *external* — the customer pays via our own **Stripe** checkout; we then POST
+  a *paid* print job and Lulu auto-charges a company card. Print depends on Payments/Stripe. See `plans/storybook-v2/handoffs/`.**
 - **Physical book is separate from AI credits** — ordering a print doesn't consume credits
 
 ---
@@ -54,9 +56,9 @@ Lulu handles printing, shipping, and payment — we handle PDF assembly and orde
 1. User taps "Order a Printed Book" in storybook view (paid users only)
 2. User selects quantity (1, 2, 3, 5…)
 3. Frontend calls backend endpoint to assemble the chapter PDF
-4. Backend uploads PDF to Lulu via API, receives checkout URL
-5. User is redirected to Lulu hosted checkout (payment + shipping address)
-6. Lulu handles fulfillment
+4. User pays through **our own Stripe checkout** (payment + shipping address collected on our side)
+5. Backend uploads the PDF to Lulu and **POSTs a paid print job** (Lulu auto-charges our company card)
+6. Lulu prints + drop-ships to the customer
 7. (Optional) Lulu webhook → notify user when order ships
 
 ---

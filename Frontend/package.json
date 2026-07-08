@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed:demo": "vite-node scripts/seed-demo-users.mjs",
+    "downscale:seed-assets": "node scripts/downscale-seed-assets.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
@@ -50,8 +52,10 @@
     "autoprefixer": "^10.4.20",
     "jsdom": "^29.0.0",
     "postcss": "^8.5.3",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.19",
     "vite": "^6.4.1",
+    "vite-node": "^6.0.0",
     "vitest": "^4.1.0"
   }
 }

@@ -1,6 +1,6 @@
 # SV2-S5 — Family Tree (book page)   *(was sv2-s9; renumbered 2026-06-27)*
 
-**Status: Needs Verification** (implemented 2026-06-27 — `FamilyTreeCanvas` built, wired into builder/
+**Status: Complete — confirmed 2026-07-02 (all sub-9 sessions finished).** (implemented 2026-06-27 — `FamilyTreeCanvas` built, wired into builder/
 read/PDF + TemplateSheet thumb; frontend build + 248 tests pass. Verify in-app: add it as a page in the
 scrapbook builder with people in "Your People", check tree render + PDF export, then mark Complete.)
 
@@ -13,7 +13,7 @@ scrapbook builder with people in "Your People", check tree render + PDF export, 
 - **Circular avatars in PDF** — added `border-radius:50%` on the `<img>` itself (html2canvas doesn't
   reliably clip a rounded parent's overflow). Re-verify the PDF circles after this.
 
-**Known-rough / deferred → [`sv2-s5.5-family-relationships.md`](sv2-s5.5-family-relationships.md):** the
+**Known-rough / deferred → [`sv2-s9.0b-family-relationships.md`](sv2-s9.0b-family-relationships.md):** the
 role→tier mapping is guessed from free-text role and grandparent *side* is roster-order only (Nana/Pop
 landing under Dad is hardcoded-ish, not modelled); no step-parent/step-grandparent model; `role` conflates
 relationship with display title. That refinement is its own plan.

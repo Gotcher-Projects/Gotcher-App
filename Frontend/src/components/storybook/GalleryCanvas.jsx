@@ -41,13 +41,14 @@ function ZoneText({ block, placeholder, style }) {
   return <span style={{ ...style, opacity: 0.3, fontStyle: 'italic' }}>{placeholder}</span>;
 }
 
-function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, children, style }) {
+function TextZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, fontClass, textColor, children, style }) {
   if (isEditing && block) {
     return (
       <div style={{ ...style, position: 'relative', minHeight: 20 }}>
         <RichTextEditor
           block={block}
           fontClass={fontClass || 'font-sans'}
+          textColor={textColor}
           onReady={onEditorReady}
           onStopEdit={(content) => onStopEdit?.(block.id, content)}
         />
@@ -153,6 +154,7 @@ export default function GalleryCanvas({
             onStopEdit={onStopEdit}
             onEditorReady={onEditorReady}
             fontClass="font-sans"
+            textColor={sub}
             style={{ textAlign: 'center' }}
           >
             <ZoneText block={caption} placeholder="Caption" style={{ fontSize: 11, fontStyle: 'italic', color: sub, display: 'block' }} />
@@ -195,6 +197,7 @@ export default function GalleryCanvas({
         onStopEdit={onStopEdit}
         onEditorReady={onEditorReady}
         fontClass="font-playf"
+        textColor={ink}
         style={{ textAlign: 'center', marginTop: 10, flexShrink: 0 }}
       >
         <ZoneText
@@ -213,6 +216,7 @@ export default function GalleryCanvas({
         onStopEdit={onStopEdit}
         onEditorReady={onEditorReady}
         fontClass="font-sans"
+        textColor={sub}
         style={{ textAlign: 'center', marginTop: 4, flexShrink: 0 }}
       >
         <ZoneText block={subtitle} placeholder="A few more snapshots" style={{ fontSize: 13, fontStyle: 'italic', color: sub, display: 'block' }} />

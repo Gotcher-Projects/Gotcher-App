@@ -51,7 +51,7 @@ grep -rn "CLAUDE-DEBUG" Backend/src
 
 ```
 Deferred storybook session — Remove temporary Claude logging.
-Plan: plans/storybook/sDeferred-remove-claude-logging.md
+Plan: plans/storybook-v2/sv2-hygiene-remove-claude-logging.md
 Branch: journal-updates
 Depends on: S5.46 verified and batched generation trusted.
 

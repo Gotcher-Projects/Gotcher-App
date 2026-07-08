@@ -25,7 +25,7 @@ function ValueZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEdit
   if (isEditing && block) {
     return (
       <div style={{ position: 'relative', minHeight: 22 }}>
-        <RichTextEditor block={block} fontClass="font-merri" onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
+        <RichTextEditor block={block} fontClass="font-merri" textColor={ink} onReady={onEditorReady} onStopEdit={(content) => onStopEdit?.(block.id, content)} />
       </div>
     );
   }

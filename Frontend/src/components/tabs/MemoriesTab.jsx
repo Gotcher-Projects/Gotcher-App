@@ -18,11 +18,6 @@ import BumpDiary from "@/components/pregnancy/BumpDiary";
 export default function MemoriesTab({
   data, week, onAdd, onEdit, onDelete, onUpdateImage,
   firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError,
-  tier, chapters, initialCredits,
-  onChapterUpdate, onChapterDelete,
-  onWizardGenerate,
-  bookTheme, onUpdateBookTheme,
-  coverPhotoUrl, coverSubtitle,
   dueDate, bumpPhotos, onAddBump, onUpdateBump, onDeleteBump, onBumpUpload,
 }) {
   const [view, setView] = useState('journal');
@@ -59,22 +54,15 @@ export default function MemoriesTab({
       )}
       {view === 'book'    && (
         <StorybookTab
-          chapters={chapters}
-          tier={tier}
           week={week}
-          initialCredits={initialCredits}
-          onUpdate={onChapterUpdate}
-          onDelete={onChapterDelete}
           journalEntries={data.journal}
           firsts={firsts}
+          bumpPhotos={bumpPhotos}
           birthdate={data.profile?.birthdate}
           babyName={babyName}
-          coverPhotoUrl={coverPhotoUrl}
-          coverSubtitle={coverSubtitle}
-          onWizardGenerate={onWizardGenerate}
+          phase={data.profile?.phase}
+          dueDate={dueDate}
           onUpload={onUpload}
-          bookTheme={bookTheme}
-          onUpdateBookTheme={onUpdateBookTheme}
           onError={onError}
         />
       )}

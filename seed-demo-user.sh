@@ -417,66 +417,12 @@ post_first "Trip to the park" "2026-03-15" "Sat in the stroller and watched the 
 
 echo "    Done (6 first times)"
 
-# ── Storybook Chapters (unlock) ───────────────────────────────────────────────
-echo "==> Unlocking storybook chapters for milestones and first times..."
-
-unlock_chapter() {
-  local ANCHOR_TYPE="$1"
-  local ANCHOR_KEY="$2"
-  local ANCHOR_LABEL="$3"
-  curl -sf -X POST "$API/storybook/unlock" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $TOKEN" \
-    -d "{\"anchorType\":\"$ANCHOR_TYPE\",\"anchorKey\":\"$ANCHOR_KEY\",\"anchorLabel\":$(json_str "$ANCHOR_LABEL")}" \
-    > /dev/null
-  echo "    $ANCHOR_TYPE / $ANCHOR_KEY: $ANCHOR_LABEL"
-}
-
-# Milestone chapters — matching the milestone keys seeded above
-unlock_chapter "milestone" "0-0"  "Turns toward voices"
-unlock_chapter "milestone" "0-1"  "Lifts head during tummy time"
-unlock_chapter "milestone" "0-2"  "High contrast patterns"
-unlock_chapter "milestone" "4-0"  "Social smiling"
-unlock_chapter "milestone" "4-1"  "Tracks objects side to side"
-unlock_chapter "milestone" "4-2"  "Brings hands to mouth"
-unlock_chapter "milestone" "8-0"  "Coos and babbles"
-unlock_chapter "milestone" "8-1"  "Better head control"
-unlock_chapter "milestone" "12-0" "Laughs out loud"
-unlock_chapter "milestone" "12-1" "Holds head steady"
-unlock_chapter "milestone" "12-2" "Grasps toys and shakes them"
-unlock_chapter "milestone" "16-0" "Rolls tummy to back"
-unlock_chapter "milestone" "16-1" "Reaches for objects"
-unlock_chapter "milestone" "20-0" "Rolls both ways"
-
-# Period chapters — cover the age ranges with data
-unlock_chapter "period" "0-13w"  "Your First Three Months"
-unlock_chapter "period" "13-26w" "Three to Six Months"
-
-echo "    Done (14 milestone chapters + 2 period chapters)"
-
-# First-time chapters — get IDs from the API then unlock
-echo "==> Unlocking storybook chapters for first times..."
-python3 - "$API" "$TOKEN" << 'PYEOF'
-import sys, json, urllib.request
-
-api, token = sys.argv[1], sys.argv[2]
-headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
-
-def req(method, path, body=None):
-    data = json.dumps(body).encode() if body else None
-    r = urllib.request.Request(f"{api}{path}", data=data, headers=headers, method=method)
-    with urllib.request.urlopen(r) as resp:
-        return json.loads(resp.read())
-
-firsts = req("GET", "/first-times")
-for ft in firsts:
-    req("POST", "/storybook/unlock", {
-        "anchorType": "first_time",
-        "anchorKey": str(ft["id"]),
-        "anchorLabel": ft["label"]
-    })
-    print(f"    first_time / {ft['id']}: {ft['label']}")
-PYEOF
+# ── Storybook ─────────────────────────────────────────────────────────────────
+# Storybook books are no longer seeded. As of sv2-s7a a baby owns many `books`, and the old
+# anchor-type "unlock" chapters (and the /storybook/unlock endpoint) were removed in the clean
+# break. Books are created in-app via the new-book chooser; seeding a default book is deferred to
+# the guided-arc work (sv2-s7b).
+echo "==> Skipping storybook seed (books are created in-app — sv2-s7a clean break)."
 
 # ── Demo User — Plus Tier + Credits ───────────────────────────────────────────
 echo "==> Upgrading demo user to plus tier with 20 credits..."
@@ -499,4 +445,4 @@ echo "  Milestones: 14 achieved (weeks 0–20)"
 echo "  Vaccines: 12 given (birth + 2m + 4m complete)"
 echo "  Appointments: 4 (2 past, 2 upcoming)"
 echo "  First Times: 6 entries"
-echo "  Storybook:  14 milestone chapters + 2 period chapters + 6 first-time chapters (all unlocked)"
+echo "  Storybook:  none seeded — create a book in-app (sv2-s7a)"

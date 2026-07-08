@@ -1,0 +1,462 @@
+<title>Lulu Explainer — CradleHQ</title>
+<style>
+  /* ============ Tokens ============ */
+  :root {
+    --bg: #f8f6f4;
+    --surface: #ffffff;
+    --surface-2: #f3efec;
+    --ink: #241d1c;
+    --ink-soft: #514844;
+    --muted: #8a7d78;
+    --border: #ece5e0;
+    --border-strong: #ddd2cb;
+    --accent: #d63a56;         /* Lulu coral-red */
+    --accent-ink: #bd2e49;
+    --accent-soft: #fce8ec;
+    /* role colors — consistent with the Stripe explainer */
+    --owner: #9a5b00;
+    --owner-soft: #fdf1dd;
+    --owner-border: #f0d9ac;
+    --dev: #1f5fa8;
+    --dev-soft: #e7f0fb;
+    --dev-border: #c3ddf3;
+    --good: #1f7a4d;
+    --warn-soft: #fdeede;
+    --warn-border: #f2cf9e;
+    --warn-ink: #8a4b12;
+    --code-bg: #191413;
+    --code-ink: #ede6e3;
+    --code-border: #322824;
+    --shadow: 0 1px 2px rgba(40,22,20,.04), 0 8px 24px -12px rgba(40,22,20,.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14100f;
+      --surface: #1d1817;
+      --surface-2: #251e1c;
+      --ink: #f0e9e6;
+      --ink-soft: #cabfba;
+      --muted: #97897f;
+      --border: #2c2320;
+      --border-strong: #3a2f2b;
+      --accent: #f2637d;
+      --accent-ink: #f78398;
+      --accent-soft: #331a20;
+      --owner: #e8b45f; --owner-soft: #2a2011; --owner-border: #4a3a1a;
+      --dev: #74b0ee; --dev-soft: #122334; --dev-border: #244660;
+      --good: #58c98d; --warn-soft: #2c2113; --warn-border: #4a3a1a; --warn-ink: #e8b45f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f8f6f4; --surface: #ffffff; --surface-2: #f3efec;
+    --ink: #241d1c; --ink-soft: #514844; --muted: #8a7d78;
+    --border: #ece5e0; --border-strong: #ddd2cb;
+    --accent: #d63a56; --accent-ink: #bd2e49; --accent-soft: #fce8ec;
+    --owner: #9a5b00; --owner-soft: #fdf1dd; --owner-border: #f0d9ac;
+    --dev: #1f5fa8; --dev-soft: #e7f0fb; --dev-border: #c3ddf3;
+    --good: #1f7a4d; --warn-soft: #fdeede; --warn-border: #f2cf9e; --warn-ink: #8a4b12;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14100f; --surface: #1d1817; --surface-2: #251e1c;
+    --ink: #f0e9e6; --ink-soft: #cabfba; --muted: #97897f;
+    --border: #2c2320; --border-strong: #3a2f2b;
+    --accent: #f2637d; --accent-ink: #f78398; --accent-soft: #331a20;
+    --owner: #e8b45f; --owner-soft: #2a2011; --owner-border: #4a3a1a;
+    --dev: #74b0ee; --dev-soft: #122334; --dev-border: #244660;
+    --good: #58c98d; --warn-soft: #2c2113; --warn-border: #4a3a1a; --warn-ink: #e8b45f;
+  }
+
+  /* ============ Base ============ */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.65;
+    color: var(--ink-soft); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-ink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ============ Layout ============ */
+  .wrap { display: flex; align-items: flex-start; }
+  .toc { position: sticky; top: 0; width: 256px; flex: none; height: 100vh; overflow-y: auto; background: var(--surface); border-right: 1px solid var(--border); padding: 26px 0; }
+  .toc-brand { padding: 0 22px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .toc-brand b { display: block; color: var(--ink); font-size: 13px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+  .toc-brand span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; letter-spacing: .02em; }
+  .toc nav a { display: block; padding: 6px 22px; font-size: 13px; color: var(--muted); border-left: 2px solid transparent; }
+  .toc nav a:hover { color: var(--ink); background: var(--surface-2); text-decoration: none; }
+  .toc .grp { padding: 15px 22px 5px; font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--accent-ink); }
+
+  .main { flex: 1 1 auto; min-width: 0; padding: 0 0 96px; }
+  .col { max-width: 820px; margin: 0 auto; padding: 0 40px; }
+
+  /* ============ Hero ============ */
+  .hero { background: radial-gradient(120% 140% at 100% 0%, var(--accent-soft) 0%, transparent 55%), var(--surface); border-bottom: 1px solid var(--border); padding: 46px 0 34px; margin-bottom: 40px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--accent-ink); text-transform: uppercase; }
+  .hero h1 { color: var(--ink); font-size: 34px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; margin: 14px 0 10px; text-wrap: balance; }
+  .hero p { font-size: 16px; max-width: 60ch; margin: 0; }
+  .flowline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .flowline .chip { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .flowline .arr { color: var(--muted); align-self: center; font-size: 13px; }
+
+  /* ============ Typography ============ */
+  h2 { color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin: 52px 0 6px; scroll-margin-top: 24px; }
+  h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; font-weight: 800; }
+  h2 + .lede { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
+  h3 { color: var(--ink); font-size: 16px; font-weight: 700; margin: 30px 0 8px; }
+  p { margin: 0 0 14px; }
+  .col ul, .col ol { margin: 0 0 14px; padding-left: 22px; }
+  .col li { margin-bottom: 7px; }
+  strong { color: var(--ink); font-weight: 700; }
+  code { font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace; font-size: .875em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--accent-ink); white-space: nowrap; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 44px 0; }
+
+  /* ============ Role blocks ============ */
+  .tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 6px; border: 1px solid; vertical-align: middle; }
+  .tag.owner { color: var(--owner); background: var(--owner-soft); border-color: var(--owner-border); }
+  .tag.dev { color: var(--dev); background: var(--dev-soft); border-color: var(--dev-border); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* ============ Cards / callouts ============ */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px 22px; box-shadow: var(--shadow); margin: 18px 0; }
+  .note { border-left: 3px solid var(--accent); background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px; }
+  .note.gotcha { border-left-color: var(--warn-ink); background: var(--warn-soft); border-color: var(--warn-border); }
+  .note.gotcha strong { color: var(--warn-ink); }
+  .note.dep { border-left-color: var(--dev); background: var(--dev-soft); border-color: var(--dev-border); }
+  .note.dep strong { color: var(--dev); }
+  .note .lbl { display: block; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 4px; }
+  .note.gotcha .lbl { color: var(--warn-ink); }
+  .note.dep .lbl { color: var(--dev); }
+
+  /* ============ Steps ============ */
+  ol.steps { list-style: none; padding: 0; margin: 16px 0; counter-reset: s; }
+  ol.steps > li { position: relative; padding: 3px 0 14px 42px; margin: 0; counter-increment: s; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  ol.steps > li:not(:last-child)::after { content: ""; position: absolute; left: 13px; top: 30px; bottom: 2px; width: 1px; background: var(--border-strong); }
+
+  /* ============ Tables ============ */
+  .tbl-scroll { overflow-x: auto; margin: 18px 0; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); color: var(--ink); font-weight: 700; font-size: 12px; letter-spacing: .02em; }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+
+  /* ============ Code ============ */
+  .code { position: relative; background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 12px; margin: 16px 0; overflow: hidden; }
+  .code-h { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--code-border); }
+  .code-h .lang { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #a3948d; }
+  .code-h .file { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: #7d6d66; }
+  .code pre { margin: 0; padding: 15px 16px; overflow-x: auto; }
+  .code code { font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 12.75px; line-height: 1.6; background: none; border: 0; padding: 0; color: var(--code-ink); white-space: pre; }
+  .k { color: #c792ea; } .s { color: #c3e88d; } .c { color: #6d6560; font-style: italic; } .f { color: #82aaff; } .t { color: #ffcb6b; } .n { color: #f78c6c; } .a { color: #f07178; }
+
+  /* ============ pod-package anatomy ============ */
+  .pod { overflow-x: auto; margin: 14px 0; }
+  .pod-row { display: inline-flex; font-family: ui-monospace, Consolas, monospace; font-size: 15px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-strong); }
+  .pod-seg { padding: 8px 9px 7px; text-align: center; border-right: 1px solid var(--border-strong); background: var(--surface); }
+  .pod-seg:last-child { border-right: 0; }
+  .pod-seg b { display: block; color: var(--ink); font-weight: 700; letter-spacing: .02em; }
+  .pod-seg span { display: block; font-size: 9.5px; font-family: -apple-system, sans-serif; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+
+  /* ============ Glossary ============ */
+  dl.gloss { margin: 16px 0; }
+  dl.gloss dt { color: var(--ink); font-weight: 700; font-size: 14.5px; margin-top: 14px; }
+  dl.gloss dd { margin: 3px 0 0; font-size: 14px; }
+
+  /* ============ Refs ============ */
+  .refs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin: 16px 0; }
+  .refs a { display: block; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .refs a span { display: block; font-size: 12px; color: var(--muted); }
+
+  footer { max-width: 820px; margin: 40px auto 0; padding: 22px 40px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+
+  @media (max-width: 940px) {
+    .toc { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 18px 0; }
+    .toc nav { columns: 2; padding: 0 8px; }
+    .wrap { display: block; }
+    .refs { grid-template-columns: 1fr; }
+    .col { padding: 0 22px; }
+    .hero { padding: 32px 0 26px; }
+    .hero h1 { font-size: 27px; }
+  }
+</style>
+
+<div class="wrap">
+  <aside class="toc">
+    <div class="toc-brand">
+      <b>Lulu Explainer</b>
+      <span>CradleHQ · print-on-demand</span>
+    </div>
+    <nav>
+      <div class="grp">Orientation</div>
+      <a href="#what">1 · What Lulu is</a>
+      <a href="#model">2 · Our specific setup</a>
+      <a href="#money">3 · Money flow</a>
+      <div class="grp">The two sides</div>
+      <a href="#owner">4 · What you set up</a>
+      <a href="#code">5 · What the code does</a>
+      <div class="grp">Build &amp; verify</div>
+      <a href="#samples">6 · Code samples</a>
+      <a href="#spec">7 · Print-spec primer</a>
+      <div class="grp">Reference</div>
+      <a href="#refs">8 · Reference links</a>
+      <a href="#gloss">9 · Glossary</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="hero">
+      <div class="col">
+        <span class="eyebrow">◆ Owner ramp-up · money OUT</span>
+        <h1>Lulu, for printing a physical storybook</h1>
+        <p>What Lulu print-on-demand is, what <strong>you</strong> set up on the business side, and what the
+        <strong>code</strong> does — for letting Plus users order a real printed book. Note up front:
+        <strong>this feature depends on Stripe first</strong>.</p>
+        <div class="flowline">
+          <span class="chip">Customer pays us (Stripe)</span><span class="arr">→</span>
+          <span class="chip">We build a print PDF</span><span class="arr">→</span>
+          <span class="chip">POST paid print job</span><span class="arr">→</span>
+          <span class="chip">Lulu prints &amp; ships</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="col">
+
+      <!-- 1 -->
+      <h2 id="what"><span class="n">1</span>What Lulu is</h2>
+      <p class="lede">A print-on-demand company: they print and ship one book at a time, no inventory.</p>
+      <p>Lulu (lulu.com) manufactures books to order. There's no warehouse, no minimum run — when a customer
+      wants a copy, we send Lulu a finished PDF and a shipping address, and Lulu prints that single book and
+      drop-ships it to the customer. We never touch paper.</p>
+      <p>The piece we integrate with is the <strong>Lulu Print API</strong> (their developer product, at
+      <a href="https://developers.lulu.com/">developers.lulu.com</a>) — <em>not</em> the consumer
+      self-publishing wizard on the main site. The API is how our server submits print jobs automatically.</p>
+      <div class="note"><span class="lbl">The key idea</span>Lulu is a <strong>vendor we pay</strong>, like a printing shop with an API. Our code assembles a print-ready PDF, asks Lulu what it'll cost, and — after the customer has paid us — tells Lulu to print and ship it.</div>
+
+      <!-- 2 -->
+      <h2 id="model"><span class="n">2</span>Our specific setup</h2>
+      <p class="lede">From <code>sv2-s12-print.md</code> + <code>lulu-print-handoff.md</code> — and one decision that changed the whole shape of it.</p>
+      <div class="note dep"><span class="lbl">The decision that matters most (resolved 2026-07-01)</span>Lulu's Print API checkout is <strong>"External to Lulu."</strong> <strong>We</strong> are the merchant of record: the customer pays <strong>us via our own Stripe checkout</strong>, and only then do we POST a <em>paid</em> print job that Lulu auto-charges to a <strong>company card</strong>. So <strong>print depends on the Stripe work</strong> — see the <a href="stripe-explainer.html">Stripe explainer</a>.</div>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Decision</th><th>What we chose</th></tr>
+        <tr><td>Who can order</td><td><strong>Plus</strong> (and later Pro) users only. A print doesn't consume AI credits.</td></tr>
+        <tr><td>Checkout</td><td><strong>External</strong> — we collect payment via <strong>Stripe</strong>, then submit a paid print job. Lulu never shows the customer a checkout.</td></tr>
+        <tr><td>PDF generation</td><td><strong>OpenPDF, server-side, 300 DPI</strong> — reproduces <em>every</em> v2 page type (Letter / BirthDay / People / MomentHero / Gallery / ChapterDivider / Bump). This is a <em>separate</em> renderer from the client's html2canvas path.</td></tr>
+        <tr><td>Environments</td><td><strong>Sandbox first</strong>, then production — separate accounts and credentials.</td></tr>
+        <tr><td>Multi-copy</td><td>Support ordering several copies (e.g. for grandparents) in one order.</td></tr>
+        <tr><td>Page-count floor</td><td>Short books may fall <strong>below Lulu's minimum</strong> — we need a "not enough content yet" gate or filler pages.</td></tr>
+      </table>
+      </div>
+
+      <!-- 3 -->
+      <h2 id="money"><span class="n">3</span>Money flow</h2>
+      <p class="lede">Lulu is the <strong>money-OUT</strong> side — the mirror image of Stripe.</p>
+      <div class="card"><p style="margin:16px 0;"><strong>Customer</strong> &nbsp;→ pays →&nbsp; <strong>us, via Stripe</strong> (money IN) &nbsp;&nbsp;•&nbsp;&nbsp; <strong>us</strong> &nbsp;→ pays →&nbsp; <strong>Lulu, via company card</strong> (money OUT) &nbsp;→&nbsp; Lulu prints &amp; ships.</p></div>
+      <p>Because the customer pays us, not Lulu, <strong>Lulu needs a company card on file — not a payout bank
+      account.</strong> (Lulu also has a separate retail/bookstore product where <em>they</em> sell your book and
+      pay <em>you</em> royalties — we are deliberately <strong>not</strong> using that, so no bank account gets
+      linked.) Our margin is the gap between what the customer paid us and Lulu's wholesale print + ship cost.</p>
+
+      <hr>
+
+      <!-- 4 -->
+      <h2 id="owner"><span class="n">4</span><span class="tag owner"><span class="dot" style="background:var(--owner)"></span>Owner</span> &nbsp;What you set up</h2>
+      <p class="lede">Account creation, a company card, credentials — and confirming the print spec that the code is blocked on.</p>
+      <p>The step-by-step, non-technical walkthrough is in
+      <a href="plans/storybook-v2/handoffs/lulu-account-handoff.md"><code>handoffs/lulu-account-handoff.md</code></a>,
+      and the full list of spec questions is in
+      <a href="plans/storybook-v2/lulu-print-handoff.md"><code>lulu-print-handoff.md</code></a>. Here's the shape of it:</p>
+      <ol class="steps">
+        <li><strong>Create the Lulu developer account</strong> under the LLC at <a href="https://developers.lulu.com/">developers.lulu.com</a> — the <strong>Print API</strong> product, not the consumer publishing wizard.</li>
+        <li><strong>Business + tax profile + company card</strong> — Lulu charges this card per print order. No bank account (we're not using their retail royalties product).</li>
+        <li><strong>Get credentials for BOTH sandbox and production</strong> — a <strong>client key + client secret</strong> per environment. The developer builds against sandbox first. Note both base URLs.</li>
+        <li><strong>Confirm the print spec</strong> from Lulu's product catalog — this is the part that <em>unblocks engineering</em> (see the callout below).</li>
+        <li><strong>Check two policy points:</strong> is <strong>white-label / unbranded shipping</strong> available (the keepsake shouldn't arrive branded "Lulu"), and does Lulu's API <strong>permit order submission from a subscription app</strong>?</li>
+      </ol>
+      <div class="note gotcha"><span class="lbl">This is the hard blocker — the print spec</span>The code that builds the PDF can't be finalized until these numbers come back from Lulu's catalog. Each one changes the renderer:
+        <div class="tbl-scroll" style="margin-top:12px;">
+        <table>
+          <tr><th>Confirm</th><th>Why the code needs it</th></tr>
+          <tr><td><strong>Trim size</strong> + <strong>POD package id</strong></td><td>Every page-layout dimension derives from the trim size (drafts assume 8×10"). The <code>pod_package_id</code> is the exact product we print.</td></tr>
+          <tr><td><strong>Bleed</strong> (commonly 0.125")</td><td>How far artwork must extend past the trim so edge-to-edge photos don't show white after cutting.</td></tr>
+          <tr><td><strong>Color: RGB or CMYK?</strong></td><td>Our PDF tooling outputs RGB. If Lulu requires CMYK, that's extra conversion work — need to know up front.</td></tr>
+          <tr><td><strong>Fonts embedded?</strong></td><td>Affects our script/display fonts — they must ship inside the PDF, not be assumed on Lulu's machines.</td></tr>
+          <tr><td><strong>Min / max page count</strong></td><td>A 2-chapter book may fall below the minimum → the "not enough content yet" gate.</td></tr>
+          <tr><td><strong>Cover spec + spine formula</strong></td><td>Cover is usually a separate PDF; spine width depends on page count + paper.</td></tr>
+        </table>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <h2 id="code"><span class="n">5</span><span class="tag dev"><span class="dot" style="background:var(--dev)"></span>Dev</span> &nbsp;What the code does</h2>
+      <p class="lede">Get a token, build two PDFs, price it, take payment via Stripe, submit a paid print job.</p>
+      <ol>
+        <li><strong>Authenticate</strong> — exchange the client key/secret for a short-lived OAuth <em>access token</em> (client-credentials grant). Tokens expire in minutes; fetch a fresh one as needed.</li>
+        <li><strong>Assemble the PDFs</strong> — with <strong>OpenPDF</strong>, server-side, at <strong>300 DPI</strong> with embedded fonts, reproducing every v2 page type. Interior and cover are typically separate PDFs. Host them at URLs Lulu can fetch.</li>
+        <li><strong>Estimate cost</strong> — call the cost-calculation endpoint <em>before</em> checkout so we can show the customer print + shipping + delivery time.</li>
+        <li><strong>Collect payment</strong> — via <a href="stripe-explainer.html">our own Stripe checkout</a> (this is the external-checkout dependency).</li>
+        <li><strong>Submit a paid print job</strong> — POST to <code>/print-jobs/</code> with the package id, PDF URLs, quantity, and shipping address. Lulu charges the company card and prints.</li>
+        <li><strong>(Optional) Order-status webhook</strong> — subscribe to Lulu's status updates to notify the user when the book ships.</li>
+      </ol>
+      <div class="note"><span class="lbl">The min-page gate</span>Before offering "Order a printed book," check the assembled page count against Lulu's confirmed minimum. Below it, either pad with blank pages or show "add a few more memories first" instead of letting the order fail at Lulu.</div>
+
+      <!-- 6 -->
+      <h2 id="samples"><span class="n">6</span>Code samples</h2>
+      <p class="lede">Real Lulu Print API calls. Base URL is <code>https://api.lulu.com</code> (prod) or <code>https://api.sandbox.lulu.com</code> (sandbox). Field names are from the current OpenAPI spec.</p>
+
+      <h3>① Get an OAuth token</h3>
+      <p>Client-credentials grant. The <code>Authorization</code> header is <code>Basic base64(client_key:client_secret)</code>. The token comes back with an <code>expires_in</code> (minutes) — cache it, refresh when stale.</p>
+      <div class="code">
+        <div class="code-h"><span class="lang">bash</span></div>
+        <pre><code>curl -X POST <span class="s">https://api.lulu.com/auth/realms/glasstree/protocol/openid-connect/token</span> \
+  -H <span class="s">'Content-Type: application/x-www-form-urlencoded'</span> \
+  -H <span class="s">'Authorization: Basic BASE64(client_key:client_secret)'</span> \
+  -d <span class="s">'grant_type=client_credentials'</span>
+<span class="c"># → { "access_token": "eyJ…", "expires_in": 3600, … }</span></code></pre>
+      </div>
+      <div class="code">
+        <div class="code-h"><span class="lang">Java</span><span class="file">LuluClient.java (sketch)</span></div>
+        <pre><code><span class="k">private</span> <span class="t">String</span> <span class="f">fetchToken</span>() <span class="k">throws</span> <span class="t">Exception</span> {
+    <span class="t">String</span> basic = <span class="t">Base64</span>.<span class="f">getEncoder</span>().<span class="f">encodeToString</span>(
+        (clientKey + <span class="s">":"</span> + clientSecret).<span class="f">getBytes</span>(<span class="t">UTF_8</span>));
+
+    <span class="t">HttpRequest</span> req = <span class="t">HttpRequest</span>.<span class="f">newBuilder</span>()
+        .<span class="f">uri</span>(<span class="t">URI</span>.<span class="f">create</span>(luluBase + <span class="s">"/auth/realms/glasstree/protocol/openid-connect/token"</span>))
+        .<span class="f">header</span>(<span class="s">"Authorization"</span>, <span class="s">"Basic "</span> + basic)
+        .<span class="f">header</span>(<span class="s">"Content-Type"</span>, <span class="s">"application/x-www-form-urlencoded"</span>)
+        .<span class="f">POST</span>(<span class="t">BodyPublishers</span>.<span class="f">ofString</span>(<span class="s">"grant_type=client_credentials"</span>))
+        .<span class="f">build</span>();
+    <span class="c">// parse access_token out of the JSON response; cache until expires_in</span>
+    <span class="k">return</span> <span class="f">parseAccessToken</span>(http.<span class="f">send</span>(req, <span class="t">BodyHandlers</span>.<span class="f">ofString</span>()).<span class="f">body</span>());
+}</code></pre>
+      </div>
+
+      <h3>② Estimate cost before checkout <span class="tag dev" style="font-size:9.5px">POST /print-job-cost-calculations/</span></h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">json</span></div>
+        <pre><code>{
+  <span class="a">"line_items"</span>: [
+    { <span class="a">"pod_package_id"</span>: <span class="s">"0600X0900FCSTDPB080CW444GXX"</span>,
+      <span class="a">"page_count"</span>: <span class="n">48</span>, <span class="a">"quantity"</span>: <span class="n">2</span> }
+  ],
+  <span class="a">"shipping_address"</span>: { <span class="a">"country_code"</span>: <span class="s">"US"</span>, <span class="a">"postcode"</span>: <span class="s">"62701"</span> },
+  <span class="a">"shipping_option"</span>: <span class="s">"GROUND"</span>
+}
+<span class="c">// → line_item_costs[], shipping_cost, total_cost_incl_tax, currency …</span></code></pre>
+      </div>
+
+      <h3>③ Submit a paid print job <span class="tag dev" style="font-size:9.5px">POST /print-jobs/</span></h3>
+      <p>Sent with <code>Authorization: Bearer &lt;access_token&gt;</code>. <code>printable_normalization</code> points Lulu at our hosted interior + cover PDFs; <code>shipping_level</code> is one of <code>MAIL</code> / <code>PRIORITY_MAIL</code> / <code>GROUND</code> / <code>EXPEDITED</code> / <code>EXPRESS</code>.</p>
+      <div class="code">
+        <div class="code-h"><span class="lang">json</span><span class="file">POST /print-jobs/</span></div>
+        <pre><code>{
+  <span class="a">"contact_email"</span>: <span class="s">"ops@cradlehq.app"</span>,
+  <span class="a">"external_id"</span>: <span class="s">"cradlehq-order-8842"</span>,
+  <span class="a">"line_items"</span>: [{
+    <span class="a">"title"</span>: <span class="s">"Lily's First Year"</span>,
+    <span class="a">"pod_package_id"</span>: <span class="s">"0600X0900FCSTDPB080CW444GXX"</span>,
+    <span class="a">"page_count"</span>: <span class="n">48</span>,
+    <span class="a">"quantity"</span>: <span class="n">2</span>,
+    <span class="a">"printable_normalization"</span>: {
+      <span class="a">"interior"</span>: { <span class="a">"source_url"</span>: <span class="s">"https://…/lily-interior.pdf"</span>,
+                    <span class="a">"source_md5_sum"</span>: <span class="s">"…"</span> },
+      <span class="a">"cover"</span>:    { <span class="a">"source_url"</span>: <span class="s">"https://…/lily-cover.pdf"</span>,
+                    <span class="a">"source_md5_sum"</span>: <span class="s">"…"</span> }
+    }
+  }],
+  <span class="a">"shipping_address"</span>: {
+    <span class="a">"name"</span>: <span class="s">"Jane Doe"</span>, <span class="a">"street1"</span>: <span class="s">"123 Main St"</span>,
+    <span class="a">"city"</span>: <span class="s">"Springfield"</span>, <span class="a">"state_code"</span>: <span class="s">"IL"</span>,
+    <span class="a">"postcode"</span>: <span class="s">"62701"</span>, <span class="a">"country_code"</span>: <span class="s">"US"</span>,
+    <span class="a">"phone_number"</span>: <span class="s">"+1 217 555 0134"</span>, <span class="a">"email"</span>: <span class="s">"jane@example.com"</span>
+  },
+  <span class="a">"shipping_level"</span>: <span class="s">"GROUND"</span>
+}</code></pre>
+      </div>
+      <div class="note gotcha"><span class="lbl">CradleHQ gotcha · the 401 trap</span>Same trap as the Stripe work: an uncaught <code>RuntimeException</code> in a Spring controller surfaces as a <strong>401, not a 500</strong>. Wrap every Lulu API call and <strong>catch <code>Exception</code></strong> (not just <code>IOException</code>), returning a mapped <code>ApiError</code>.</div>
+
+      <!-- 7 -->
+      <h2 id="spec"><span class="n">7</span>Print-spec primer</h2>
+      <p class="lede">The vocabulary behind the numbers you'll confirm with Lulu.</p>
+      <h3>Trim, bleed &amp; safe area</h3>
+      <p><strong>Trim size</strong> is the finished book's dimensions after cutting (e.g. 8×10"). <strong>Bleed</strong>
+      is the extra ~0.125" of artwork that extends <em>past</em> the trim line — because industrial cutters
+      aren't pixel-perfect, any photo that should reach the edge must run into the bleed, or a sliver of white
+      paper shows. The mirror of bleed is the <strong>safe area</strong>: keep text and faces a comfortable
+      margin <em>inside</em> the trim so nothing important gets cut off.</p>
+      <h3>RGB vs CMYK</h3>
+      <p>Screens mix <strong>R</strong>ed/<strong>G</strong>reen/<strong>B</strong>lue light; presses mix
+      <strong>C</strong>yan/<strong>M</strong>agenta/<strong>Y</strong>ellow/blac<strong>K</strong> ink. RGB can
+      show vivid colors ink can't, so an uncontrolled RGB→CMYK conversion can dull or shift colors. If Lulu
+      requires CMYK, we convert deliberately; if they accept RGB, we're simpler. <em>Confirm which.</em></p>
+      <h3>DPI / resolution</h3>
+      <p><strong>DPI</strong> (dots per inch) is print sharpness. <strong>300 DPI</strong> is the print standard:
+      an 8" wide page needs ~2400 px of image. Phone photos are typically 3000+ px wide — plenty — but a small
+      image blown up across a page will look soft. The renderer targets 300 DPI at the confirmed trim size.</p>
+      <h3>Cover &amp; spine</h3>
+      <p>The cover is usually one wide PDF spanning <strong>back + spine + front</strong> as a single wrap. The
+      <strong>spine width</strong> isn't fixed — it grows with page count and paper thickness, so it's computed
+      per book from Lulu's formula. Interior pages are their own PDF.</p>
+      <h3>Anatomy of a <code>pod_package_id</code></h3>
+      <p>The product SKU is a 27-character code that spells out the physical spec. Confirm the exact one from
+      Lulu's catalog — here's how to read the example above:</p>
+      <div class="pod">
+        <div class="pod-row">
+          <div class="pod-seg"><b>0600X0900</b><span>Trim 6×9"</span></div>
+          <div class="pod-seg"><b>FC</b><span>Full color</span></div>
+          <div class="pod-seg"><b>STD</b><span>Std quality</span></div>
+          <div class="pod-seg"><b>PB</b><span>Paperback</span></div>
+          <div class="pod-seg"><b>080</b><span>Paper</span></div>
+          <div class="pod-seg"><b>CW</b><span>Coated white</span></div>
+          <div class="pod-seg"><b>444</b><span>PPI</span></div>
+          <div class="pod-seg"><b>G</b><span>Gloss</span></div>
+          <div class="pod-seg"><b>XX</b><span>—</span></div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);">Segments: trim size · color · print quality · bind · paper · paper-type · PPI · finish · linen/foil. Our real trim (likely 8×10") gives a different code — that's the number to lock in <a href="plans/storybook-v2/lulu-print-handoff.md">§C of the handoff</a>.</p>
+
+      <hr>
+
+      <!-- 8 -->
+      <h2 id="refs"><span class="n">8</span>Reference links</h2>
+      <p class="lede">Current as of July 2026. Anything marked <em>confirm in account</em> can't be read from docs alone.</p>
+      <div class="refs">
+        <a href="https://developers.lulu.com/">Lulu Developer Portal<span>Print API home, client keys, guides</span></a>
+        <a href="https://api.lulu.com/docs/">Print API Reference (Swagger)<span>Every endpoint &amp; schema, interactive</span></a>
+        <a href="https://developers.sandbox.lulu.com/">Sandbox portal<span>Separate account — build here first</span></a>
+        <a href="https://api.lulu.com/api-docs/openapi-specs/openapi_public.yml">OpenAPI spec (YAML)<span>Authoritative field names &amp; enums</span></a>
+        <a href="https://assets.lulu.com/media/guides/en/lulu-api-getting-started-guide.pdf">Getting-Started Guide (PDF)<span>Auth + first print job walkthrough</span></a>
+        <a href="https://developers.lulu.com/price-calculator">Pricing / package catalog<span>Confirm trim size + pod_package_id here</span></a>
+      </div>
+
+      <!-- 9 -->
+      <h2 id="gloss"><span class="n">9</span>Glossary</h2>
+      <dl class="gloss">
+        <dt>Print-on-demand (POD)</dt><dd>Printing one book at a time when it's ordered — no inventory, no minimum run.</dd>
+        <dt>Print API</dt><dd>Lulu's developer product for submitting print jobs programmatically — distinct from the consumer self-publishing wizard.</dd>
+        <dt>External checkout</dt><dd>Lulu's model where <em>we</em> collect the customer's payment (via Stripe) and then submit a <em>paid</em> job; Lulu charges our company card. It's why print depends on the Stripe work.</dd>
+        <dt><code>pod_package_id</code></dt><dd>The 27-character SKU encoding the exact physical product (trim, color, bind, paper, finish). Confirmed from Lulu's catalog.</dd>
+        <dt>Trim size</dt><dd>The finished dimensions of the book after cutting (e.g. 8×10").</dd>
+        <dt>Bleed</dt><dd>Extra artwork extending past the trim line so edge-to-edge images don't show white after the cut.</dd>
+        <dt>Interior vs cover PDF</dt><dd>Two separate files: the interior (all inside pages) and the cover (back + spine + front as one wrap).</dd>
+        <dt>Spine</dt><dd>The bound edge; its width grows with page count and paper thickness, computed per book.</dd>
+        <dt>Client-credentials (OAuth)</dt><dd>A machine-to-machine auth grant: swap a client key + secret for a short-lived access token, no user login.</dd>
+        <dt>Sandbox</dt><dd>Lulu's test environment (separate account + base URL) where we build and place fake orders before touching production.</dd>
+        <dt>White-label</dt><dd>Unbranded shipping so the package arrives as the keepsake, not marked "Lulu." A policy point to confirm.</dd>
+      </dl>
+
+    </div>
+    <footer>
+      CradleHQ · Lulu onboarding explainer · generated for owner ramp-up before the print build sessions.
+      Companion: <a href="stripe-explainer.html">stripe-explainer.html</a> (print depends on it). Source plans:
+      <code>plans/storybook-v2/sv2-s12-print.md</code>, <code>lulu-print-handoff.md</code>.
+    </footer>
+  </main>
+</div>

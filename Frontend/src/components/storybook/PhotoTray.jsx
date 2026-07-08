@@ -1,39 +1,31 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { X, Upload } from "lucide-react";
 import { apiUpload } from "@/lib/api";
-import { openCropModal } from "@/lib/imageUtils";
 
 // Bottom-sheet photo picker — choose from already-added photos or upload a new
 // one to the chapter. Used by the ScrapbookBuilder.
 export default function PhotoTray({ photos, chapterId, onSelect, onUploadDone, onClose }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const cancelCropRef = useRef(null);
 
-  useEffect(() => () => cancelCropRef.current?.(), []);
-
+  // Upload the raw file straight away — no orientation crop here. The caller's assignPhotoToSlot
+  // runs the single slot-shaped crop (openSlotCropModal) once the photo lands, so the user isn't
+  // asked to pick landscape/portrait only to have it re-cropped to the slot (sv2-s7.5b fix 2).
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    cancelCropRef.current = openCropModal(
-      file,
-      async ({ blob }) => {
-        cancelCropRef.current = null;
-        setUploading(true);
-        setUploadError(null);
-        try {
-          const form = new FormData();
-          form.append('file', blob, 'photo.jpg');
-          const data = await apiUpload(`/storybook/${chapterId}/chapter-photos`, form);
-          onUploadDone({ sourceKey: data.key, url: data.url, label: data.label || '' });
-        } catch {
-          setUploadError('Upload failed. Please try again.');
-          setUploading(false);
-        }
-      },
-      () => { cancelCropRef.current = null; },
-    );
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file, file.name || 'photo.jpg');
+      const data = await apiUpload(`/storybook/${chapterId}/chapter-photos`, form);
+      onUploadDone({ sourceKey: data.key, url: data.url, label: data.label || '' });
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+      setUploading(false);
+    }
   }
 
   return (

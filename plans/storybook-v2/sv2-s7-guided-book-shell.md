@@ -1,59 +1,48 @@
-# SV2-S7 — Guided Book Shell   *(was sv2-s6; renumbered 2026-06-27)*
+# SV2-S7 — Guided Book Shell  (INDEX — split into s7a + s7b on 2026-06-28)
 
-**Status: Not started — REFRAMED 2026-06-27 (read the reframe note first).**
-**Depends on:** the page types (s1 Letter, s2 Birth, s3 People, **s5 Family Tree**) + the **s6 fill-in
-page types** (growth spread, prompt pages, bump page, chapter divider). NOT the dropped moment-hero/firsts plans.
-**Reference:** `planning.md` 2026-06-27 direction update; `sv2-s7-plan-default-book.md` (locked arcs);
-mockups `mockups/s6-guided-first-year-book.html` + `mockups/s6-guided-pregnancy-first-year-book.html`.
+**Status: SPLIT — this file is now the S7 overview. The buildable specs are:**
+- **`sv2-s7a-books-and-library.md`** — the book container: `books` table + backend CRUD + library /
+  switcher / new-book chooser + per-book theme/cover + remove the AI card.
+- **`sv2-s7b-guided-arc.md`** — the guided content: `guidedBookArc.js` config + **Model A** instantiation
+  + fill mechanics (pick / locked sequence / auto / prefill) + progress + per-page prompt copy.
 
----
-
-## ⭐ REFRAME (2026-06-27) — read before the original plan below
-
-The guided book is **a pre-designed FILL-IN book, not an auto-derived page-flow.** This changes the
-shell's job and **removes** the original plan's auto-derivation / "generate" / completion-state-machine
-framing (and the `firsts_chapter` auto section — the old moment-hero/firsts plans are dropped). As-now scope:
-
-1. **Page-sequence config** (`guidedBookArc.js`) — a **fixed, ordered list of specific page templates**
-   (the 25-page "First Year" arc; the 30-page "Bump to One" arc front-inserts its pregnancy pages when
-   the profile has pregnancy data). Each entry = a concrete template + a **prompt/label** + its kind
-   (**auto** / **fill** / **pick**). The two mockups are the authoritative page lists.
-2. **Instantiate + fill** — opening the guided book seeds a locked page sequence; the user fills each
-   **fill** page by **reusing the existing ScrapbookBuilder** drag-photo/type-text mechanics. **auto**
-   pages render from data (Birth Stats, Your People, Family Tree, bump size tag); **pick** pages let the
-   user choose which First for a moment-hero slot. **Pages are locked** (no add/remove/reorder) in v1.
-3. **`ChapterDividerPage.jsx`** — still needed (see §2 below).
-4. **Entry point + mode chooser** in StorybookTab — guided book is the **default/recommended** option
-   (small "Recommended" badge); the freeform scrapbook stays as the advanced option.
-5. **Multi-book IS in v1 (decided 2026-06-27).** This **needs a new `books` table** (supersedes the earlier
-   "no new table" assumption). Shape ≈ `books(id, baby_profile_id FK, type 'guided'|'freeform', title, theme,
-   cover_photo_url, cover_subtitle, sort_order, created_at)`. Existing `storybook_chapters` get a **`book_id` FK**;
-   a migration creates **one default book per baby** and reparents current chapters into it (lossless — no user
-   sees a change). Guided book = the same row with `type='guided'` + the locked page sequence; the cover/theme
-   fields that live on `baby_profiles` today move onto (or are read per-book from) `books`. Pages/arc config +
-   the user's data still drive page *content*; the table just lets a baby own **more than one** book.
-6. **Remove the AI "Write a Period Chapter" card** from the Storybook tab. AI page-gen is deferred (V2
-   direction: core ships free, no AI); the only AI is the separate **opt-in paid per-field assist (s10/s11)**.
-   So Freeform = layouts / photos / text only — **no AI surface anywhere in s7**. (Decided 2026-06-27.)
-   The existing wizard code stays in the repo, just unmounted from the tab; s10/s11 re-introduces AI on its own terms.
-
-### Book library / new-book chooser (mocked 2026-06-27)
-- **Most users have ONE book**; some may want more. So **don't make a book shelf the landing page.**
-  - **0 books** → go straight to the **new-book chooser** dialog (Guided *Recommended* vs Freeform) → into the book.
-  - **1 book** → land **inside that book** (cover + guided/freeform view), with a quiet book-switcher (e.g. a
-    "Lily's First Year ▾" header control) — no mandatory shelf.
-  - **2+ books** → the switcher opens a **"Your Books" shelf**: cover-thumb cards (type badge, theme, progress) +
-    a `⋯` menu (rename / duplicate / delete / export) + a "Start a new book" tile.
-- **Multiple books per baby — IN v1 (decided 2026-06-27).** Kept low-friction for the common single-book case
-  via the landing logic above (the shelf only appears at 2+ books). Backed by the new `books` table (item #5).
-- **Mockups:** `mockups/s7-guided-book-in-app.html` (in-tab guided view), `mockups/s7-book-library-and-chooser.html`
-  (shelf + chooser), `mockups/s7-guided-book-shell.html` (abstract flow).
-
-Build **sv2-s5** (Family Tree) and **sv2-s6** (fill-in page types) before this. `ChapterDividerPage`
-+ the page-sequence config are the core new pieces; the page renderers already exist.
+**Build order:** s6.5 → **s7a → s7b** → s8. s7b depends on s7a (a guided book is a `books` row).
+**Depends on (both):** the page types (s1–s6.5). **No new page types in S7** — every renderer exists.
+**Reference:** `sv2-s7-plan-default-book.md` (the LOCKED page-by-page arc); `planning.md` 2026-06-27
+direction update; mockups `mockups/s6-guided-*.html`, `mockups/s7-*.html`.
 
 ---
 
-*(The original 2026-06-22 plan — auto-derivation, completion-state machine, the old GUIDED_BOOK_ARC
-with a firsts_chapter — was trimmed 2026-06-27 when the model became a pre-designed fill-in book.
-It's in git history if needed.)*
+## What S7 is (the model)
+The guided book is **a pre-designed FILL-IN book, not an auto-derived page-flow.** *We* lock the page
+sequence and each page's layout; the user **drags photos / types text** into the slots (reusing the
+ScrapbookBuilder fill mechanics). Page kinds: **auto** (renders from data), **prefill** (seeded but
+editable), **fill** (empty designed page), **pick** (user chooses which First). Pages are **locked** (no
+add/remove/reorder) in v1. The freeform scrapbook coexists as the advanced mode.
+
+This **supersedes** the original 2026-06-22 auto-derivation / "generate" / completion-state-machine plan
+and the dropped `firsts_chapter` (old moment-hero/firsts plans). That draft is in git history.
+
+## Cross-cutting decisions (apply to both s7a + s7b)
+- **Model A** (decided 2026-06-28): a book's pages are real `storybook_chapters` rows; a guided book
+  **materializes** one row per arc page at creation (detail in s7b). "Locked" = builder hides
+  add/remove/reorder for `type='guided'`.
+- **Multi-book in v1** via the `books` table; low-friction landing (shelf only at 2+ books) — detail in s7a.
+- **Guided = default/recommended** in the chooser; **no AI surface in S7** (the "Write a Period Chapter"
+  card is removed; s10/s11 reintroduce AI as the opt-in per-field assist).
+
+### Existing books — CLEAN BREAK, no migration (DECIDED 2026-06-28) — *canonical reference*
+**Pre-prod, only the dev account has a book**, so a lossless migration buys nothing. We wipe the dev data
+and build fresh. Supersedes the earlier "reparent existing chapters losslessly" plan.
+- **No reparenting / backfill.** Plain schema change: create `books`, add **`book_id` NOT NULL** FK to
+  `storybook_chapters` (table cleared first), cover/theme columns onto `books`. (Executed in **s7a**.)
+- **Cover/theme** move cleanly onto `books` (nothing to copy from `baby_profiles`); drop the old columns if
+  unused (audit).
+- **s11 simplifies too:** with no books to preserve, **fully delete** the `generated_content` plumbing
+  (column + read DTOs), not a read-only path — see the updated `sv2-s11`.
+- **Seed/demo** is rebuilt fresh by the updated seed script; no demo book to migrate.
+- **Re-validate before running:** only holds while the dev account is the *only* book. If anything ships to
+  real users before s7a/s11 run, revert to a real migration.
+
+> Net: no migration code, no lossless guarantees, no zombie read paths — a fresh `books`-backed model + a
+> re-created dev/demo book.

@@ -4,7 +4,7 @@ import {
   PointerSensor, TouchSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import {
-  ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Plus, LayoutTemplate,
+  ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, Plus, LayoutTemplate, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TEMPLATES } from "@/lib/storybookTemplates";
@@ -17,6 +17,7 @@ import FamilyTreeCanvas from "@/components/storybook/FamilyTreeCanvas";
 import ChapterDividerCanvas from "@/components/storybook/ChapterDividerCanvas";
 import PromptsCanvas from "@/components/storybook/PromptsCanvas";
 import BumpCanvas from "@/components/storybook/BumpCanvas";
+import MilestonesCanvas from "@/components/storybook/MilestonesCanvas";
 import FamilyRosterPopup from "@/components/storybook/FamilyRosterPopup";
 import PhotoTray from "@/components/storybook/PhotoTray";
 import FormatToolbar from "@/components/storybook/FormatToolbar";
@@ -24,21 +25,32 @@ import MemoryPanel from "@/components/storybook/MemoryPanel";
 import TemplateSheet from "@/components/storybook/TemplateSheet";
 import Slot from "@/components/storybook/Slot";
 import { buildMemoryList, extractPieceText } from "@/lib/storybookGrouping";
+import { buildGuidedMemories, groupMemoriesIntoBuckets } from "@/lib/guidedBook";
+import { MAX_MILESTONE_ROWS, seededMilestoneDate } from "@/lib/milestonesPage";
 import { toTiptapDoc, contentToPlainText } from "@/lib/tiptap";
 import { cleanBodyText } from "@/lib/storybookText";
 import { CANVAS_W, CANVAS_H, useCanvasScale } from "@/lib/bookCanvas";
 import { openSlotCropModal } from "@/lib/imageUtils";
 import {
-  makeId, makePageId, splitTextParts, initPages, buildLayoutData,
+  makePageId, splitTextParts, initPages, buildLayoutData, emptyBlocksForTemplate,
 } from "@/lib/storybookLayout";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_LABELS = { period: 'Time Period', milestone: 'Milestone', first_time: 'First Time' };
 
+// sv2-s8.5: soft cap on pages in a freeform book (future-changeable). Guided chapters are single-page
+// so they never approach it; the cap effectively governs the freeform "Add page" affordance.
+const MAX_PAGES = 30;
+
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function ScrapbookBuilder({ chapter, journalEntries, firsts, theme, onUpdate, onClose, pageData, onError }) {
+export default function ScrapbookBuilder({
+  chapter, journalEntries, firsts, bumpPhotos = [], birthdate = null,
+  theme, onUpdate, onClose, pageData, onError,
+  locked = false, promptText = null, eyebrow = null,
+  showMemories = true, defaultBucket = null, usedKeys = null,
+}) {
   const containerRef = useRef(null);
   const [pages, setPages] = useState(() => initPages(chapter));
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -72,11 +84,22 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   const currentBlocks = currentPage?.blocks || [];
   const currentTemplate = TEMPLATES.find(t => t.id === currentPage?.templateId) || null;
 
+  // Guided books (sv2-s7.5a) surface the WHOLE memory pool (all journals, all firsts incl. their V38
+  // extra photos, and bump photos) grouped into time buckets — not the wizard-selected subset. Built
+  // once here so both the panel and the placement/overlay lookups share the same objects.
+  const guidedMemories = useMemo(
+    () => (locked ? buildGuidedMemories({ journalEntries, firsts, bumpPhotos }) : null),
+    [locked, journalEntries, firsts, bumpPhotos]
+  );
+
   // Memories with the AI title/body overlaid for the cards.
   const memories = useMemo(() => {
+    if (locked) return guidedMemories || [];
+    // sv2-s8.5: freeform surfaces the WHOLE memory pool (all journals + firsts), not a wizard-selected
+    // subset — the period wizard is gone, so there is no pre-filter to apply.
     const base = buildMemoryList({
-      journalIds: chapter.selectedJournalIds,
-      firstTimeIds: chapter.selectedFirstTimeIds,
+      journalIds: (journalEntries || []).map(e => e.id),
+      firstTimeIds: (firsts || []).map(f => f.id),
       journalEntries: journalEntries || [],
       firsts: firsts || [],
       photoOverrides: chapter.photoOverrides,
@@ -97,7 +120,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
         rawText,
       };
     });
-  }, [chapter, journalEntries, firsts]);
+  }, [locked, guidedMemories, chapter, journalEntries, firsts]);
 
   // Derived "already in the book" state — which memory pieces are placed on any page.
   // A text piece counts as used only when its placed block has non-empty content; a
@@ -122,26 +145,47 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   }, [pages]);
 
   // Photos the tray can choose from: entry/first photos, chapter photos, plus any
-  // uploaded during this builder session.
+  // uploaded during this builder session. Guided books draw from the whole pool (every memory's
+  // photos, incl. First V38 extras + bump), so placement/tray can resolve any dragged photo by key.
   const availablePhotos = useMemo(() => {
-    const photos = [];
-    for (const id of chapter.selectedJournalIds || []) {
-      const entry = (journalEntries || []).find(e => e.id === id);
-      if (!entry) continue;
-      const url = chapter.photoOverrides?.[`journal:${id}`] || entry.image_url;
-      if (url) photos.push({ sourceKey: `journal:${id}`, url, label: entry.title });
+    if (locked) {
+      const photos = [];
+      for (const m of guidedMemories || []) for (const p of m.photos || []) photos.push(p);
+      return [...photos, ...extraPhotos];
     }
-    for (const id of chapter.selectedFirstTimeIds || []) {
-      const ft = (firsts || []).find(f => f.id === id);
-      if (!ft) continue;
-      const url = chapter.photoOverrides?.[`first_time:${id}`] || ft.imageUrl;
-      if (url) photos.push({ sourceKey: `first_time:${id}`, url, label: ft.label });
+    // sv2-s8.5: freeform draws photos from ALL journals + firsts (no wizard pre-selection).
+    const photos = [];
+    for (const entry of journalEntries || []) {
+      const url = chapter.photoOverrides?.[`journal:${entry.id}`] || entry.image_url;
+      if (url) photos.push({ sourceKey: `journal:${entry.id}`, url, label: entry.title });
+    }
+    for (const ft of firsts || []) {
+      const url = chapter.photoOverrides?.[`first_time:${ft.id}`] || ft.imageUrl;
+      if (url) photos.push({ sourceKey: `first_time:${ft.id}`, url, label: ft.label });
     }
     for (const cp of chapter.chapterPhotos || []) {
       photos.push({ sourceKey: cp.key, url: cp.url, label: cp.label || '' });
     }
     return [...photos, ...extraPhotos];
-  }, [chapter, journalEntries, firsts, extraPhotos]);
+  }, [locked, guidedMemories, chapter, journalEntries, firsts, extraPhotos]);
+
+  // Time-bucket grouping + book-wide "used" dimming (sv2-s7.5a). BOTH modes bucket the pool by time so
+  // a book with lots of entries stays tidy — guided passes a per-page `defaultBucket` to auto-open one
+  // section; freeform passes null, so every bucket starts collapsed. The book-wide used-set (other
+  // chapters, from StorybookTab) unions with the current page's local sets so a piece placed elsewhere
+  // still dims here.
+  const buckets = useMemo(
+    () => (showMemories ? groupMemoriesIntoBuckets(memories, birthdate) : null),
+    [showMemories, memories, birthdate]
+  );
+  const mergedUsedTextKeys = useMemo(
+    () => (usedKeys?.text ? new Set([...usedTextKeys, ...usedKeys.text]) : usedTextKeys),
+    [usedTextKeys, usedKeys]
+  );
+  const mergedUsedPhotoKeys = useMemo(
+    () => (usedKeys?.photo ? new Set([...usedPhotoKeys, ...usedKeys.photo]) : usedPhotoKeys),
+    [usedPhotoKeys, usedKeys]
+  );
 
   const scheduleAutoSave = useCallback((nextPages) => {
     if (!onUpdate) return;
@@ -179,6 +223,18 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
 
   function updateBlock(blockId, patch) {
     setCurrentBlocks(blocks => blocks.map(b => b.id === blockId ? { ...b, ...patch } : b));
+  }
+
+  // Milestones page (sv2-s6.5): re-seed the editable date rows from the latest achieved milestones,
+  // overwriting any manual edits. Names are always live; only the dates are stored as overrides.
+  function handleRefreshMilestones() {
+    const achieved = pageData?.achievedMilestones || [];
+    if (!window.confirm('Replace the dates on this page with the latest from your milestones? This overwrites any edits.')) return;
+    setCurrentBlocks(blocks => blocks.map(b => {
+      const m = b.id?.match(/^date(\d+)$/);
+      if (!m) return b;
+      return { ...b, content: toTiptapDoc(seededMilestoneDate(achieved, parseInt(m[1], 10))) };
+    }));
   }
 
   // Fill a slot from a memory piece (text) or its photo. Records the owning
@@ -243,16 +299,22 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
 
   function placePhotoIntoSlot(blockId, sourceKey) {
     const block = currentBlocks.find(b => b.id === blockId);
-    const mem = memories.find(m => m.sourceKey === sourceKey);
-    if (!block || !mem?.photoUrl) return;
+    // Resolve the photo by its own key from the available pool (guided multi-photo memories + bump
+    // give each photo a unique key), falling back to the memory's hero photo for freeform.
+    let photo = availablePhotos.find(p => p.sourceKey === sourceKey) || null;
+    if (!photo) {
+      const mem = memories.find(m => m.sourceKey === sourceKey);
+      if (mem?.photoUrl) photo = { url: mem.photoUrl, label: mem.label };
+    }
+    if (!block || !photo?.url) return;
     const slotAR = block.slotAR ?? (block.width * CANVAS_W) / (block.height * CANVAS_H);
     // l-wrap tracks the photo source separately so both used-indicators work.
     const keyPatch = block.type === 'l-wrap' ? { photoSourceKey: sourceKey } : { sourceKey };
     cancelSlotCropRef.current = openSlotCropModal(
-      mem.photoUrl, slotAR,
+      photo.url, slotAR,
       (crop) => {
         cancelSlotCropRef.current = null;
-        updateBlock(blockId, { url: mem.photoUrl, label: mem.label || '', crop, ...keyPatch });
+        updateBlock(blockId, { url: photo.url, label: photo.label || '', crop, ...keyPatch });
       },
       () => { cancelSlotCropRef.current = null; }
     );
@@ -353,14 +415,6 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     updateBlock(blockId, { fontFamily: key || undefined });
   }
 
-  function setCurrentPageBg(color) {
-    commitPages(prev => {
-      const next = [...prev];
-      next[currentPageIndex] = { ...next[currentPageIndex], backgroundColor: color || null };
-      return next;
-    });
-  }
-
   function handleDragStart({ active }) {
     setActiveDrag(active.data.current || null);
     setSelectedSource(null);
@@ -389,15 +443,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   }
 
   function applyTemplate(tpl) {
-    const newBlocks = tpl.blocks.map(b => ({
-      ...b,
-      id: b.id || makeId(), // preserve explicit template IDs (e.g. moment-hero role IDs)
-      content: (b.type === 'text' || b.type === 'l-wrap') ? toTiptapDoc('') : undefined,
-      sourceKey: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
-      url: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
-      label: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
-      photoSourceKey: b.type === 'l-wrap' ? null : undefined,
-    }));
+    const newBlocks = emptyBlocksForTemplate(tpl);
     commitPages(prev => {
       const next = [...prev];
       next[currentPageIndex] = { ...next[currentPageIndex], templateId: tpl.id, blocks: newBlocks };
@@ -453,6 +499,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
   }
 
   function addPage() {
+    if (pages.length >= MAX_PAGES) return; // sv2-s8.5: 30-page soft cap
     commitPages(prev => [...prev, {
       id: makePageId(), sourceKeys: [], templateId: null, backgroundColor: null, blocks: [],
     }]);
@@ -505,9 +552,22 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
     }
   }
 
+  // Locked (guided) pages have no publish step — flush the pending autosave and close.
+  async function handleDone() {
+    clearTimeout(saveTimerRef.current);
+    if (onUpdate) {
+      setPublishing(true);
+      try { await onUpdate(chapter.id, { layoutData: buildLayoutData(pages) }); } catch {}
+    }
+    onClose();
+  }
+
   const typeLabel = TYPE_LABELS[chapter.anchorType] || 'Chapter';
   const saveLabel = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'unsaved' ? 'Unsaved' : 'Saved ✓';
-  const activeMemory = activeDrag ? memories.find(m => m.sourceKey === activeDrag.sourceKey) : null;
+  // Drag overlay preview: photos resolve by their own key from the pool (multi-photo/bump keys aren't
+  // memory keys); text resolves from the memory list.
+  const activePhoto = activeDrag?.kind === 'photo' ? availablePhotos.find(p => p.sourceKey === activeDrag.sourceKey) : null;
+  const activeTextMemory = activeDrag?.kind === 'text' ? memories.find(m => m.sourceKey === activeDrag.sourceKey) : null;
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -522,7 +582,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
           Back
         </button>
         <div className="text-center min-w-0">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{typeLabel}</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{eyebrow || typeLabel}</p>
           <h2 className="font-display font-semibold text-foreground leading-tight truncate">
             {chapter.anchorLabel}
           </h2>
@@ -532,19 +592,32 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
 
       {/* Two panels */}
       <div className="flex-1 min-h-0 flex flex-col md:flex-row">
-        {/* Left — memories */}
-        <MemoryPanel
-          memories={memories}
-          selectedSource={selectedSource}
-          usedTextKeys={usedTextKeys}
-          usedPhotoKeys={usedPhotoKeys}
-          onSelect={handleSelect}
-        />
+        {/* Left — memories, grouped into collapsible time buckets for both modes (sv2-s7.5a; extended
+            to freeform on request so big libraries stay tidy). Hidden on auto/prefill guided pages
+            (they render from data — nothing to drag). */}
+        {showMemories && (
+          <MemoryPanel
+            memories={memories}
+            buckets={buckets}
+            defaultOpenBucket={defaultBucket}
+            selectedSource={selectedSource}
+            usedTextKeys={mergedUsedTextKeys}
+            usedPhotoKeys={mergedUsedPhotoKeys}
+            onSelect={handleSelect}
+          />
+        )}
 
         {/* Right — page canvas */}
         <main className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center gap-3">
           {/* Format toolbar — visible while editing a text slot */}
           {editingBlockId && activeEditor && <FormatToolbar editor={activeEditor} />}
+
+          {/* Guided prompt — the page's guidance ("Your first bath…") */}
+          {promptText && (
+            <div className="w-full max-w-[480px] rounded-lg bg-color-warm/15 border border-color-highlight/20 px-3.5 py-2.5 text-sm text-foreground/80">
+              {promptText}
+            </div>
+          )}
 
           {/* Layout controls */}
           <div className="w-full max-w-[480px] flex items-center justify-between gap-2">
@@ -560,13 +633,25 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                   Edit people
                 </button>
               )}
-              <button
-                onClick={() => setShowTemplatePicker(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
-              >
-                <LayoutTemplate className="w-3.5 h-3.5" />
-                Change layout
-              </button>
+              {currentTemplate?.renderer === 'milestones' && (
+                <button
+                  onClick={handleRefreshMilestones}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Refresh from milestones
+                </button>
+              )}
+              {/* Guided pages have a fixed layout — no template switching. */}
+              {!locked && (
+                <button
+                  onClick={() => setShowTemplatePicker(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+                >
+                  <LayoutTemplate className="w-3.5 h-3.5" />
+                  Change layout
+                </button>
+              )}
             </div>
           </div>
 
@@ -602,6 +687,7 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                   <LetterCanvas
                     blocks={currentBlocks}
                     theme={theme}
+                    eyebrow={chapter.anchorType === 'guided' ? chapter.anchorLabel : undefined}
                     editingBlockId={editingBlockId}
                     onActivate={handleSlotActivate}
                     onStopEdit={handleStopEdit}
@@ -668,6 +754,17 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
                     onOpenTray={setPhotoTrayFor}
                     onReCrop={handleReCrop}
                   />
+                ) : currentTemplate?.renderer === 'milestones' ? (
+                  <MilestonesCanvas
+                    blocks={currentBlocks}
+                    theme={theme}
+                    achievedMilestones={pageData?.achievedMilestones}
+                    editingBlockId={editingBlockId}
+                    onActivate={handleSlotActivate}
+                    onStopEdit={handleStopEdit}
+                    onEditorReady={setActiveEditor}
+                    onOpenTray={setPhotoTrayFor}
+                  />
                 ) : (
                   currentBlocks.map(block => (
                     <Slot
@@ -702,31 +799,8 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
             )}
           </div>
 
-          {/* Per-page background color */}
-          {theme && (
-            <div className="w-full max-w-[480px] flex items-center gap-2 px-1">
-              <span className="text-xs text-muted-foreground shrink-0">Page bg:</span>
-              <button
-                onClick={() => setCurrentPageBg(null)}
-                title="Default"
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${!currentPage?.backgroundColor ? 'border-color-highlight' : 'border-border hover:border-color-highlight/50'}`}
-                style={{ backgroundColor: theme.bg }}
-              >
-                <span className="text-[7px] text-foreground/50 leading-none font-bold">A</span>
-              </button>
-              {(theme.palette || []).slice(1).map(color => (
-                <button
-                  key={color}
-                  onClick={() => setCurrentPageBg(color)}
-                  title={color}
-                  className={`w-5 h-5 rounded border-2 transition-colors ${currentPage?.backgroundColor === color ? 'border-color-highlight' : 'border-border hover:border-color-highlight/50'}`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Page management */}
+          {/* Page management — hidden for guided pages (one fixed page, locked sequence) */}
+          {!locked && (
           <div className="w-full max-w-[480px] flex flex-col gap-2">
             <div className="flex items-center justify-center gap-2">
               <button
@@ -768,10 +842,12 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={addPage}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                disabled={pages.length >= MAX_PAGES}
+                title={pages.length >= MAX_PAGES ? `A book can have up to ${MAX_PAGES} pages` : undefined}
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                Add page
+                {pages.length >= MAX_PAGES ? `Max ${MAX_PAGES} pages` : 'Add page'}
               </button>
               {pages.length > 1 && (
                 <button
@@ -783,15 +859,18 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
               )}
             </div>
           </div>
+          )}
 
-          {/* Publish */}
+          {/* Done (guided) / Publish (freeform) */}
           <div className="w-full max-w-[480px] pt-1">
             <Button
-              onClick={handlePublish}
+              onClick={locked ? handleDone : handlePublish}
               disabled={publishing}
               className="w-full bg-color-highlight hover:bg-color-highlight/90"
             >
-              {publishing ? 'Publishing…' : 'Publish Chapter'}
+              {locked
+                ? (publishing ? 'Saving…' : 'Done')
+                : (publishing ? 'Publishing…' : 'Publish Chapter')}
             </Button>
           </div>
         </main>
@@ -839,10 +918,10 @@ export default function ScrapbookBuilder({ chapter, journalEntries, firsts, them
       {activeDrag && (
         <div className="rounded-lg border border-color-highlight bg-background shadow-lg p-2 max-w-[260px]">
           {activeDrag.kind === 'photo' ? (
-            <img src={activeMemory?.photoUrl} alt="" className="w-14 h-14 rounded object-cover" />
+            <img src={activePhoto?.url} alt="" className="w-14 h-14 rounded object-cover" />
           ) : (
             <p className="text-xs text-muted-foreground line-clamp-3 leading-snug">
-              {activeMemory?.aiBody || activeMemory?.preview || 'Text'}
+              {activeTextMemory?.aiBody || activeTextMemory?.preview || 'Text'}
             </p>
           )}
         </div>

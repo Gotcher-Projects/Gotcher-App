@@ -74,19 +74,6 @@ public class BabyProfileController {
         }
     }
 
-    @PostMapping("/cover-photo")
-    public ResponseEntity<?> uploadCoverPhoto(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestParam("file") MultipartFile file
-    ) {
-        try {
-            String url = babyProfileService.uploadCoverPhoto(principal.userId(), file);
-            return ResponseEntity.ok(Map.of("url", url));
-        } catch (Exception e) {
-            return ApiError.serverError(e.getMessage());
-        }
-    }
-
     @PostMapping("/photo")
     public ResponseEntity<?> uploadPhoto(
         @AuthenticationPrincipal AuthPrincipal principal,
@@ -100,28 +87,4 @@ public class BabyProfileController {
         }
     }
 
-    @PatchMapping("/cover-subtitle")
-    public ResponseEntity<?> updateCoverSubtitle(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody Map<String, String> body
-    ) {
-        String subtitle = body.get("subtitle");
-        babyProfileService.updateCoverSubtitle(principal.userId(), subtitle != null ? subtitle.trim() : null);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/book-theme")
-    public ResponseEntity<?> updateBookTheme(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @RequestBody Map<String, String> body
-    ) {
-        String theme = body.get("theme");
-        if (theme == null || theme.isBlank()) return ApiError.badRequest("theme is required");
-        try {
-            babyProfileService.updateBookTheme(principal.userId(), theme);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ApiError.badRequest(e.getMessage());
-        }
-    }
 }

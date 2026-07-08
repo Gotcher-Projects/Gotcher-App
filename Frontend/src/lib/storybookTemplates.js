@@ -283,6 +283,39 @@ export const TEMPLATES = [
     ],
   },
 
+  // ── Milestones "How You Grew" (sv2-s6.5) ────────────────────────────────────────
+  // HYBRID prefill + fill. The `milestones` renderer (MilestonesCanvas) draws its own fixed Panel-F
+  // design (list down the left, two tilted polaroids in the right corners) and IGNORES block x/y.
+  // - NAMES are data-driven: read live from the baby's achieved milestones via pageData (no blocks).
+  // - DATES are prefill: blk('date0'..'date4') override if edited, else seed-on-display from the
+  //   achieved date (see lib/milestonesPage.js). "Refresh from data" re-seeds them.
+  // - PHOTOS are fill: blk('photo1'|'photo2') + optional script caption blk('cap1'|'cap2'); empty
+  //   slots show a drop frame in the builder and are hidden in the read/PDF view.
+  // Title/eyebrow are hardcoded in the renderer (like PromptsCanvas), so there is no title block.
+
+  {
+    id: 'milestones',
+    label: 'How You Grew',
+    description: 'Your milestones + a couple of polaroids',
+    renderer: 'milestones',
+    memoryCount: 0, minPhotos: 0, maxPhotos: 2,
+    blocks: [
+      // slotAR 1.2 == the polaroid photo slot aspect in MilestonesCanvas (POLAROID_AR) — the crop modal
+      // crops to slotAR, so the slot must render at the same ratio or the stored crop is mis-fit (top clipped).
+      { id: 'photo1', type: 'photo', x: 0.60, y: 0.16, width: 0.34, height: 0.24, slotAR: 1.2, contentSource: { photoIndex: 0 } },
+      { id: 'cap1',   type: 'text',  x: 0.60, y: 0.41, width: 0.34, height: 0.05, content: '' },
+      { id: 'photo2', type: 'photo', x: 0.58, y: 0.62, width: 0.36, height: 0.26, slotAR: 1.2, contentSource: { photoIndex: 1 } },
+      { id: 'cap2',   type: 'text',  x: 0.58, y: 0.89, width: 0.36, height: 0.05, content: '' },
+      { id: 'date0',  type: 'text',  x: 0.06, y: 0.26, width: 0.46, height: 0.05, content: '' },
+      { id: 'date1',  type: 'text',  x: 0.06, y: 0.35, width: 0.46, height: 0.05, content: '' },
+      { id: 'date2',  type: 'text',  x: 0.06, y: 0.44, width: 0.46, height: 0.05, content: '' },
+      { id: 'date3',  type: 'text',  x: 0.06, y: 0.53, width: 0.46, height: 0.05, content: '' },
+      { id: 'date4',  type: 'text',  x: 0.06, y: 0.62, width: 0.46, height: 0.05, content: '' },
+      { id: 'date5',  type: 'text',  x: 0.06, y: 0.71, width: 0.46, height: 0.05, content: '' },
+      { id: 'date6',  type: 'text',  x: 0.06, y: 0.80, width: 0.46, height: 0.05, content: '' },
+    ],
+  },
+
   // ── Trio + Note (sv2-s6) ────────────────────────────────────────────────────────
   // Generic reusable layout (no custom renderer): title + 1 large + 2 small photos + a note. The
   // guided book uses it as the "Months 0–3…" growth spread, but in the scrapbook picker it's just a

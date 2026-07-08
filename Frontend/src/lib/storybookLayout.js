@@ -40,6 +40,22 @@ export function migrateBlock(b) {
   return block;
 }
 
+// Clone a template's blocks into fresh, empty editable blocks: text/l-wrap get an empty Tiptap doc,
+// photo/l-wrap reset their fill (sourceKey/url/label), and explicit role ids (moment-hero, divider,
+// gallery, etc.) are preserved. Shared by the builder's "apply template" and the guided-arc seeder
+// (sv2-s7b) so both produce identical page shapes.
+export function emptyBlocksForTemplate(tpl) {
+  return (tpl?.blocks || []).map(b => ({
+    ...b,
+    id: b.id || makeId(), // preserve explicit template ids (e.g. moment-hero / divider role ids)
+    content: (b.type === 'text' || b.type === 'l-wrap') ? toTiptapDoc('') : undefined,
+    sourceKey: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+    url: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+    label: (b.type === 'photo' || b.type === 'l-wrap') ? null : undefined,
+    photoSourceKey: b.type === 'l-wrap' ? null : undefined,
+  }));
+}
+
 export function initPages(chapter) {
   if (chapter.layoutData?.version === 2) {
     return (chapter.layoutData.pages || []).map(p => ({

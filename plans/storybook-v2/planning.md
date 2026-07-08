@@ -33,10 +33,11 @@ ScrapbookBuilder fill mechanics). Three page kinds:
 Pages are **locked** (no add/remove/reorder) for v1 — flexibility deferred to a future plan. Per-page
 prompts/labels ("Your First Bath") are what make it feel guided. It is **NOT** auto-derived/variable-length.
 
-**Two default books (adaptive).** Baseline **"Your First Year" ≈ 25 interior pages** (birth → 1st
-birthday). When the profile has **pregnancy data**, a **6-page pregnancy chapter front-inserts** →
-**"Bump to One" ≈ 30 pages**. Cover + back cover wrap *around* the interior count. Counts **locked at ~25 / ~30** (assumed to fit
-Lulu's page rules — revisit only if Lulu later rejects them).
+**Two default books (adaptive).** Baseline **"Your First Year" = 25 content + 5 dividers = 30 interior
+pages** (birth → 1st birthday). When the profile has **pregnancy data**, a **5-page pregnancy chapter
+front-inserts** (+ its own divider) → **"Bump to One" = 29 content + 6 dividers = 35 interior pages**.
+Cover + back cover wrap *around* the interior count. Counts **locked at 30 / 35 interior** (2026-06-30;
+assumed to fit Lulu's page rules — revisit only if Lulu later rejects them).
 
 **DROPPED: the old sv2-s5 (moment-hero) + sv2-s7 (firsts chapter)** — the auto-derived Firsts chapter.
 (Those numbers are now reused: s5 = Family Tree, s7 = Guided shell.) Firsts now appear as **a few user-picked
@@ -44,8 +45,8 @@ moment-hero pages** inside the fixed book — no mass page generation. Moment-He
 scrapbook templates (already shipped). See those plans for the drop notes.
 
 **Pregnancy chapter (now sv2-s8) reframed.** No longer an auto firsts-clone. It is **fixed fill-in pages**:
-A Letter Before You Arrived · The Day We Found Out · Your First Photo (ultrasound) · The Bump ×2 ·
-Getting Ready for You. The **week→size comparison is a small AUTO TAG layered on bump photos** ("how big
+A Letter Before You Arrived · The Day We Found Out · Your First Photo (ultrasound) · The Bump ×2
+(Getting Ready for You dropped 2026-06-30). The **week→size comparison is a small AUTO TAG layered on bump photos** ("how big
 were you here"), **not** a standalone page. Uses the shipped 37-row size dataset.
 
 **Page types the default book needs (build before the shell, sv2-s7):**
@@ -56,10 +57,18 @@ were you here"), **not** a standalone page. Uses the shipped 37-row size dataset
   an overlay pill). **Built 2026-06-27 (Needs Verification).**
 
 **Build order (renumbered 2026-06-27 — see §3 for the full map):** page types s1–s4 ✅ done →
-**s5 Family Tree ✅** → **s6 Fill-in page types ✅** → **s7 Guided fill-in shell** ← NEXT (arc config + locked
-sequence + Guided⇄Freeform mode toggle + book library/switcher; scrapbook coexists as the advanced option) →
-**s8 Pregnancy chapter** → **s9 Polish/PDF** → s10 ai-assist / s11 ai-retrofit / s12 print.
+**s5 Family Tree ✅** → **s6 Fill-in page types ✅** → **s6.5 prefill + milestones renderer ✅** (Complete
+2026-06-28) → **s7a Books + library** ← NEXT
+(books table + backend CRUD + library/switcher/chooser + remove AI card) → **s7b Guided arc** (Model A
+instantiation + fill mechanics + prompt copy) → **s8 Pregnancy chapter** → **s9 Polish/PDF** →
+s10 ai-assist / s11 ai-retrofit / s12 print. **S7 was split into s7a/s7b on 2026-06-28** (storage = Model A).
 **Old s5 (moment-hero) + s7 (firsts) removed.**
+
+**Default-book arc LOCKED (2026-06-28; divider count + page totals locked 2026-06-30):** the full
+page-by-page sequence for both books is resolved in `sv2-s7-plan-default-book.md` — auto/prefill/fill/pick
+kind per page, template per page, **5 dividers (First Year) / 6 dividers (Bump)**, and the pregnancy
+front-insert rule (replaces the opening letter: 25 − 1 + 5 = 29 content). Interior totals **30 / 35**.
+S7 adds **no new page types**.
 
 **s7 decisions reached in the in-app mockup pass (2026-06-27):**
 - **Mode = a Guided⇄Freeform toggle** in the Book tab (Guided = "Recommended"); not a separate tab. Mirrors the
@@ -68,8 +77,10 @@ sequence + Guided⇄Freeform mode toggle + book library/switcher; scrapbook coex
   some want more. The shelf is **NOT the landing page** — **0 books** → new-book chooser dialog → book; **1 book**
   → land *inside* it with a quiet "Lily's First Year ▾" switcher; **2+ books** → the switcher opens a "Your Books"
   shelf (cover-thumb cards + type/theme/progress + a `⋯` rename/duplicate/delete/export menu + "Start a new book"
-  tile). **Needs a new `books` table** (baby owns many books; existing chapters reparent into a default book via
-  migration) — supersedes the earlier "no new table" note. See sv2-s7 plan item #5 for the shape.
+  tile). **Needs a new `books` table** (baby owns many books). **CLEAN BREAK (decided 2026-06-28, pre-prod):**
+  the dev book data is cleared, not migrated — plain schema add, no reparenting. Supersedes the earlier
+  "no new table" note AND the earlier "reparent existing chapters" plan. See sv2-s7 plan item #5 + its
+  "Existing books — CLEAN BREAK" section.
 - **Remove the AI "Write a Period Chapter" card** from the tab. AI page-gen is deferred (core ships free, no AI);
   the only AI is the separate opt-in paid per-field assist (**s10/s11**). Freeform = layouts/photos/text only —
   no AI surface anywhere in s7. Wizard code stays in the repo, just unmounted.
@@ -215,25 +226,39 @@ sv2-s2  Birth Stats Card                  ← ✅ Complete. birth_details + Birt
 sv2-s3  Your People                       ← ✅ Complete. family_members + PeopleCanvas.
 sv2-s3.5  People polish + circular crop   ← ✅ Complete. Page-fit + opt-in circular crop.
 sv2-s4  Multi-photo Firsts                ← ✅ Needs Verification. first_time_photos + GalleryCanvas.
-sv2-s4.5  Multi-photo Firsts UX           ← ⬜ side plan: redesign in-card multi-photo editing.
+sv2-s9.0a  Multi-photo Firsts UX (redesign) ← ❌ DROPPED 2026-07-02 (was sv2-s4.5): decided against; s4
+                                            in-card editor already removed. → sv2-s9.0a-multi-photo-firsts-ux.md  [Dropped]
 
 ═══ REMAINING — guided book build, in order ═══
 sv2-s5  Family Tree                       ← family tree as a default-book page (People section).
                                             → sv2-s5-family-tree.md  [Needs Verification]
-sv2-s5.5  Family relationships (refine)    ← real relationship model + editable titles + step-relations.
-                                            → sv2-s5.5-family-relationships.md  [Not started]
+sv2-s9.0b  Family relationships (refine)   ← ✅ Complete 2026-07-02 (was sv2-s5.5): linked-parent tree fix +
+                                            title/relationship split (steps dropped). → sv2-s9.0b-family-relationships.md  [Complete]
 sv2-s6  Fill-in Page Types                ← chapter-divider, growth ("Trio+Note"), prompts, hands&feet
                                             ("Pair+Caption"), bump page. → sv2-s6-fill-in-page-types.md
                                             [Needs Verification — built 2026-06-27]
-sv2-s7  Guided fill-in book shell         ← NEXT. Locked page sequence + auto/fill/pick pages +
-       (+ sv2-s7-plan default book)         Guided⇄Freeform toggle + light book library/switcher +
-                                            REMOVE the AI Period-Chapter card. → sv2-s7-guided-book-shell.md
-                                            Default arc DECIDED → sv2-s7-plan-default-book.md
+sv2-s6.5  Prefilled pages                  ← ✅ Complete (2026-06-28). prefill kind (seed-on-display +
+                                            refresh) + the new Milestones renderer (polaroid scatter, 7 rows,
+                                            editable dates). → sv2-s6.5-prefilled-pages.md  [Complete]
+sv2-s7  Guided fill-in book shell         ← SPLIT 2026-06-28 into s7a + s7b. Index: sv2-s7-guided-book-shell.md
+       (+ sv2-s7-plan default book)         Default arc LOCKED → sv2-s7-plan-default-book.md
                                             In-app mockups: s7-guided-book-in-app / s7-book-library-and-chooser
+sv2-s7a  Books + library                   ← books table + backend CRUD + library/switcher/chooser +
+                                            per-book theme/cover + REMOVE the AI card. → sv2-s7a-books-and-library.md
+                                            [Complete — verified 2026-06-28]
+sv2-s7b  Guided arc                        ← Model A instantiate + fill mechanics (pick/locked/auto/prefill) +
+                                            progress + per-page prompt copy. Depends on s7a.
+                                            → sv2-s7b-guided-arc.md  [Not started]
 sv2-s8  Pregnancy chapter                 ← "Before You Arrived" fixed fill-in pages; size = auto bump tag.
                                             → sv2-s8-pregnancy-chapter.md
+sv2-s8.5  Unify freeform (retire periods)  ← move freeform off period chapters toward the unified
+                                            page-list editor (§4 Q1); converge with guided's Model A.
+                                            Pre-launch direction. → sv2-s8.5-freeform-unify.md [Not started]
 sv2-s9  Polish + PDF integration          ← all page types export cleanly; chain the fixed page sequence.
                                             → sv2-s9-polish-pdf.md
+sv2-s9.5  Verification walkthrough         ← guided manual pass over s7a/s7b/s8/s8.5/s9 against a clean DB;
+                                            sign-off flips them all to Complete. → sv2-s9.5-verification.md
+                                            [Not started]
 sv2-s10  Per-field AI assist              ← shared "✨ write this for me" field + single-field endpoint.
                                             → sv2-s10-ai-assist.md
 sv2-s11  Decommission old batched AI      ← DELETE generatePages() + wizard generate step. → sv2-s11-ai-retrofit.md
@@ -461,13 +486,17 @@ Pregnancy is a bigger UX commitment than any of the above because it requires:
 > external setup write-up to pass to whoever owns the Lulu account.
 
 ### What it is
-Paid users order a physical printed copy of their book. Lulu (lulu.com) handles printing, shipping,
-and payment via hosted checkout; we assemble a print-quality PDF and submit the order.
+Paid users order a physical printed copy of their book. Lulu (lulu.com) handles **printing and shipping**;
+the **customer pays through our own Stripe checkout** and we submit a **paid** print job to Lulu (Lulu
+auto-charges a company card for print + ship). We assemble the print-quality PDF and submit the order.
 
 ### Decisions already locked (from sDeferred-print.md — still valid)
 - **Vendor:** Lulu print-on-demand (no inventory).
 - **Gating:** `plus` / `pro` users only; multi-copy ordering supported (grandparents).
-- **Checkout:** redirect to Lulu hosted checkout — **no Stripe charge on our side for the print itself**.
+- **Checkout:** ~~redirect to Lulu hosted checkout — no Stripe charge on our side~~ **→ CORRECTED
+  (2026-07-01): Lulu's Print API checkout is *external* — we collect the customer's payment via our own
+  Stripe checkout, then POST a *paid* print job (Lulu auto-charges a company card). Print therefore
+  DEPENDS ON Payments/Stripe.** (See `plans/storybook-v2/handoffs/` + `lulu-print-handoff.md` Q4.)
 - **Print is separate from AI credits** — ordering doesn't consume credits.
 - **PDF library:** **OpenPDF** (server-side, Apache-licensed) — replaces client-side jsPDF for print.
 - **Images:** fetch raw Cloudinary upload URLs server-side (phone uploads are 3000px+, enough for
@@ -588,7 +617,9 @@ The sessions for these page types should **build the manual path first**; the AI
   which is a *new* component, not the old code repurposed. ⚠️ This is a **behavior change to live,
   credit-charging code** — treat as its own careful session: unwind the batched up-front credit
   debit/refund logic (`StorybookService.java:174–224`) cleanly, mind the page-gen IDOR history
-  (review-fixes s3). No data migration — existing books keep their already-generated text as plain text.
+  (review-fixes s3). **CLEAN BREAK (decided 2026-06-28, pre-prod):** s7 clears the dev book data, so there
+  are no books to preserve — fully delete the `generated_content` plumbing (column + read DTOs), not a
+  read-only path. (Supersedes the earlier "keep generated text" note.) See sv2-s11 "Data — CLEAN BREAK".
 
 ### Dependency impact (the upside)
 - ✅ **Core v2 (sv2-s1 … sv2-s8) NO LONGER depends on Payments.** The whole book — guided + scrapbook,

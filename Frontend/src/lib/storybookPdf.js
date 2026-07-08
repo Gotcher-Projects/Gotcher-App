@@ -12,6 +12,7 @@ import FamilyTreeCanvas from '@/components/storybook/FamilyTreeCanvas';
 import ChapterDividerCanvas from '@/components/storybook/ChapterDividerCanvas';
 import PromptsCanvas from '@/components/storybook/PromptsCanvas';
 import BumpCanvas from '@/components/storybook/BumpCanvas';
+import MilestonesCanvas from '@/components/storybook/MilestonesCanvas';
 import { formatDate } from '@/lib/formatting';
 import { cleanBodyText } from '@/lib/storybookText';
 import { CANVAS_W, CANVAS_H } from '@/lib/bookCanvas';
@@ -237,6 +238,7 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
         const isChapterDivider = page.templateId === 'chapter_divider';
         const isPrompts = page.templateId === 'prompts';
         const isBump = page.templateId === 'bump';
+        const isMilestones = page.templateId === 'milestones';
         const dataUrl = await captureComponent(
           isMomentHero
             ? React.createElement(MomentHeroCanvas, {
@@ -245,7 +247,11 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
                 theme,
               })
             : isLetter
-            ? React.createElement(LetterCanvas, { blocks: page.blocks || [], theme })
+            ? React.createElement(LetterCanvas, {
+                blocks: page.blocks || [],
+                theme,
+                eyebrow: chapter.anchorType === 'guided' ? chapter.anchorLabel : undefined,
+              })
             : isGallery
             ? React.createElement(GalleryCanvas, { blocks: page.blocks || [], theme })
             : isBirthDay
@@ -275,6 +281,8 @@ export async function generateStorybookPdf(chapters, theme, coverInfo = {}) {
             ? React.createElement(PromptsCanvas, { blocks: page.blocks || [], theme })
             : isBump
             ? React.createElement(BumpCanvas, { blocks: page.blocks || [], theme })
+            : isMilestones
+            ? React.createElement(MilestonesCanvas, { blocks: page.blocks || [], theme, achievedMilestones: pageData?.achievedMilestones })
             : React.createElement(LayoutRenderer, {
                 layout: { version: 2, pages: [page] },
                 theme,

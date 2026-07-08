@@ -1,6 +1,8 @@
-# SV2-S4.5 — Rethink Multi-Photo First Times UX   *(was sv2-s6.5; renumbered 2026-06-27, sits with s4)*
+# SV2-S9.0a — Rethink Multi-Photo First Times UX   *(was sv2-s4.5 / originally sv2-s6.5; rescheduled 2026-07-02)*
 
-**Status: Not started** (the *removal* below is already done — only the redesign remains)
+**Status: Dropped — decided against (2026-07-02).** Not being pursued. The disliked s4 in-card multi-photo
+editor was already removed; the Gallery book page + backend `first_time_photos` data layer stay dormant. This
+is off the board — reopen only if the multi-photo/"albums" idea is deliberately revived later.
 **Depends on:** sv2-s4 shipped the data layer + a first-pass UI. NOT blocked on anything.
 **Reference:** `sv2-s4-multi-photo-firsts.md` (what was built), `planning.md` Q4 (gallery pages)
 

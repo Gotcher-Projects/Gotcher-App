@@ -24,9 +24,6 @@ public class BabyProfileService {
         this.imageUploadService = imageUploadService;
     }
 
-    private static final java.util.Set<String> VALID_THEMES =
-        java.util.Set.of("classic", "coral", "midnight", "meadow");
-
     private static final java.util.Set<String> VALID_PHASES =
         java.util.Set.of("pregnancy", "baby");
 
@@ -35,7 +32,7 @@ public class BabyProfileService {
 
     public Optional<BabyProfileResponse> getProfile(Long userId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase, photo_url FROM baby_profiles WHERE user_id = ?",
+            "SELECT id, baby_name, birthdate, parent_name, phone, sex, due_date, phase, photo_url FROM baby_profiles WHERE user_id = ?",
             userId
         );
         if (rows.isEmpty()) return Optional.empty();
@@ -63,7 +60,7 @@ public class BabyProfileService {
                 phone       = EXCLUDED.phone,
                 sex         = EXCLUDED.sex,
                 updated_at  = NOW()
-            RETURNING id, baby_name, birthdate, parent_name, phone, sex, book_theme, cover_photo_url, cover_subtitle, due_date, phase, photo_url
+            RETURNING id, baby_name, birthdate, parent_name, phone, sex, due_date, phase, photo_url
             """,
             userId,
             req.babyName(),
@@ -75,17 +72,6 @@ public class BabyProfileService {
             phase
         );
         return mapRow(row);
-    }
-
-    public boolean updateBookTheme(Long userId, String theme) {
-        if (!VALID_THEMES.contains(theme)) {
-            throw new IllegalArgumentException("Invalid theme: " + theme);
-        }
-        int rows = jdbc.update(
-            "UPDATE baby_profiles SET book_theme = ?, updated_at = NOW() WHERE user_id = ?",
-            theme, userId
-        );
-        return rows > 0;
     }
 
     // Dedicated narrow writer for the guarded settings-only phase reversal. Not wired to any casual
@@ -127,16 +113,8 @@ public class BabyProfileService {
         return rows > 0;
     }
 
-    public String uploadCoverPhoto(Long userId, MultipartFile file) throws IOException {
-        String url = imageUploadService.upload(file, UploadFolder.BABIES.folderName(), userId);
-        jdbc.update(
-            "UPDATE baby_profiles SET cover_photo_url = ?, updated_at = NOW() WHERE user_id = ?",
-            url, userId
-        );
-        return url;
-    }
-
-    // Square avatar for the profile summary card — distinct from the book cover photo above.
+    // Square avatar for the profile summary card. (The book cover photo moved to the books table in
+    // sv2-s7a — see BookService.uploadCoverPhoto.)
     public String uploadPhoto(Long userId, MultipartFile file) throws IOException {
         String url = imageUploadService.upload(file, UploadFolder.BABIES.folderName(), userId);
         jdbc.update(
@@ -146,19 +124,11 @@ public class BabyProfileService {
         return url;
     }
 
-    public void updateCoverSubtitle(Long userId, String subtitle) {
-        jdbc.update(
-            "UPDATE baby_profiles SET cover_subtitle = ?, updated_at = NOW() WHERE user_id = ?",
-            subtitle, userId
-        );
-    }
-
     private BabyProfileResponse mapRow(Map<String, Object> row) {
         Object bd = row.get("birthdate");
         String birthdate = bd != null ? bd.toString() : null;
         Object dd = row.get("due_date");
         String dueDate = dd != null ? dd.toString() : null;
-        String bookTheme = row.get("book_theme") != null ? (String) row.get("book_theme") : "classic";
         return new BabyProfileResponse(
             ((Number) row.get("id")).longValue(),
             (String) row.get("baby_name"),
@@ -166,9 +136,6 @@ public class BabyProfileService {
             (String) row.get("parent_name"),
             (String) row.get("phone"),
             (String) row.get("sex"),
-            bookTheme,
-            (String) row.get("cover_photo_url"),
-            (String) row.get("cover_subtitle"),
             dueDate,
             (String) row.get("phase"),
             (String) row.get("photo_url")

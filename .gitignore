@@ -15,3 +15,6 @@ Backend/bin/
 logs/
 *.log
 ScreenshotsForClaude/
+
+# Owner hand-off bundle — generated copies for zipping/sending, not source
+plans/storybook-v2/handoffs/CradleHQ-Owner-Setup/

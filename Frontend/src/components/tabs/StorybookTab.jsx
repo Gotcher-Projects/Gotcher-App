@@ -1,93 +1,236 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, BookOpen, Wand2, GripVertical, Download } from "lucide-react";
+import { Loader2, BookOpen, Download, PenLine } from "lucide-react";
 import { generateStorybookPdf, downloadPdf } from "@/lib/storybookPdf";
-import StorybookWizard from "@/components/storybook/StorybookWizard";
 import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
 import LayoutRenderer from "@/components/storybook/LayoutRenderer";
 import { BOOK_THEMES, getTheme } from "@/lib/bookThemes";
 import { formatDate } from "@/lib/formatting";
+import { buildAchievedMilestones } from "@/lib/milestonesPage";
 import { apiRequest } from "@/lib/api";
 import BookCover from "@/components/storybook/BookCover";
+import NewBookChooser from "@/components/storybook/NewBookChooser";
+import GuidedBookView from "@/components/storybook/GuidedBookView";
+import FirstPicker from "@/components/storybook/FirstPicker";
+import { arcFor, expandArcToChapterSeeds, arcEntryById } from "@/lib/guidedBookArc";
+import { seedMomentHeroFromFirst, featuredFirstTimeIds, chapterHasContent, guidedProgress, collectUsedKeys } from "@/lib/guidedBook";
+import BookSwitcher from "@/components/storybook/BookSwitcher";
+import YourBooksShelf from "@/components/storybook/YourBooksShelf";
+
+// Remembers the last-opened book across sessions (single profile per session, so one key is enough).
+const ACTIVE_BOOK_KEY = 'cradlehq-active-book';
 
 export default function StorybookTab({
-  chapters, tier, week, initialCredits,
-  journalEntries, firsts, birthdate, babyName,
-  coverPhotoUrl: coverPhotoUrlProp, coverSubtitle: coverSubtitleProp,
-  onUpdate, onDelete,
-  onWizardGenerate, onUpload,
-  bookTheme: bookThemeProp, onUpdateBookTheme,
-  onError,
+  week,
+  journalEntries, firsts, bumpPhotos, birthdate, babyName,
+  phase, dueDate,
+  onUpload, onError,
 }) {
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [credits, setCredits] = useState(initialCredits ?? null);
-  const [showWizard, setShowWizard] = useState(false);
-  const [editingChapter, setEditingChapter] = useState(null);
+  // ── Books (the container layer, sv2-s7a) ───────────────────────────────────
+  const [books, setBooks] = useState([]);
+  const [booksLoaded, setBooksLoaded] = useState(false);
+  const [activeBookId, setActiveBookId] = useState(null);
+  const [showChooser, setShowChooser] = useState(false);
+  const [showShelf, setShowShelf] = useState(false);
+
+  // Chapters belong to the active book.
+  const [chapters, setChapters] = useState([]);
+
   const [builderChapter, setBuilderChapter] = useState(null);
-  const [bookThemeKey, setBookThemeKey] = useState(bookThemeProp || 'classic');
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState(coverPhotoUrlProp ?? null);
-  const [coverSubtitle, setCoverSubtitle] = useState(coverSubtitleProp ?? null);
+  const [pickerChapter, setPickerChapter] = useState(null); // guided pick page awaiting a First
   const [exportingPdf, setExportingPdf] = useState(false);
-  // Live data for the data-driven book pages (sv2-s2 birth_day, sv2-s3 people). Fetched here so the
+  const [bookProgress, setBookProgress] = useState({}); // { [bookId]: { done, total, autoFilled } } for the shelf
+
+  // Live data for the data-driven book pages (birth_day, people, milestones). Fetched here so the
   // builder, published view, and PDF all read the current values.
   const [birthDetails, setBirthDetails] = useState(null);
   const [familyMembers, setFamilyMembers] = useState([]);
-  const activeTheme = getTheme(bookThemeKey);
+  const [achievedMilestones, setAchievedMilestones] = useState([]);
 
-  // Live data the book pages read (birth_details / family_members). Re-pulled whenever the builder
-  // closes too — people/birth edits made inside the builder must flow into the published view + PDF
-  // (otherwise pageData stays at its mount-time snapshot and e.g. newly-added grandparents are
-  // missing from the published family tree).
+  const activeBook = books.find(b => b.id === activeBookId) || null;
+  const activeTheme = getTheme(activeBook?.theme || 'classic');
+  const coverPhotoUrl = activeBook?.coverPhotoUrl ?? null;
+  const coverSubtitle = activeBook?.coverSubtitle ?? null;
+
+  // Load books once, then apply the 0 / 1 / 2+ landing logic.
+  useEffect(() => {
+    apiRequest('/books')
+      .then(list => {
+        const arr = list || [];
+        setBooks(arr);
+        setBooksLoaded(true);
+        if (arr.length === 0) {
+          setShowChooser(true);
+        } else {
+          const remembered = Number(localStorage.getItem(ACTIVE_BOOK_KEY));
+          const exists = arr.some(b => b.id === remembered);
+          setActiveBookId(exists ? remembered : arr[0].id);
+        }
+      })
+      .catch(() => { setBooksLoaded(true); onError?.('Failed to load your books'); });
+  }, []);
+
+  // Persist the active book + (re)load its chapters whenever it changes.
+  useEffect(() => {
+    if (activeBookId == null) { setChapters([]); return; }
+    localStorage.setItem(ACTIVE_BOOK_KEY, String(activeBookId));
+    apiRequest(`/storybook?bookId=${activeBookId}`)
+      .then(list => setChapters(list || []))
+      .catch(() => setChapters([]));
+  }, [activeBookId]);
+
+  // Re-pulled whenever the builder closes too — people/birth/milestone edits made inside the builder
+  // must flow into the published view + PDF (otherwise pageData stays at its mount-time snapshot).
   const loadPageData = useCallback(() => {
     apiRequest('/birth-details').then(setBirthDetails).catch(() => {});
     apiRequest('/family-members').then(list => setFamilyMembers(list || [])).catch(() => {});
+    apiRequest('/milestones')
+      .then(res => setAchievedMilestones(buildAchievedMilestones(res?.achieved || [])))
+      .catch(() => {});
   }, []);
   useEffect(() => { loadPageData(); }, [loadPageData]);
 
-  const pageData = { birthDetails, familyMembers, babyName, birthdate, coverPhotoUrl };
+  // Shelf progress: when the shelf opens, fetch each guided book's chapters and compute its X/Y so the
+  // cards show fill progress. Freeform books have no guided progress. Bounded to guided books only.
+  useEffect(() => {
+    if (!showShelf) return;
+    const guided = books.filter(b => b.type === 'guided');
+    if (guided.length === 0) { setBookProgress({}); return; }
+    let cancelled = false;
+    Promise.all(guided.map(b =>
+      apiRequest(`/storybook?bookId=${b.id}`)
+        .then(list => [b.id, guidedProgress(list || [])])
+        .catch(() => [b.id, null])
+    )).then(entries => {
+      if (cancelled) return;
+      const map = {};
+      for (const [id, p] of entries) if (p) map[id] = p;
+      setBookProgress(map);
+    });
+    return () => { cancelled = true; };
+  }, [showShelf, books]);
+
+  const pageData = { birthDetails, familyMembers, achievedMilestones, babyName, birthdate, coverPhotoUrl };
+
+  // ── Book handlers ───────────────────────────────────────────────────────────
+
+  async function handleCreateBook(type) {
+    try {
+      const body = { type };
+      // A guided book materialises its locked arc now (Model A, sv2-s7b): pick the arc by pregnancy
+      // data and send the expanded pages so the backend writes them in one transaction with the book.
+      if (type === 'guided') {
+        body.chapters = expandArcToChapterSeeds(arcFor({ phase, dueDate }));
+      }
+      const book = await apiRequest('/books', { method: 'POST', body: JSON.stringify(body) });
+      setBooks(b => [...b, book]);
+      setActiveBookId(book.id); // switching active book triggers the chapter-load effect (GET /storybook)
+      setShowChooser(false);
+      setShowShelf(false);
+      // A freeform book gets a single flat-pages chapter seeded server-side (sv2-s8.5) — open the
+      // builder straight onto it so creation drops the user into the editor (no period wizard).
+      if (type === 'freeform') {
+        const list = await apiRequest(`/storybook?bookId=${book.id}`);
+        if (list?.[0]) setBuilderChapter(list[0]);
+      }
+    } catch { onError?.('Failed to create book'); }
+  }
+
+  async function handleRenameBook(id, title) {
+    try {
+      const updated = await apiRequest(`/books/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) });
+      setBooks(b => b.map(x => x.id === id ? updated : x));
+    } catch { onError?.('Failed to rename book'); }
+  }
+
+  async function handleDuplicateBook(id) {
+    try {
+      const copy = await apiRequest(`/books/${id}/duplicate`, { method: 'POST' });
+      setBooks(b => [...b, copy]);
+    } catch { onError?.('Failed to duplicate book'); }
+  }
+
+  async function handleDeleteBook(id) {
+    try {
+      await apiRequest(`/books/${id}`, { method: 'DELETE' });
+      setBooks(prev => {
+        const remaining = prev.filter(x => x.id !== id);
+        if (id === activeBookId) {
+          if (remaining.length > 0) {
+            setActiveBookId(remaining[0].id);
+            setShowShelf(false);
+          } else {
+            setActiveBookId(null);
+            setShowShelf(false);
+            setShowChooser(true);
+          }
+        }
+        return remaining;
+      });
+    } catch { onError?.('Failed to delete book'); }
+  }
+
+  function handleSelectBook(id) {
+    setActiveBookId(id);
+    setShowShelf(false);
+  }
 
   async function handleThemeSelect(key) {
-    const prev = bookThemeKey;
-    setBookThemeKey(key);
-    if (onUpdateBookTheme) onUpdateBookTheme(key);
+    if (!activeBook) return;
+    const prev = activeBook.theme;
+    setBooks(b => b.map(x => x.id === activeBookId ? { ...x, theme: key } : x));
     try {
-      await apiRequest('/baby-profile/book-theme', {
-        method: 'PATCH',
-        body: JSON.stringify({ theme: key }),
-      });
+      await apiRequest(`/books/${activeBookId}`, { method: 'PATCH', body: JSON.stringify({ theme: key }) });
     } catch {
-      setBookThemeKey(prev);
-      if (onUpdateBookTheme) onUpdateBookTheme(prev);
+      setBooks(b => b.map(x => x.id === activeBookId ? { ...x, theme: prev } : x));
       onError?.('Failed to save theme');
     }
   }
 
-  const isPaid = tier !== 'free';
-
-  async function handleWizardGenerate(payload) {
-    return onWizardGenerate(payload);
+  // Cover photo / subtitle persistence lives in BookCover; reflect the result in local book state.
+  function applyCoverPatch(patch) {
+    setBooks(b => b.map(x => x.id === activeBookId ? { ...x, ...patch } : x));
   }
 
-  async function handleGeneratePages(chapterId, groups) {
-    const pages = await apiRequest(`/storybook/generate-pages/${chapterId}`, {
-      method: 'POST',
-      body: JSON.stringify({ groups }),
-    });
-    setCredits(c => c === null ? null : Math.max(0, c - pages.length));
-    return pages;
+  // ── Chapter handlers (book-scoped) ────────────────────────────────────────────
+
+  async function updateChapter(id, patch) {
+    const chapter = await apiRequest(`/storybook/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+    setChapters(c => c.map(ch => ch.id === id ? chapter : ch));
+    return chapter;
+  }
+
+  // Guided pick flow: choosing a First seeds the page's moment_hero, then opens the builder to refine.
+  // If the page already has content, confirm before overwriting (re-pick).
+  async function handleChooseFirst(first) {
+    const chapter = pickerChapter;
+    setPickerChapter(null);
+    if (!chapter) return;
+    // Re-picking overwrites the seeded title/date/note/photo — confirm if the page already has content.
+    if (chapterHasContent(chapter) &&
+        !window.confirm('Feature this First here? It will replace the photo and words currently on this page.')) {
+      return;
+    }
+    try {
+      const seeded = await updateChapter(chapter.id, { layoutData: seedMomentHeroFromFirst(chapter, first) });
+      setBuilderChapter(seeded);
+    } catch { onError?.('Failed to add that First'); }
+  }
+
+  async function deleteChapter(id) {
+    await apiRequest(`/storybook/${id}`, { method: 'DELETE' });
+    setChapters(c => c.filter(ch => ch.id !== id));
   }
 
   async function handleDownloadPdf() {
-    const publishedChapters = sorted.filter(c => c.status === 'published');
-    if (publishedChapters.length === 0) { onError?.('No published chapters to export'); return; }
+    // sv2-s8.5: both modes export the whole book — guided = all arc pages; freeform = its single
+    // flat-page chapter. There's no per-period publish gate anymore.
+    const chaptersForPdf = sorted;
+    if (chaptersForPdf.length === 0) { onError?.('Nothing to export yet'); return; }
     setExportingPdf(true);
     try {
-      const doc = await generateStorybookPdf(publishedChapters, activeTheme, { babyName, birthdate, coverPhotoUrl, coverSubtitle, pageData });
-      downloadPdf(doc, babyName || 'storybook');
+      const doc = await generateStorybookPdf(chaptersForPdf, activeTheme, { babyName, birthdate, coverPhotoUrl, coverSubtitle, pageData });
+      downloadPdf(doc, activeBook?.title || babyName || 'storybook');
     } catch (e) {
       onError?.('PDF export failed — please try again');
       console.error('PDF export:', e);
@@ -96,16 +239,11 @@ export default function StorybookTab({
     }
   }
 
-  function sortChapters(list) {
-    return [...list].sort((a, b) => {
-      const aOrder = a.sortOrder ?? 999999;
-      const bOrder = b.sortOrder ?? 999999;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    });
-  }
+  // ── Chapter ordering ──────────────────────────────────────────────────────────
+  // `sorted` mirrors `chapters` in stable order — consumed by the guided view, the PDF export, and the
+  // freeform single-chapter lookup. (Freeform reordering is gone: a freeform book is one chapter.)
 
-  const [sorted, setSorted] = useState(() => sortChapters(chapters));
+  const [sorted, setSorted] = useState([]);
 
   useEffect(() => {
     setSorted(prev => {
@@ -119,75 +257,105 @@ export default function StorybookTab({
     });
   }, [chapters]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-
-  async function handleDragEnd(event) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = sorted.findIndex(c => c.id === active.id);
-    const newIndex = sorted.findIndex(c => c.id === over.id);
-    const reordered = arrayMove(sorted, oldIndex, newIndex);
-    setSorted(reordered);
-    try {
-      await apiRequest('/storybook/order', {
-        method: 'PUT',
-        body: JSON.stringify({ orderedIds: reordered.map(c => c.id) }),
-      });
-    } catch {
-      setSorted(sorted);
-      onError?.('Failed to save chapter order');
-    }
-  }
+  // ── Full-screen sub-views ──────────────────────────────────────────────────────
 
   if (builderChapter) {
+    // Guided pages are locked (single fixed page, no layout/page controls) and show their arc prompt.
+    const guidedEntry = activeBook?.type === 'guided' ? arcEntryById(builderChapter.anchorKey) : null;
+    // The memory panel (sv2-s7.5a) is for fill/pick pages only; auto/prefill render from data.
+    const showMemories = guidedEntry ? (guidedEntry.kind === 'fill' || guidedEntry.kind === 'pick') : true;
+    // Book-wide "used" dimming: which pieces are placed on OTHER chapters of this book (each guided
+    // page is its own chapter, so the builder can't see them). Exclude the page being edited — its
+    // placements are tracked live inside the builder.
+    const guidedUsedKeys = guidedEntry
+      ? collectUsedKeys(chapters.filter(c => c.id !== builderChapter.id))
+      : null;
     return (
       <ScrapbookBuilder
         chapter={builderChapter}
         journalEntries={journalEntries ?? []}
         firsts={firsts ?? []}
+        bumpPhotos={bumpPhotos ?? []}
+        birthdate={birthdate}
         theme={activeTheme}
-        onUpdate={onUpdate}
+        onUpdate={updateChapter}
         onClose={() => { setBuilderChapter(null); loadPageData(); }}
         pageData={pageData}
+        locked={!!guidedEntry}
+        showMemories={showMemories}
+        defaultBucket={guidedEntry?.defaultBucket || null}
+        usedKeys={guidedUsedKeys}
+        promptText={guidedEntry?.prompt || null}
+        eyebrow={guidedEntry?.section || null}
         onError={onError}
       />
     );
   }
 
-  if (showWizard || editingChapter) {
+  if (showShelf) {
     return (
-      <StorybookWizard
-        editMode={!!editingChapter}
-        initialChapter={editingChapter}
-        journalEntries={journalEntries ?? []}
-        firsts={firsts ?? []}
-        birthdate={birthdate}
-        chapters={chapters}
-        week={week}
-        tier={tier}
-        credits={credits}
-        theme={activeTheme}
-        onWizardGenerate={handleWizardGenerate}
-        onGeneratePages={handleGeneratePages}
-        onUpdate={onUpdate}
-        onUpload={onUpload}
-        onClose={() => { setShowWizard(false); setEditingChapter(null); }}
-        onError={onError}
+      <YourBooksShelf
+        books={books}
+        activeBookId={activeBookId}
+        progress={bookProgress}
+        onSelect={handleSelectBook}
+        onRename={handleRenameBook}
+        onDuplicate={handleDuplicateBook}
+        onDelete={handleDeleteBook}
+        onNewBook={() => { setShowShelf(false); setShowChooser(true); }}
+        onClose={() => setShowShelf(false)}
       />
     );
   }
+
+  // ── Loading / empty-library states ─────────────────────────────────────────────
+
+  if (!booksLoaded) {
+    return (
+      <div className="flex items-center justify-center py-16 text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (books.length === 0) {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <BookOpen className="w-16 h-16 text-primary/30 mb-4" />
+          <p className="text-lg font-semibold text-muted-foreground">Start your first book</p>
+          <p className="text-sm text-muted-foreground/70 mt-1 max-w-xs mb-4">
+            Create a keepsake book to fill with your favourite memories.
+          </p>
+          <Button onClick={() => setShowChooser(true)} className="bg-color-highlight hover:bg-color-highlight/90 gap-2">
+            <PenLine className="w-4 h-4" /> Create a book
+          </Button>
+        </div>
+        {showChooser && (
+          <NewBookChooser onCreate={handleCreateBook} onClose={() => setShowChooser(false)} dismissable={false} />
+        )}
+      </>
+    );
+  }
+
+  // ── Main book view ───────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
-      {/* Book cover */}
+      <BookSwitcher
+        title={activeBook?.title || `${babyName || 'Baby'}'s Memory Book`}
+        onOpen={() => setShowShelf(true)}
+      />
+
       <BookCover
+        bookId={activeBookId}
         babyName={babyName}
         birthdate={birthdate}
         coverPhotoUrl={coverPhotoUrl}
         coverSubtitle={coverSubtitle}
         theme={activeTheme}
-        onCoverPhotoChange={setCoverPhotoUrl}
-        onCoverSubtitleChange={setCoverSubtitle}
+        onCoverPhotoChange={(url) => applyCoverPatch({ coverPhotoUrl: url })}
+        onCoverSubtitleChange={(val) => applyCoverPatch({ coverSubtitle: val })}
         onError={onError}
       />
 
@@ -196,7 +364,7 @@ export default function StorybookTab({
         <span className="text-sm text-muted-foreground font-medium shrink-0">Book theme:</span>
         <div className="flex gap-3 flex-wrap">
           {BOOK_THEMES.map(t => {
-            const selected = bookThemeKey === t.key;
+            const selected = (activeBook?.theme || 'classic') === t.key;
             return (
               <button
                 key={t.key}
@@ -218,7 +386,8 @@ export default function StorybookTab({
             );
           })}
         </div>
-        {sorted.some(c => c.status === 'published') && (
+        {/* Guided books download from their own view; freeform shows it here once something's published. */}
+        {activeBook?.type !== 'guided' && sorted.length > 0 && (
           <Button
             size="sm"
             variant="outline"
@@ -232,159 +401,48 @@ export default function StorybookTab({
         )}
       </div>
 
-      {!isPaid && !bannerDismissed && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
-          <p className="text-sm">Your story is ready to write — upgrade to Plus to generate chapters.</p>
-          <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-            <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 hover:bg-amber-100" disabled>
-              Upgrade to Plus
-            </Button>
-            <button onClick={() => setBannerDismissed(true)} className="text-amber-400 hover:text-amber-700 font-bold text-lg leading-none">✕</button>
-          </div>
-        </div>
-      )}
-
-      {/* Period chapter wizard entry point */}
-      <Card className="bg-color-warm/10 border-color-highlight/20 border">
-        <CardContent className="p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="font-semibold text-foreground">Write a Period Chapter</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Choose a time window, pick what to include, and let AI write your baby's story.
-            </p>
-          </div>
-          <Button
-            onClick={() => setShowWizard(true)}
-            className="flex-shrink-0 bg-color-highlight hover:bg-color-highlight/90 gap-2"
-          >
-            <Wand2 className="w-4 h-4" />
-            Create
-          </Button>
-        </CardContent>
-      </Card>
-
-      {chapters.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <BookOpen className="w-16 h-16 text-primary/30 mb-4" />
-          <p className="text-lg font-semibold text-muted-foreground">Your story starts here</p>
-          <p className="text-sm text-muted-foreground/70 mt-1 max-w-xs">
-            Create your first chapter above to get started.
-          </p>
-        </div>
+      {activeBook?.type === 'guided' ? (
+        <GuidedBookView
+          title={activeBook?.title || `${babyName || 'Baby'}'s Memory Book`}
+          chapters={sorted}
+          firsts={firsts ?? []}
+          onOpenBuilder={(ch) => setBuilderChapter(ch)}
+          onPick={(ch) => setPickerChapter(ch)}
+          onDownloadPdf={handleDownloadPdf}
+          exportingPdf={exportingPdf}
+        />
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={sorted.map(c => c.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-4">
-              {sorted.map(chapter => (
-                <SortableChapterCard
-                  key={chapter.id}
-                  chapter={chapter}
-                  theme={activeTheme}
-                  pageData={pageData}
-                  onUpdate={onUpdate}
-                  onDelete={onDelete}
-                  onEditLayout={(ch) => setBuilderChapter(ch)}
-                  onError={onError}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        // sv2-s8.5: a freeform book is one continuous page sequence (one chapter). No chapter cards,
+        // no time-period step — just open the whole-book editor.
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          <BookOpen className="w-14 h-14 text-primary/25" />
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Your book is one continuous set of pages. Open the editor to add pages and arrange your
+            photos and words.
+          </p>
+          <Button
+            onClick={() => { const ch = sorted[0]; if (ch) setBuilderChapter(ch); }}
+            disabled={!sorted[0]}
+            className="bg-color-highlight hover:bg-color-highlight/90 gap-2"
+          >
+            <PenLine className="w-4 h-4" />
+            Edit book
+          </Button>
+        </div>
+      )}
+
+      {pickerChapter && (
+        <FirstPicker
+          firsts={firsts ?? []}
+          featuredIds={featuredFirstTimeIds(sorted)}
+          onChoose={handleChooseFirst}
+          onClose={() => setPickerChapter(null)}
+        />
+      )}
+
+      {showChooser && (
+        <NewBookChooser onCreate={handleCreateBook} onClose={() => setShowChooser(false)} dismissable />
       )}
     </div>
-  );
-}
-
-function SortableChapterCard(props) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.chapter.id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="flex items-stretch gap-1"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="flex items-center px-1 text-muted-foreground/30 hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing touch-none transition-colors flex-shrink-0"
-        tabIndex={-1}
-        title="Drag to reorder"
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-      <div className="flex-1 min-w-0">
-        <ChapterCard {...props} />
-      </div>
-    </div>
-  );
-}
-
-function ChapterCard({ chapter, theme, pageData, onUpdate, onDelete, onEditLayout, onError }) {
-  const typeLabel =
-    chapter.anchorType === 'period' ? 'Time Period' :
-    chapter.anchorType === 'milestone' ? 'Milestone' : 'First Time';
-
-  async function handlePublish() {
-    try {
-      await onUpdate(chapter.id, { status: 'published' });
-    } catch {
-      onError('Failed to publish chapter');
-    }
-  }
-
-  if (chapter.status === 'published') {
-    return (
-      <div
-        className="rounded-xl shadow-sm overflow-hidden border border-[#ddd0b8] dark:border-border max-w-[560px] mx-auto"
-        style={{ '--book-accent': theme?.accent, backgroundColor: theme?.bg || '#fdf9f2' }}
-      >
-        <div className="px-8 pt-6 pb-4">
-          <p className="text-center text-[10px] uppercase tracking-widest text-muted-foreground mb-2" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>{typeLabel}</p>
-          <h2 className="text-center font-display font-semibold text-xl text-foreground mb-3 leading-snug" style={{ color: theme?.textColor }}>{chapter.anchorLabel}</h2>
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <div className="h-px w-14" style={{ backgroundColor: theme?.accent, opacity: 0.25 }} />
-            <span className="text-xs" style={{ color: theme?.accent, opacity: 0.5 }}>{theme?.dividerChar || '◆'}</span>
-            <div className="h-px w-14" style={{ backgroundColor: theme?.accent, opacity: 0.25 }} />
-          </div>
-        </div>
-        <LayoutRenderer layout={chapter.layoutData} theme={theme} pageData={pageData} />
-        {chapter.publishedAt && (
-          <p className="text-center text-xs text-muted-foreground px-8 py-4" style={{ color: theme?.textColor, opacity: theme?.textColor ? 0.6 : undefined }}>
-            {formatDate(chapter.publishedAt)}
-          </p>
-        )}
-        <div className="px-6 py-3 border-t border-[#ddd0b8] dark:border-border flex gap-2 justify-end">
-          <Button size="sm" variant="outline" onClick={() => onEditLayout(chapter)}>Edit</Button>
-          <Button size="sm" variant="outline" onClick={() => onDelete(chapter.id)} className="text-red-500 hover:text-red-600 hover:border-red-300">Delete</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Draft / unlocked — has layoutData, not yet published.
-  return (
-    <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
-      <CardContent className="p-5 space-y-3">
-        <div>
-          <span className="text-xs text-muted-foreground uppercase tracking-wide">{typeLabel}</span>
-          <h3 className="font-display font-semibold text-foreground text-lg leading-tight">{chapter.anchorLabel}</h3>
-        </div>
-        <span className="inline-block text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-          Draft — review before publishing
-        </span>
-        <div className="rounded-lg overflow-hidden bg-white border border-border">
-          <LayoutRenderer layout={chapter.layoutData} theme={theme} pageData={pageData} />
-        </div>
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-          <Button size="sm" onClick={handlePublish} className="bg-color-highlight hover:bg-color-highlight/90">
-            Approve &amp; Publish
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onEditLayout(chapter)}>Edit</Button>
-          <Button size="sm" variant="outline" onClick={() => onDelete(chapter.id)} className="text-red-500 hover:text-red-600 hover:border-red-300 ml-auto">
-            Delete
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

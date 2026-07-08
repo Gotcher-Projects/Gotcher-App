@@ -6,6 +6,7 @@ import {
   migrateBlock,
   initPages,
   buildLayoutData,
+  emptyBlocksForTemplate,
 } from '../lib/storybookLayout.js';
 import { isTiptapDoc, contentToPlainText, toTiptapDoc } from '../lib/tiptap.js';
 
@@ -89,6 +90,48 @@ describe('migrateBlock', () => {
   it('does not add content to non-text blocks', () => {
     const out = migrateBlock({ id: 'x', type: 'photo' });
     expect(out.content).toBeUndefined();
+  });
+});
+
+// ── emptyBlocksForTemplate ─────────────────────────────────────────────────────
+
+describe('emptyBlocksForTemplate', () => {
+  it('returns [] for a data-driven template with no blocks', () => {
+    expect(emptyBlocksForTemplate({ blocks: [] })).toEqual([]);
+    expect(emptyBlocksForTemplate(null)).toEqual([]);
+  });
+
+  it('gives text blocks an empty Tiptap doc and resets photo fill, preserving explicit ids', () => {
+    const tpl = {
+      blocks: [
+        { id: 'title', type: 'text', content: 'seed', x: 0 },
+        { id: 'photo', type: 'photo', url: 'old.jpg', sourceKey: 'journal:1', label: 'x' },
+      ],
+    };
+    const [title, photo] = emptyBlocksForTemplate(tpl);
+
+    expect(title.id).toBe('title');
+    expect(isTiptapDoc(title.content)).toBe(true);
+    expect(contentToPlainText(title.content)).toBe('');
+
+    expect(photo.id).toBe('photo');
+    expect(photo.url).toBeNull();
+    expect(photo.sourceKey).toBeNull();
+    expect(photo.label).toBeNull();
+    expect(photo.content).toBeUndefined();
+  });
+
+  it('backfills ids for blocks without one', () => {
+    const [b] = emptyBlocksForTemplate({ blocks: [{ type: 'text' }] });
+    expect(b.id).toMatch(/^b-/);
+  });
+
+  it('resets l-wrap text + photo provenance', () => {
+    const [b] = emptyBlocksForTemplate({ blocks: [{ id: 'w', type: 'l-wrap', content: 'x', url: 'u', sourceKey: 's', photoSourceKey: 'ps' }] });
+    expect(isTiptapDoc(b.content)).toBe(true);
+    expect(b.url).toBeNull();
+    expect(b.sourceKey).toBeNull();
+    expect(b.photoSourceKey).toBeNull();
   });
 });
 

@@ -49,8 +49,8 @@ inventory, no fulfillment — you pay per-unit at order time.
 1. User clicks "Order a Printed Book" in the storybook view (new button, paid users only)
 2. Frontend calls a backend endpoint that assembles the chapter PDF
 3. Backend uploads PDF to Lulu via their API, gets back a print job ID and a checkout URL
-4. User is redirected to Lulu's hosted checkout to pay and enter shipping address
-5. Lulu handles payment + fulfillment — no Stripe integration needed on our side
+4. User pays via **our own Stripe checkout** (payment + shipping address collected on our side)
+5. Backend POSTs a **paid** print job to Lulu; Lulu prints + ships — **CORRECTED 2026-07-01: Lulu Print API checkout is external, not Lulu-hosted; see `plans/storybook-v2/handoffs/`**
 6. (Optional) Webhook from Lulu notifies us when the order ships
 
 ### Key unknowns to resolve before committing to S5
@@ -113,7 +113,7 @@ By the end of this planning session, you should have:
 - **In scope** — deferred to after S1–S4 (digital storybook ships first)
 - **Vendor:** Lulu
 - **Multi-copy ordering** is a requirement (users order for grandparents, family, etc.)
-- **Lulu-hosted checkout** — Lulu handles payment, no Stripe charge on our side for print
+- **Checkout is external (not Lulu-hosted)** — we collect the customer's payment via our own Stripe checkout, then POST a paid print job to Lulu (**corrected 2026-07-01; see `plans/storybook-v2/handoffs/`**)
 - S5 needs its own planning session before implementation to resolve PDF spec and API unknowns
 
 ### Tiers & Pricing

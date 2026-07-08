@@ -1,6 +1,7 @@
 # SV2-S8 — Pregnancy Chapter ("Before You Arrived")   *(was pregnancy-track; renumbered 2026-06-27)*
 
-**Status: Draft — REFRAMED 2026-06-27 (read the reframe note first).**
+**Status: Complete — confirmed 2026-07-02 (all sub-9 sessions finished). (2026-07-01) — the chapter is ALREADY BUILT by later sessions (s7b guided arc
++ s6 bump page + s7.5a bump routing); this collapsed to a verify-only task. See the ✅ note below.**
 **Depends on:** sv2-s7 (guided fill-in shell) + sv2-s1 (Letter component). **No longer a Firsts-chapter
 clone** (the old moment-hero/firsts plans are dropped).
 **Reference:** `planning.md` 2026-06-27 direction update; mockup
@@ -8,10 +9,34 @@ clone** (the old moment-hero/firsts plans are dropped).
 
 ---
 
+## ✅ Already built via s7b + s6 + s7.5a (2026-07-01)
+
+The reframed 5-page pregnancy chapter shipped as part of later sessions — this plan predates them:
+- **Arc:** `BUMP_TO_ONE_ARC` in `lib/guidedBookArc.js` front-inserts the divider + 5 fixed fill pages
+  (`div-before` → `letter-before` → `found-out` → `first-photo` → `bump-early` → `bump-bloom`).
+- **Bump page + auto week→size tag:** `BumpCanvas.jsx` + `sizeForWeek` (2 photos + note + per-photo tag).
+- **Pre-birth Letter eyebrow:** s7.5b (`LetterCanvas` `eyebrow` fed from `anchorLabel`).
+- **Bump-photo routing → Pregnancy bucket:** s7.5a `bucketForMemory` (bump → pregnancy; pre-birth-dated
+  journals also land in the pregnancy bucket by age).
+
+Open questions resolved by the arc: Q1 ✅ (2-up bump ×2), Q2 ✅ (opens with the `div-before` divider then
+`letter-before`), Q3 ✅ (age/phase bucketing handles pre-birth entries — no `journal_entries.phase` column
+needed).
+
+**Remaining = in-app verification only:**
+- Q4 — after "mark as born" (phase → baby), the pregnancy pages + placed bump photos remain in the book
+  (nothing filters memories by *current* phase).
+- Q5 — `BumpCanvas` renders correctly through `storybookPdf.js` (week→size tag + Twemoji emoji).
+
+Verify both in-app, then mark **Complete**.
+
+---
+
 ## ⭐ REFRAME (2026-06-27)
 
 The pregnancy chapter is **NOT auto-derived** (it was modelled as a Firsts-chapter clone — that approach
-is dropped). It is the **6-page fixed fill-in chapter** that front-inserts into the guided book when the
+is dropped). It is the **5-page fixed fill-in chapter** (locked 2026-06-30; "Getting Ready for You" was
+dropped — its nursery beat is covered by "Coming Home") that front-inserts into the guided book when the
 profile has pregnancy data:
 
 1. **A Letter Before You Arrived** — `fill` (reuses sv2-s1 Letter, pre-birth type)
@@ -19,7 +44,6 @@ profile has pregnancy data:
 3. **Your First Photo** — `fill` (ultrasound)
 4. **The Bump — Early Days** — `fill` (bump photos)
 5. **The Bump — Full Bloom** — `fill` (bump photos)
-6. **Getting Ready for You** — `fill` (nursery)
 
 The **week→size comparison is a small AUTO tag layered on the bump photos** ("how big were you here"),
 using the shipped 37-row size dataset — **not** a standalone "Size of You" page. Only a bump photo that

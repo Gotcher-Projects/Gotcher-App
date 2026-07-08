@@ -64,14 +64,18 @@ from (planning.md §8). After this session:
 
 ---
 
-## Data — no migration
+## Data — CLEAN BREAK (revised 2026-06-28), no books to preserve
 
-- **Existing books keep their already-generated text.** Whatever is stored in
-  `storybook_chapters.generated_content` / `body` stays and renders as **plain saved text** — it just
-  can't be regenerated via the removed path. Users can edit it manually like any other text.
-- Confirm the **read path** for `generated_content` survives even after the *write/generate* path is
-  removed (so old books don't render blank). This decides whether the generated-content DTOs are fully
-  deletable or must be kept read-only.
+**s7 clears the dev `storybook_chapters` data (pre-prod, single dev book — see `sv2-s7-guided-book-shell.md`
+"Existing books — CLEAN BREAK").** So there are **no existing books whose text must survive**, which makes
+this session simpler than originally planned:
+
+- **Fully delete the `generated_content` plumbing** — the column *and* its read DTOs — not just the
+  write/generate path. No read-only zombie path to preserve (the old caveat is gone).
+- Add a migration to **drop the `generated_content` column** if nothing else reads it (audit first).
+- The seed/demo book is **re-created fresh** by the updated seed script against the new manual model.
+- ⚠️ **Re-validate before deleting:** this only holds while the dev account is the only book. If anything
+  shipped to real users between now and s11, fall back to preserving a read path instead.
 
 ---
 
@@ -94,8 +98,8 @@ from (planning.md §8). After this session:
 
 1. **Order vs `sv2-ai-assist`:** confirm assist ships first. If this runs first, the scrapbook is briefly
    fully AI-free — acceptable? (Recommended: assist first.)
-2. **`generated_content` reads:** keep the column + read DTOs for old books, or migrate old content into
-   `body` and drop the column? (Lean: keep read-only, no migration — simplest, lossless.)
+2. ~~**`generated_content` reads:** keep the column + read DTOs, or drop?~~ **RESOLVED 2026-06-28 — clean
+   break:** s7 clears the dev data, so fully delete the column + read DTOs (see "Data — CLEAN BREAK").
 3. **`ClaudeClient`:** does `sv2-ai-assist` reuse a shared low-level call? If yes, refactor rather than
    delete the HTTP plumbing.
 4. **Quick Build path:** the wizard's "Quick Build (seed)" auto-arranged generated content into pages.
