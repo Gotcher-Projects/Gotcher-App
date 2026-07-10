@@ -22,7 +22,7 @@ const ACTIVE_BOOK_KEY = 'cradlehq-active-book';
 
 export default function StorybookTab({
   week,
-  journalEntries, firsts, bumpPhotos, birthdate, babyName,
+  journalEntries, firsts, bumpPhotos, birthdate, babyName, parentName,
   phase, dueDate,
   onUpload, onError,
 }) {
@@ -110,7 +110,7 @@ export default function StorybookTab({
     return () => { cancelled = true; };
   }, [showShelf, books]);
 
-  const pageData = { birthDetails, familyMembers, achievedMilestones, babyName, birthdate, coverPhotoUrl };
+  const pageData = { birthDetails, familyMembers, achievedMilestones, babyName, parentName, birthdate, coverPhotoUrl };
 
   // ── Book handlers ───────────────────────────────────────────────────────────
 

@@ -1,6 +1,10 @@
 # SV2-S11 (AI-RETROFIT) — Decommission the old batched AI page-generation   *(renumbered 2026-06-27)*
 
-**Status: Not started**
+**Status: Complete (confirmed by Michael 2026-07-08).** — batched AI page-gen fully removed (backend + frontend), tests
+updated, `compileJava`/`compileTestJava` + storybook tests green, and the assist endpoint verified live so the
+scrapbook is not left AI-less. ⚠️ The physical `generated_content` DROP is PARKED at
+`Backend/db/manual/drop_generated_content.sql` (non-Flyway) — run only after confirming prod has no real data.
+Confirm scrapbook build/PDF still work in-app to flip to Complete.
 **Depends on:** `sv2-s10` (AI assist) shipped first (so the only AI left — per-field assist — exists before the
 old bulk path is removed; avoids a window where the scrapbook has no AI at all). Otherwise self-contained.
 **Reference:** `planning.md` §8 ("Two different AI things — only one survives"); review-fixes s3 (page-gen IDOR history).

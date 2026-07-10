@@ -14,6 +14,7 @@ import { shareFirstTime } from "@/lib/share";
 import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
 import StorybookTab from "@/components/tabs/StorybookTab";
 import BumpDiary from "@/components/pregnancy/BumpDiary";
+import AiAssistField from "@/components/storybook/AiAssistField";
 
 export default function MemoriesTab({
   data, week, onAdd, onEdit, onDelete, onUpdateImage,
@@ -38,7 +39,7 @@ export default function MemoriesTab({
         onChange={setView}
         activeClass="bg-color-highlight/10 border-color-highlight/30 text-color-highlight"
       />
-      {view === 'journal' && <JournalTab data={data} week={week} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
+      {view === 'journal' && <JournalTab data={data} week={week} babyName={babyName} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
       {view === 'firsts'  && <FirstTimesTab firsts={firsts} babyName={babyName} onAdd={onAddFirst} onUpdate={onUpdateFirst} onDelete={onDeleteFirst} onUpload={onUpload} onError={onError} />}
       {view === 'bump' && hasPregnancy && (
         <BumpDiary
@@ -60,6 +61,7 @@ export default function MemoriesTab({
           bumpPhotos={bumpPhotos}
           birthdate={data.profile?.birthdate}
           babyName={babyName}
+          parentName={data.profile?.parentName}
           phase={data.profile?.phase}
           dueDate={dueDate}
           onUpload={onUpload}
@@ -91,7 +93,7 @@ function groupByMonth(entries) {
   return groups;
 }
 
-function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
+function JournalTab({ data, week, babyName, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
 
   const [title, setTitle] = useState("");
   const [story, setStory] = useState("");
@@ -173,6 +175,11 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
           <div>
             <Label>Story</Label>
             <Textarea rows={5} value={story} onChange={(e) => setStory(e.target.value)} placeholder="Today was special..." className="bg-color-warm/15 focus-visible:ring-color-highlight" />
+            <AiAssistField
+              promptType="journal"
+              context={{ babyName, title, seedText: story }}
+              onResult={setStory}
+            />
           </div>
 
           <div>
@@ -239,6 +246,11 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                         <div className="space-y-3">
                           <Input value={editTitle} onChange={ev => setEditTitle(ev.target.value)} placeholder="Title" className="font-semibold text-base focus-visible:ring-color-highlight" />
                           <Textarea rows={5} value={editStory} onChange={ev => setEditStory(ev.target.value)} placeholder="Story" className="focus-visible:ring-color-highlight" />
+                          <AiAssistField
+                            promptType="journal"
+                            context={{ babyName, title: editTitle, seedText: editStory }}
+                            onResult={setEditStory}
+                          />
                           <div>
                             {e.image_url && !editCroppedPhoto && (
                               <img src={e.image_url} alt={e.title} className="w-full max-w-xs rounded-lg object-cover mb-2" />
@@ -444,6 +456,12 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
             onChange={e => setNotes(e.target.value)}
             rows={2}
             className="bg-color-warm/15 focus-visible:ring-color-highlight"
+          />
+
+          <AiAssistField
+            promptType="first_note"
+            context={{ babyName, label, seedText: notes }}
+            onResult={setNotes}
           />
 
           <button

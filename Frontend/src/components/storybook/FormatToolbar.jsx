@@ -1,10 +1,13 @@
 import React, { useEffect, useReducer } from "react";
 import { Bold, Italic, AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { FONT_SIZES, fontSizeKey } from "@/lib/tiptap";
+import AiAssistField from "@/components/storybook/AiAssistField";
 
 // Inline formatting toolbar bound to an active Tiptap editor: bold, italic,
 // alignment, and S/M/L font size. Shown while a text block is being edited.
-export default function FormatToolbar({ editor }) {
+// `assist` (optional) adds a ✨ AI-draft button for rich-text fields that support it
+// (currently the letter body) — { promptType, context, onResult }.
+export default function FormatToolbar({ editor, assist }) {
   const [, force] = useReducer(x => x + 1, 0);
 
   useEffect(() => {
@@ -67,6 +70,19 @@ export default function FormatToolbar({ editor }) {
           {label}
         </button>
       ))}
+
+      {assist && (
+        <>
+          <span className="w-px h-5 bg-border mx-0.5" />
+          <AiAssistField
+            variant="toolbar"
+            promptType={assist.promptType}
+            context={{ ...assist.context, seedText: editor.getText() }}
+            onResult={assist.onResult}
+            requireSeed={assist.requireSeed}
+          />
+        </>
+      )}
     </div>
   );
 }

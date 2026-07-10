@@ -3,6 +3,7 @@ import CradleHq from "./components/CradleHq";
 import LoginPage from "./components/LoginPage";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AiCreditsProvider } from "./contexts/AiCreditsContext";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -78,18 +79,22 @@ export default function App() {
     );
   }
 
+  const handleUserUpdate = (updated) => {
+    saveSession(updated);
+    setUser(updated);
+  };
+
   return (
     <ThemeProvider>
-      <CradleHq
-        user={user}
-        onLogout={handleLogout}
-        verifiedBanner={verifiedBanner}
-        onDismissBanner={() => setVerifiedBanner(null)}
-        onUserUpdate={(updated) => {
-          saveSession(updated);
-          setUser(updated);
-        }}
-      />
+      <AiCreditsProvider user={user} onUserUpdate={handleUserUpdate}>
+        <CradleHq
+          user={user}
+          onLogout={handleLogout}
+          verifiedBanner={verifiedBanner}
+          onDismissBanner={() => setVerifiedBanner(null)}
+          onUserUpdate={handleUserUpdate}
+        />
+      </AiCreditsProvider>
     </ThemeProvider>
   );
 }

@@ -9,6 +9,7 @@ import { Camera, Trash2, Pencil, Baby } from "lucide-react";
 import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
 import PhotoPickerButton from "@/components/ui/PhotoPickerButton";
 import { firstEmptyWeek, groupByWeek, deriveWeek } from "@/lib/bumpDiary";
+import AiAssistField from "@/components/storybook/AiAssistField";
 import BumpCard from "./BumpCard";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -108,6 +109,11 @@ function AddBumpForm({ defaultWeek, weekRefDate, onAdd, onUpload, onError }) {
             rows={2} value={note} onChange={e => setNote(e.target.value)}
             placeholder="How are you feeling? What happened this week?"
             className="bg-white focus-visible:ring-color-highlight"
+          />
+          <AiAssistField
+            promptType="bump_note"
+            context={{ seedText: note }}
+            onResult={setNote}
           />
         </div>
         <LoadingButton

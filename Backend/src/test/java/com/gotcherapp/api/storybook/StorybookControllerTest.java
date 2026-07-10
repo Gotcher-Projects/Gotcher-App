@@ -41,7 +41,7 @@ class StorybookControllerTest {
     private static ChapterResponse sampleChapter() {
         return new ChapterResponse(CHAPTER_ID, "period", "8-12", "Weeks 8–12", 8, 12, 0,
             null, "unlocked", null, null, null, null, null,
-            null, null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
     }
 
     private static WizardRequest wizardReq() {
@@ -109,38 +109,6 @@ class StorybookControllerTest {
         when(storybookService.wizard(eq(USER_ID), any()))
             .thenThrow(new RuntimeException("db down"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, controller.wizard(PRINCIPAL, wizardReq()).getStatusCode());
-    }
-
-    // ── POST /storybook/generate-pages/{id} ─────────────────────────────────────────
-
-    @Test
-    void generatePages_returns200_onSuccess() {
-        when(storybookService.generatePages(eq(USER_ID), eq(CHAPTER_ID), any())).thenReturn(List.of());
-        assertEquals(HttpStatus.OK, controller.generatePages(PRINCIPAL, CHAPTER_ID, null).getStatusCode());
-    }
-
-    @Test
-    void generatePages_returns402_onInsufficientCredits() {
-        when(storybookService.generatePages(eq(USER_ID), eq(CHAPTER_ID), any()))
-            .thenThrow(new StorybookService.InsufficientCreditsException("broke"));
-        assertEquals(HttpStatus.PAYMENT_REQUIRED,
-            controller.generatePages(PRINCIPAL, CHAPTER_ID, null).getStatusCode());
-    }
-
-    @Test
-    void generatePages_returns403_onForbidden() {
-        when(storybookService.generatePages(eq(USER_ID), eq(CHAPTER_ID), any()))
-            .thenThrow(new StorybookService.ForbiddenException("upgrade"));
-        assertEquals(HttpStatus.FORBIDDEN,
-            controller.generatePages(PRINCIPAL, CHAPTER_ID, null).getStatusCode());
-    }
-
-    @Test
-    void generatePages_returns404_onNotFound() {
-        when(storybookService.generatePages(eq(USER_ID), eq(CHAPTER_ID), any()))
-            .thenThrow(new NoSuchElementException("missing"));
-        assertEquals(HttpStatus.NOT_FOUND,
-            controller.generatePages(PRINCIPAL, CHAPTER_ID, null).getStatusCode());
     }
 
     // ── PATCH /storybook/{id} ───────────────────────────────────────────────────────

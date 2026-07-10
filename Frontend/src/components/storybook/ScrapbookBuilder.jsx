@@ -24,7 +24,7 @@ import FormatToolbar from "@/components/storybook/FormatToolbar";
 import MemoryPanel from "@/components/storybook/MemoryPanel";
 import TemplateSheet from "@/components/storybook/TemplateSheet";
 import Slot from "@/components/storybook/Slot";
-import { buildMemoryList, extractPieceText } from "@/lib/storybookGrouping";
+import { buildMemoryList } from "@/lib/storybookGrouping";
 import { buildGuidedMemories, groupMemoriesIntoBuckets } from "@/lib/guidedBook";
 import { MAX_MILESTONE_ROWS, seededMilestoneDate } from "@/lib/milestonesPage";
 import { toTiptapDoc, contentToPlainText } from "@/lib/tiptap";
@@ -84,6 +84,21 @@ export default function ScrapbookBuilder({
   const currentBlocks = currentPage?.blocks || [];
   const currentTemplate = TEMPLATES.find(t => t.id === currentPage?.templateId) || null;
 
+  // AI ✨ assist for the letter body — the one rich-text field with assist (sv2-s10b). Shown in the
+  // format toolbar while the letter's `body` block is being edited. seedText is the editor's current
+  // plain text; the accepted draft is applied straight back into the Tiptap doc.
+  const letterAssist =
+    currentTemplate?.renderer === 'letter' && editingBlockId === 'body' && activeEditor
+      ? {
+          promptType: 'letter',
+          // A letter can't be drafted from an empty body — require a little seed text first.
+          requireSeed: true,
+          // seedText is injected live by FormatToolbar (which re-renders on editor transactions).
+          context: { babyName: pageData?.babyName, parentName: pageData?.parentName },
+          onResult: (text) => activeEditor.chain().focus().setContent(toTiptapDoc(text)).run(),
+        }
+      : null;
+
   // Guided books (sv2-s7.5a) surface the WHOLE memory pool (all journals, all firsts incl. their V38
   // extra photos, and bump photos) grouped into time buckets — not the wizard-selected subset. Built
   // once here so both the panel and the placement/overlay lookups share the same objects.
@@ -106,19 +121,14 @@ export default function ScrapbookBuilder({
       entryNotes: chapter.entryNotes,
     });
     return base.map(m => {
-      const gc = chapter.generatedContent?.[m.sourceKey];
-      // Raw entry text — used as a fallback when AI content hasn't been generated.
+      // The memory's own text seeds cards and slots — AI page-gen (aiTitle/aiBody) was removed in
+      // sv2-s11, so consumers fall back to the raw preview/label.
       const [type, idStr] = m.sourceKey.split(':');
       const id = parseInt(idStr, 10);
       let rawText = '';
       if (type === 'journal') rawText = (journalEntries || []).find(e => e.id === id)?.story || '';
       else if (type === 'first_time') rawText = (firsts || []).find(f => f.id === id)?.notes || '';
-      return {
-        ...m,
-        aiTitle: gc?.title || null,
-        aiBody: gc?.body ? cleanBodyText(gc.body) : null,
-        rawText,
-      };
+      return { ...m, rawText };
     });
   }, [locked, guidedMemories, chapter, journalEntries, firsts]);
 
@@ -249,13 +259,11 @@ export default function ScrapbookBuilder({
       // l-wrap text only — photos go through placePhotoIntoSlot (crop modal).
       if (target.type === 'l-wrap') {
         if (kind !== 'text') return blocks;
-        const gc = chapter.generatedContent?.[sourceKey];
+        // Text is seeded from the memory's own words (title/label or raw body) — AI page-gen was
+        // removed in sv2-s11, so there is no generated content to prefer.
         const piece = target.contentSource?.piece || 'body';
-        let fullText = extractPieceText(gc, piece);
-        if (!fullText) {
-          const mem = memories.find(m => m.sourceKey === sourceKey);
-          fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
-        }
+        const mem = memories.find(m => m.sourceKey === sourceKey);
+        const fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
         return blocks.map(b =>
           b.id === blockId
             ? { ...b, content: toTiptapDoc(fullText), sourceKey, suppressDropCap: true }
@@ -264,13 +272,9 @@ export default function ScrapbookBuilder({
       }
 
       if (kind === 'text' && target.type === 'text') {
-        const gc = chapter.generatedContent?.[sourceKey];
         const piece = target.contentSource?.piece || 'body';
-        let fullText = extractPieceText(gc, piece);
-        if (!fullText) {
-          const mem = memories.find(m => m.sourceKey === sourceKey);
-          fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
-        }
+        const mem = memories.find(m => m.sourceKey === sourceKey);
+        const fullText = piece === 'title' ? (mem?.label || '') : cleanBodyText(mem?.rawText || '');
 
         const splitGroup = target.contentSource?.splitGroup;
         if (splitGroup) {
@@ -610,7 +614,7 @@ export default function ScrapbookBuilder({
         {/* Right — page canvas */}
         <main className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center gap-3">
           {/* Format toolbar — visible while editing a text slot */}
-          {editingBlockId && activeEditor && <FormatToolbar editor={activeEditor} />}
+          {editingBlockId && activeEditor && <FormatToolbar editor={activeEditor} assist={letterAssist} />}
 
           {/* Guided prompt — the page's guidance ("Your first bath…") */}
           {promptText && (

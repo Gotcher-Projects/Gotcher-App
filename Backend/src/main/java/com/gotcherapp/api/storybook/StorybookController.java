@@ -4,8 +4,6 @@ import com.gotcherapp.api.common.ApiError;
 import com.gotcherapp.api.security.AuthPrincipal;
 import com.gotcherapp.api.upload.ImageUploadService;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
-import com.gotcherapp.api.storybook.dto.GenerateGroupsRequest;
-import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
 import org.springframework.http.ResponseEntity;
@@ -64,28 +62,6 @@ public class StorybookController {
             return ApiError.forbidden(e.getMessage());
         } catch (StorybookService.InsufficientCreditsException e) {
             return ResponseEntity.status(402).body(new ApiError(e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ApiError.badRequest(e.getMessage());
-        } catch (Exception e) {
-            return ApiError.serverError(e.getMessage());
-        }
-    }
-
-    @PostMapping("/storybook/generate-pages/{id}")
-    public ResponseEntity<?> generatePages(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable Long id,
-        @RequestBody(required = false) GenerateGroupsRequest groupsReq
-    ) {
-        try {
-            List<GeneratedPageResponse> pages = storybookService.generatePages(principal.userId(), id, groupsReq);
-            return ResponseEntity.ok(pages);
-        } catch (StorybookService.ForbiddenException e) {
-            return ApiError.forbidden(e.getMessage());
-        } catch (StorybookService.InsufficientCreditsException e) {
-            return ResponseEntity.status(402).body(new ApiError(e.getMessage()));
-        } catch (NoSuchElementException e) {
-            return ApiError.notFound(e.getMessage());
         } catch (IllegalArgumentException e) {
             return ApiError.badRequest(e.getMessage());
         } catch (Exception e) {

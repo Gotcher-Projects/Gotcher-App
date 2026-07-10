@@ -3,7 +3,6 @@ package com.gotcherapp.api.storybook;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gotcherapp.api.baby.BabyProfileRepository;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
-import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
 import com.gotcherapp.api.upload.ImageUploadService;
@@ -18,7 +17,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,16 +25,16 @@ import static org.mockito.Mockito.*;
 
 /**
  * Coverage for StorybookService. Started life as the s3 IDOR regression suite (selected memory ids
- * must belong to the caller's profile) and broadened in s6 to the pure helpers, the generatePages
- * credit gating + refund paths, and the wizard/update branches. DB calls are mocked via JdbcTemplate;
- * a real ObjectMapper is used so the JSON parse/serialize helpers exercise genuine behaviour.
+ * must belong to the caller's profile) and broadened in s6 to the pure helpers and the wizard/update
+ * branches. The batched AI page-generation path was removed in sv2-s11 (its tests went with it — the
+ * only AI now is the per-field assist, covered by AiAssistServiceTest). DB calls are mocked via
+ * JdbcTemplate; a real ObjectMapper exercises the JSON parse/serialize helpers for genuine behaviour.
  */
 @ExtendWith(MockitoExtension.class)
 class StorybookServiceTest {
 
     @Mock JdbcTemplate jdbc;
     @Mock BabyProfileRepository babyProfileRepository;
-    @Mock ClaudeClient claudeClient;
     @Mock ImageUploadService imageUploadService;
 
     StorybookService service;
@@ -48,8 +46,7 @@ class StorybookServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StorybookService(jdbc, babyProfileRepository, claudeClient,
-            new ObjectMapper(), imageUploadService);
+        service = new StorybookService(jdbc, babyProfileRepository, new ObjectMapper(), imageUploadService);
     }
 
     private WizardRequest wizardReq(List<Long> journalIds, List<Long> firstTimeIds) {
@@ -111,182 +108,6 @@ class StorybookServiceTest {
         ChapterResponse resp = service.wizard(USER_ID, wizardReq(List.of(5L), null));
 
         assertEquals(CHAPTER_ID, resp.id());
-    }
-
-    // ── generatePages() read scoping ────────────────────────────────────────────
-
-    @Test
-    void generatePages_scopesMemoryReadsByBabyProfile() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus", "ai_credits_remaining", 100));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-
-        Map<String, Object> chapterRow = new HashMap<>();
-        chapterRow.put("wizard_journal_ids", "5");
-        chapterRow.put("wizard_first_time_ids", null);
-        chapterRow.put("wizard_entry_notes", null);
-        when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?"),
-                eq(CHAPTER_ID), eq(PROFILE_ID)))
-            .thenReturn(List.of(chapterRow));
-        when(jdbc.queryForMap(contains("FROM baby_profiles WHERE id = ?"), eq(PROFILE_ID)))
-            .thenReturn(Map.of("baby_name", "Lily"));
-        when(jdbc.queryForList(contains("FROM journal_entries"), any(Object[].class))).thenReturn(List.of());
-        // atomic charge succeeds (1 row updated)
-        when(jdbc.update(contains("ai_credits_remaining = ai_credits_remaining -"), eq(1), eq(USER_ID), eq(1)))
-            .thenReturn(1);
-        when(claudeClient.generatePagesBatch(anyString(), anyInt())).thenReturn("{\"pages\":[]}");
-
-        service.generatePages(USER_ID, CHAPTER_ID, null);
-
-        ArgumentCaptor<String> sqlCap = ArgumentCaptor.forClass(String.class);
-        verify(jdbc, atLeastOnce()).queryForList(sqlCap.capture(), any(Object[].class));
-        String journalSql = sqlCap.getAllValues().stream()
-            .filter(s -> s.contains("journal_entries"))
-            .findFirst()
-            .orElseThrow(() -> new AssertionError("journal_entries was never queried"));
-        assertTrue(journalSql.contains("baby_profile_id = ?"),
-            "journal read must be scoped by baby_profile_id, was: " + journalSql);
-    }
-
-    @Test
-    void generatePages_throwsInsufficientCredits_whenAtomicChargeAffectsZeroRows() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus"));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-
-        Map<String, Object> chapterRow = new HashMap<>();
-        chapterRow.put("wizard_journal_ids", "5");
-        chapterRow.put("wizard_first_time_ids", null);
-        chapterRow.put("wizard_entry_notes", null);
-        when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?"),
-                eq(CHAPTER_ID), eq(PROFILE_ID)))
-            .thenReturn(List.of(chapterRow));
-        when(jdbc.queryForMap(contains("FROM baby_profiles WHERE id = ?"), eq(PROFILE_ID)))
-            .thenReturn(Map.of("baby_name", "Lily"));
-        // conditional charge affects 0 rows → insufficient balance
-        when(jdbc.update(contains("ai_credits_remaining = ai_credits_remaining -"), eq(1), eq(USER_ID), eq(1)))
-            .thenReturn(0);
-
-        assertThrows(StorybookService.InsufficientCreditsException.class,
-            () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-        // The AI call must not happen if the charge didn't go through.
-        verify(claudeClient, never()).generatePagesBatch(anyString(), anyInt());
-    }
-
-    // ── generatePages() gating ──────────────────────────────────────────────────
-
-    @Test
-    void generatePages_freeTier_throwsForbidden() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "free"));
-
-        assertThrows(StorybookService.ForbiddenException.class,
-            () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-        verify(claudeClient, never()).generatePagesBatch(anyString(), anyInt());
-    }
-
-    @Test
-    void generatePages_noProfile_throwsForbidden() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus"));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
-
-        assertThrows(StorybookService.ForbiddenException.class,
-            () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-    }
-
-    @Test
-    void generatePages_chapterNotFound_throwsNoSuchElement() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus"));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-        when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?"),
-                eq(CHAPTER_ID), eq(PROFILE_ID))).thenReturn(List.of());
-
-        assertThrows(NoSuchElementException.class,
-            () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-    }
-
-    @Test
-    void generatePages_noEntriesSelected_throwsIllegalArgument() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus"));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-        Map<String, Object> emptyChapter = new HashMap<>();
-        emptyChapter.put("wizard_journal_ids", null);
-        emptyChapter.put("wizard_first_time_ids", null);
-        emptyChapter.put("wizard_entry_notes", null);
-        when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?"),
-                eq(CHAPTER_ID), eq(PROFILE_ID))).thenReturn(List.of(emptyChapter));
-
-        assertThrows(IllegalArgumentException.class,
-            () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-        // No charge should be attempted when there's nothing to generate.
-        verify(jdbc, never()).update(contains("ai_credits_remaining = ai_credits_remaining -"), any(), any(), any());
-    }
-
-    // ── generatePages() happy path + credit refunds (highest value) ─────────────
-
-    @Test
-    void generatePages_happyPath_chargesAndWritesGeneratedContent() {
-        arrangeChargeableChapter();
-        when(claudeClient.generatePagesBatch(anyString(), anyInt()))
-            .thenReturn("{\"pages\":[{\"sourceKey\":\"journal:5\",\"body\":\"Once upon a time\",\"title\":\"Day one\"}]}");
-
-        List<GeneratedPageResponse> pages = service.generatePages(USER_ID, CHAPTER_ID, null);
-
-        assertEquals(1, pages.size());
-        assertEquals("journal:5", pages.get(0).sourceKey());
-        assertEquals("Once upon a time", pages.get(0).body());
-        // Charged exactly one credit (one selected entry) ...
-        verify(jdbc).update(contains("ai_credits_remaining = ai_credits_remaining -"), eq(1), eq(USER_ID), eq(1));
-        // ... and persisted the generated content; no refund.
-        verify(jdbc).update(contains("SET generated_content"), anyString(), eq(CHAPTER_ID));
-        verify(jdbc, never()).update(contains("ai_credits_remaining = ai_credits_remaining +"), anyInt(), eq(USER_ID));
-    }
-
-    @Test
-    void generatePages_refundsCredits_whenClaudeFails() {
-        arrangeChargeableChapter();
-        when(claudeClient.generatePagesBatch(anyString(), anyInt()))
-            .thenThrow(new RuntimeException("Claude API timeout"));
-
-        assertThrows(RuntimeException.class, () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-
-        // The credit charged up front must be returned when generation never produced anything.
-        verify(jdbc).update(contains("ai_credits_remaining = ai_credits_remaining +"), eq(1), eq(USER_ID));
-        verify(jdbc, never()).update(contains("SET generated_content"), anyString(), any());
-    }
-
-    @Test
-    void generatePages_refundsCredits_whenResponseUnparseable() {
-        arrangeChargeableChapter();
-        // Valid call, but the model returned JSON with no "pages" array → parse failure after charge.
-        when(claudeClient.generatePagesBatch(anyString(), anyInt()))
-            .thenReturn("{\"unexpected\":true}");
-
-        assertThrows(RuntimeException.class, () -> service.generatePages(USER_ID, CHAPTER_ID, null));
-
-        verify(jdbc).update(contains("ai_credits_remaining = ai_credits_remaining +"), eq(1), eq(USER_ID));
-        verify(jdbc, never()).update(contains("SET generated_content"), anyString(), any());
-    }
-
-    // Common arrangement for a single-entry chapter that successfully passes the credit charge.
-    private void arrangeChargeableChapter() {
-        when(jdbc.queryForMap(contains("FROM users WHERE id = ?"), eq(USER_ID)))
-            .thenReturn(Map.of("tier", "plus"));
-        when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-        Map<String, Object> chapterRow = new HashMap<>();
-        chapterRow.put("wizard_journal_ids", "5");
-        chapterRow.put("wizard_first_time_ids", null);
-        chapterRow.put("wizard_entry_notes", null);
-        when(jdbc.queryForList(contains("FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?"),
-                eq(CHAPTER_ID), eq(PROFILE_ID))).thenReturn(List.of(chapterRow));
-        when(jdbc.queryForMap(contains("FROM baby_profiles WHERE id = ?"), eq(PROFILE_ID)))
-            .thenReturn(Map.of("baby_name", "Lily"));
-        when(jdbc.queryForList(contains("FROM journal_entries"), any(Object[].class))).thenReturn(List.of());
-        when(jdbc.update(contains("ai_credits_remaining = ai_credits_remaining -"), eq(1), eq(USER_ID), eq(1)))
-            .thenReturn(1);
     }
 
     // ── wizard() field validation + create/update branch ────────────────────────
@@ -393,14 +214,6 @@ class StorybookServiceTest {
     // ── Pure helpers (no mocks) ─────────────────────────────────────────────────
 
     @Test
-    void extractJson_unwrapsObjectFromSurroundingProse() {
-        assertEquals("{\"pages\":[]}", StorybookService.extractJson("Sure!\n```json\n{\"pages\":[]}\n```"));
-        assertEquals("{}", StorybookService.extractJson(null));
-        // No braces → returned unchanged (caller's readTree will then fail and trigger a refund).
-        assertEquals("no json here", StorybookService.extractJson("no json here"));
-    }
-
-    @Test
     void parseIdsCsv_serializeIds_roundTrip() {
         assertEquals("3,1,2", service.serializeIds(List.of(3L, 1L, 2L)));
         assertEquals(List.of(3L, 1L, 2L), service.parseIdsCsv("3,1,2"));
@@ -425,9 +238,6 @@ class StorybookServiceTest {
         assertEquals(List.of(), service.parseJsonList("nope"));
         assertEquals(List.of(), service.parseJsonList(null));
         assertEquals(1, service.parseJsonList("[{\"k\":\"v\"}]").size());
-
-        assertNull(service.parseGeneratedContent("garbage"));
-        assertNull(service.parseGeneratedContent(null));
     }
 
     private Map<String, Object> rowWithId(Long id) {

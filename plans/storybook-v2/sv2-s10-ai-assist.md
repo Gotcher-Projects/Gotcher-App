@@ -1,6 +1,12 @@
 # SV2-S10 (AI-ASSIST) — Per-field "✨ write this for me" assist (shared)   *(renumbered 2026-06-27)*
 
-**Status: Not started**
+**Status: Complete — superseded by `sv2-s10b` (confirmed by Michael 2026-07-08).** Backend complete +
+verified live; the frontend component shipped here wired into one field (First Times notes), and the
+remaining field wiring + refactor pass was finished in `sv2-s10b-assist-wiring-and-refactor.md`, which
+Michael verified in-app. Nothing in this file is outstanding. *(Was "In Progress (2026-07-07)" —
+stale, corrected 2026-07-09.)*
+**Gating changed to CREDITS-only, not tier** — see [[project-ai-assist-credit-gating]] (supersedes the
+"paid-tier only / free = inert" spec below). `users.tier` is vestigial; nothing reads it.
 **Depends on:** at least one consuming page-type field exists (sv2-s1/s2/s3 ship the manual fields).
 Best built after the core page types so the shared component has real consumers. NOT a hard blocker for
 those sessions — they ship the manual path and this wires in afterward.

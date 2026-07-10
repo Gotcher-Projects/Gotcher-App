@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import PhotoPickerButton from "@/components/ui/PhotoPickerButton";
+import AiAssistField from "@/components/storybook/AiAssistField";
 import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
 import Avatar from "@/components/ui/Avatar";
 
@@ -269,6 +270,11 @@ export default function ProfileEditModal({
                   placeholder="The morning you arrived it was raining, and your dad…"
                   rows={4}
                   className="mt-1"
+                />
+                <AiAssistField
+                  promptType="birth_note"
+                  context={{ babyName: p.name, seedText: birthDraft.birthStory }}
+                  onResult={text => setBirth("birthStory", text)}
                 />
               </div>
               <p className="text-xs text-muted-foreground">Measurements use lbs / inches (same as growth tracking). All fields optional.</p>

@@ -1,13 +1,18 @@
 # Deferred — Remove Temporary Claude Request/Response Logging
 
-> **V2 TRIAGE (2026-06-22):** **do this before any public launch** — see
-> `plans/storybook-v2/planning.md` §7. It's a privacy/launch blocker (logs print real family
-> journal/first-time content), not a v2 feature, and is independent of all v2 sessions. ~30-min task;
-> verify the S5.46 logging still exists first with `grep -rn "CLAUDE-DEBUG" Backend/src`.
+> **✅ OBSOLETE — NO WORK REQUIRED. Verified 2026-07-09 during `sv2-s9.6`.**
+>
+> `sv2-s11` deleted `generatePages()` and the batch `ClaudeClient` code path, which took **every
+> `[CLAUDE-DEBUG]` call site with it**. `grep -rn "CLAUDE-DEBUG" Backend/src` now returns nothing, so
+> the privacy/launch blocker this session existed to fix no longer exists. The surviving
+> `ClaudeClient.callClaude()` logs only `model` and `maxTokens` (`ClaudeClient.java:69`) — no family
+> content.
+>
+> Nothing to do. Kept for history. If a future session reintroduces prompt/response logging, re-open
+> this file rather than writing a new one.
 
-**Status: Not Started (deferred — small hygiene task; do before launch)**
-**Branch:** journal-updates (or current)
-**Depends on:** S5.46 (which adds the logging this session removes)
+**Status: Complete — by deletion (2026-07-09). Confirm with `grep -rn "CLAUDE-DEBUG" Backend/src`.**
+**Depends on:** ~~S5.46~~ — superseded; `sv2-s11` removed the logging.
 
 ---
 

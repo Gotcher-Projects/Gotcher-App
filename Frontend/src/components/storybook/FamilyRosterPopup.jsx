@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Trash2, Pencil, Plus } from "lucide-react";
 import PhotoPickerButton from "@/components/ui/PhotoPickerButton";
+import AiAssistField from "@/components/storybook/AiAssistField";
 import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
 import { apiRequest, apiUpload } from "@/lib/api";
 
@@ -297,6 +298,11 @@ export default function FamilyRosterPopup({ open, onClose, initialSelectedIds = 
               <div>
                 <Label className="text-xs">A few words about them <span className="text-muted-foreground">(optional)</span></Label>
                 <Textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} rows={3} placeholder="What makes them special…" className="mt-1" />
+                <AiAssistField
+                  promptType="bio"
+                  context={{ name: form.name, role: form.role, seedText: form.bio }}
+                  onResult={bio => setForm(f => ({ ...f, bio }))}
+                />
               </div>
               <div className="flex gap-2">
                 <Button onClick={saveForm} disabled={saving} size="sm">

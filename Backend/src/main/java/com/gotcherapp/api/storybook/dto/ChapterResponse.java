@@ -3,6 +3,7 @@ package com.gotcherapp.api.storybook.dto;
 import java.util.List;
 import java.util.Map;
 
+// generated_content was removed in sv2-s11 (batched AI page-gen decommissioned) — no field here.
 public record ChapterResponse(
     Long id,
     String anchorType,
@@ -24,6 +25,5 @@ public record ChapterResponse(
     Map<String, String> photoOverrides,
     Map<String, String> entryNotes,
     Map<String, Object> layoutData,
-    List<Map<String, Object>> chapterPhotos,
-    Map<String, GeneratedPageContent> generatedContent
+    List<Map<String, Object>> chapterPhotos
 ) {}

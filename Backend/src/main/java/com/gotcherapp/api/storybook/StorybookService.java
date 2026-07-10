@@ -1,13 +1,9 @@
 package com.gotcherapp.api.storybook;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gotcherapp.api.baby.BabyProfileRepository;
 import com.gotcherapp.api.storybook.dto.ChapterResponse;
-import com.gotcherapp.api.storybook.dto.GenerateGroupsRequest;
-import com.gotcherapp.api.storybook.dto.GeneratedPageContent;
-import com.gotcherapp.api.storybook.dto.GeneratedPageResponse;
 import com.gotcherapp.api.storybook.dto.UpdateChapterRequest;
 import com.gotcherapp.api.storybook.dto.WizardRequest;
 import com.gotcherapp.api.upload.ImageUploadService;
@@ -26,21 +22,17 @@ public class StorybookService {
     private static final String CHAPTER_COLS =
         "id, anchor_type, anchor_key, anchor_label, period_start_weeks, period_end_weeks, " +
         "sort_order, body, status, image_url, generated_at, published_at, created_at, updated_at, " +
-        "wizard_journal_ids, wizard_first_time_ids, supplementary_notes, photo_overrides, wizard_entry_notes, layout_data, chapter_photos, " +
-        "generated_content";
+        "wizard_journal_ids, wizard_first_time_ids, supplementary_notes, photo_overrides, wizard_entry_notes, layout_data, chapter_photos";
 
     private final JdbcTemplate jdbc;
     private final BabyProfileRepository babyProfileRepository;
-    private final ClaudeClient claudeClient;
     private final ObjectMapper objectMapper;
     private final ImageUploadService imageUploadService;
 
     public StorybookService(JdbcTemplate jdbc, BabyProfileRepository babyProfileRepository,
-                            ClaudeClient claudeClient, ObjectMapper objectMapper,
-                            ImageUploadService imageUploadService) {
+                            ObjectMapper objectMapper, ImageUploadService imageUploadService) {
         this.jdbc = jdbc;
         this.babyProfileRepository = babyProfileRepository;
-        this.claudeClient = claudeClient;
         this.objectMapper = objectMapper;
         this.imageUploadService = imageUploadService;
     }
@@ -132,185 +124,6 @@ public class StorybookService {
             "SELECT " + CHAPTER_COLS + " FROM storybook_chapters WHERE id = ?", chapterId
         );
         return mapRow(saved.get(0));
-    }
-
-    // ── Generate pages (paged mode) ───────────────────────────────────────────
-
-    public List<GeneratedPageResponse> generatePages(Long userId, Long chapterId, GenerateGroupsRequest groupsReq) {
-        Map<String, Object> user = jdbc.queryForMap(
-            "SELECT tier FROM users WHERE id = ?", userId
-        );
-        String tier = (String) user.get("tier");
-
-        if ("free".equals(tier)) throw new ForbiddenException("Upgrade to Plus to generate chapters");
-
-        Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
-        if (profileId.isEmpty()) throw new ForbiddenException("No baby profile found");
-
-        List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT wizard_journal_ids, wizard_first_time_ids, wizard_entry_notes " +
-            "FROM storybook_chapters WHERE id = ? AND baby_profile_id = ?",
-            chapterId, profileId.get()
-        );
-        if (rows.isEmpty()) throw new NoSuchElementException("Chapter not found");
-        Map<String, Object> chapter = rows.get(0);
-
-        List<Long> journalIds = parseIdsCsv(chapter.get("wizard_journal_ids"));
-        if (journalIds == null) journalIds = List.of();
-        List<Long> firstTimeIds = parseIdsCsv(chapter.get("wizard_first_time_ids"));
-        if (firstTimeIds == null) firstTimeIds = List.of();
-        Map<String, String> entryNotes = parseJsonMap(chapter.get("wizard_entry_notes"));
-
-        int totalEntries = journalIds.size() + firstTimeIds.size();
-        if (totalEntries == 0) throw new IllegalArgumentException("No entries selected for this chapter");
-
-        Map<String, Object> baby = jdbc.queryForMap(
-            "SELECT baby_name FROM baby_profiles WHERE id = ?", profileId.get()
-        );
-        String babyName = (String) baby.get("baby_name");
-
-        // Build set of sourceKeys in multi-memory groups (get shorter body from AI)
-        Set<String> multiGroupKeys = new HashSet<>();
-        if (groupsReq != null && groupsReq.groups() != null) {
-            for (GenerateGroupsRequest.PageGroup g : groupsReq.groups()) {
-                if (g.sourceKeys() != null && g.sourceKeys().size() > 1) {
-                    multiGroupKeys.addAll(g.sourceKeys());
-                }
-            }
-        }
-
-        // Charge one credit per page up front, atomically: the conditional WHERE both gates and
-        // decrements in a single statement so concurrent generates can't overspend (TOCTOU-safe).
-        int charged = jdbc.update(
-            "UPDATE users SET ai_credits_remaining = ai_credits_remaining - ? " +
-            "WHERE id = ? AND ai_credits_remaining >= ?",
-            totalEntries, userId, totalEntries);
-        if (charged == 0) {
-            throw new InsufficientCreditsException(
-                "Not enough credits — you need " + totalEntries + " credits for " + totalEntries + " pages"
-            );
-        }
-
-        // Charge-then-refund: credits were debited above before any external work. Every failure
-        // path from here on (the Claude call AND the JSON parse below) must refund the full
-        // `totalEntries` so a failed generate never costs the user a credit. Keep both catches in sync.
-        String raw;
-        try {
-            String prompt = buildBatchPagesPrompt(profileId.get(), journalIds, firstTimeIds, entryNotes, babyName, multiGroupKeys);
-            int maxTokens = Math.min(800 + totalEntries * 320, 8000);
-            raw = claudeClient.generatePagesBatch(prompt, maxTokens);
-        } catch (Exception e) {
-            jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining + ? WHERE id = ?",
-                totalEntries, userId);
-            throw new RuntimeException("Page generation failed: " + e.getMessage(), e);
-        }
-
-        try {
-            JsonNode root = objectMapper.readTree(extractJson(raw));
-            JsonNode pagesNode = root.get("pages");
-            if (pagesNode == null || !pagesNode.isArray()) {
-                throw new IllegalStateException("response had no 'pages' array");
-            }
-            Map<String, GeneratedPageContent> contentMap = new LinkedHashMap<>();
-            List<GeneratedPageResponse> results = new ArrayList<>();
-            for (JsonNode p : pagesNode) {
-                String sourceKey = p.path("sourceKey").asText(null);
-                String body = p.path("body").asText("");
-                String pullQuote = p.path("pullQuote").asText(null);
-                String title = p.path("title").asText(null);
-                String caption = p.path("caption").asText(null);
-                results.add(new GeneratedPageResponse(sourceKey, body, pullQuote, title, caption));
-                if (sourceKey != null) {
-                    contentMap.put(sourceKey, new GeneratedPageContent(body, pullQuote, title, caption));
-                }
-            }
-            String contentJson = objectMapper.writeValueAsString(contentMap);
-            jdbc.update("UPDATE storybook_chapters SET generated_content = ?::jsonb WHERE id = ?",
-                contentJson, chapterId);
-            return results;
-        } catch (Exception e) {
-            jdbc.update("UPDATE users SET ai_credits_remaining = ai_credits_remaining + ? WHERE id = ?",
-                totalEntries, userId);
-            throw new RuntimeException("Page generation failed: could not parse response — " + e.getMessage(), e);
-        }
-    }
-
-    // Builds a single prompt listing every selected memory (date order) for the batched
-    // page-generation call. Each memory is tagged with its sourceKey so the model echoes it back.
-    // SECURITY: both reads are scoped by baby_profile_id so a tampered/foreign id can never pull
-    // another tenant's content into the prompt (see s3 IDOR fix).
-    private String buildBatchPagesPrompt(Long profileId, List<Long> journalIds, List<Long> firstTimeIds,
-                                         Map<String, String> entryNotes, String babyName,
-                                         Set<String> groupedKeys) {
-        record MemItem(String date, String block) {}
-        List<MemItem> all = new ArrayList<>();
-
-        if (journalIds != null && !journalIds.isEmpty()) {
-            String ph = journalIds.stream().map(id -> "?").collect(Collectors.joining(","));
-            List<Object> params = new ArrayList<>();
-            params.add(profileId);
-            params.addAll(journalIds);
-            jdbc.queryForList(
-                "SELECT id, title, story, week, entry_date FROM journal_entries " +
-                "WHERE baby_profile_id = ? AND id IN (" + ph + ")",
-                params.toArray()
-            ).forEach(e -> {
-                long id = ((Number) e.get("id")).longValue();
-                int week = ((Number) e.get("week")).intValue();
-                String date = e.get("entry_date") != null ? e.get("entry_date").toString() : "";
-                String sourceKey = "journal:" + id;
-                StringBuilder b = new StringBuilder();
-                b.append("Memory — ").append(sourceKey);
-                if (groupedKeys.contains(sourceKey)) b.append(" [GROUP]");
-                b.append(" — Week ").append(week).append(": \"").append(e.get("title")).append("\"\n");
-                if (e.get("story") != null) b.append(e.get("story")).append("\n");
-                String note = entryNotes != null ? entryNotes.get(sourceKey) : null;
-                if (note != null && !note.isBlank()) b.append("Parent's memory: ").append(note.trim()).append("\n");
-                all.add(new MemItem(date, b.toString()));
-            });
-        }
-
-        if (firstTimeIds != null && !firstTimeIds.isEmpty()) {
-            String ph = firstTimeIds.stream().map(id -> "?").collect(Collectors.joining(","));
-            List<Object> params = new ArrayList<>();
-            params.add(profileId);
-            params.addAll(firstTimeIds);
-            jdbc.queryForList(
-                "SELECT id, label, notes, occurred_date FROM first_times " +
-                "WHERE baby_profile_id = ? AND id IN (" + ph + ")",
-                params.toArray()
-            ).forEach(f -> {
-                long id = ((Number) f.get("id")).longValue();
-                String date = f.get("occurred_date") != null ? f.get("occurred_date").toString() : "";
-                String sourceKey = "first_time:" + id;
-                StringBuilder b = new StringBuilder();
-                b.append("Memory — ").append(sourceKey);
-                if (groupedKeys.contains(sourceKey)) b.append(" [GROUP]");
-                b.append(" — \"").append(f.get("label")).append("\"\n");
-                if (f.get("notes") != null) b.append(f.get("notes")).append("\n");
-                String note = entryNotes != null ? entryNotes.get(sourceKey) : null;
-                if (note != null && !note.isBlank()) b.append("Parent's memory: ").append(note.trim()).append("\n");
-                all.add(new MemItem(date, b.toString()));
-            });
-        }
-
-        all.sort(Comparator.comparing(MemItem::date));
-
-        StringBuilder prompt = new StringBuilder();
-        prompt.append("Baby: ").append(babyName != null ? babyName : "the baby").append("\n\n");
-        prompt.append("Write one page for each memory below, in this order. ")
-              .append("Use each memory's exact sourceKey in your output.\n\n");
-        for (MemItem item : all) prompt.append(item.block()).append("\n");
-        return prompt.toString();
-    }
-
-    // Pulls the JSON object out of a model response that may be wrapped in prose/fences.
-    // Package-private so StorybookServiceTest can exercise it directly (no mocks needed).
-    static String extractJson(String s) {
-        if (s == null) return "{}";
-        int start = s.indexOf('{');
-        int end = s.lastIndexOf('}');
-        return (start >= 0 && end > start) ? s.substring(start, end + 1) : s;
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -508,8 +321,7 @@ public class StorybookService {
             parseJsonMap(row.get("photo_overrides")),
             parseJsonMap(row.get("wizard_entry_notes")),
             parseJsonObject(row.get("layout_data")),
-            parseJsonList(row.get("chapter_photos")),
-            parseGeneratedContent(row.get("generated_content"))
+            parseJsonList(row.get("chapter_photos"))
         );
     }
 
@@ -520,15 +332,6 @@ public class StorybookService {
             return objectMapper.readValue(raw.toString(), new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
             return List.of();
-        }
-    }
-
-    Map<String, GeneratedPageContent> parseGeneratedContent(Object raw) {
-        if (raw == null) return null;
-        try {
-            return objectMapper.readValue(raw.toString(), new TypeReference<Map<String, GeneratedPageContent>>() {});
-        } catch (Exception e) {
-            return null;
         }
     }
 

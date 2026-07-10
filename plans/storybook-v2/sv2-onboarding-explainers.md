@@ -1,6 +1,6 @@
 # SV2 — Onboarding Explainers: Stripe & Lulu (owner ramp-up)
 
-**Status: Needs Verification (implemented 2026-07-03).** A prep/reference task, not feature code. Run it whenever;
+**Status: Complete (confirmed by Michael 2026-07-08).** A prep/reference task, not feature code. Run it whenever;
 no vendor credentials needed (it's research + writing). Best run BEFORE the Payments and print build sessions
 so Michael has context to help on the owner side.
 
