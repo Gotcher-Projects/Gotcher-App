@@ -1,7 +1,13 @@
 # Storybook V2 — Planning
 
-**Status: Draft — re-discussion in progress (2026-06-22). Most open questions in §4 decided;
-LULU/print folded in (§6); deferred-session triage added (§7); AI-separation model added (§8).**  
+**Status: Living reference — core v2 SHIPPED, paid bundle remains.** Open questions in §4 decided;
+LULU/print folded in (§6); deferred-session triage (§7); AI-separation model (§8).
+**Where things stand (2026-07-09):** sv2-s1…s9.6 are **Complete** (core book verified 2026-07-03).
+What's left is the **paid bundle**: `sv2-grant` (Needs Verification) → **Payments** (the trunk) →
+`sv2-s13` share → `sv2-s12` print → `sv2-s14` hardening. See the run order in §3.
+**Pricing model changed 2026-07-09:** no subscription, four one-time SKUs, `users.tier` vestigial.
+Sections written before that date may still say "paid tier" — where they conflict,
+`payments/stripe-full-plan.md` wins.  
 **Depends on:** storybook review-fixes track **Complete** (s1–s11) + S13/S15 **Complete**. See §0.  
 **Key model shift (§8):** core book is **AI-free by default** (built from your data + your own words);
 AI is a **separate, opt-in, paid-gated per-field "write this for me" assist**. This **unblocks core v2
@@ -143,12 +149,23 @@ lives in its own endpoint/table; only the **page** is a layout template that rea
 ### Tiers & credits — partially real
 - `users` has **`tier`** and **`ai_credits_remaining`** columns (`UserDto.java:10–11`); AI generation
   is genuinely credit-gated today.
-- **BUT the Payments/Stripe track is `Not started`** (`plans/payments/` — s0 status "Not started").
-  So `tier` exists as a field and can be read for gating, but there is **no purchase/upgrade flow** to
-  actually move a user to `plus`/`pro` yet. **Per §8 the paid wall now gates only three things — AI
-  per-field assist, print, share — and core v2 is unblocked from Payments.** Those three read `tier`
-  for gating but can't assume users can buy in until Payments ships; they ship visible-but-inert
-  (upsell) meanwhile. **Flag this dependency** (now scoped, not blanket).
+- **BUT the Payments/Stripe track is `Not started`** (canonical plan:
+  `payments/stripe-full-plan.md`; the old `s0`/`s1`/`s2` files were **deprecated 2026-07-09** — they
+  described a subscription that no longer exists). The credit column exists and is read for gating, but
+  there is **no purchase flow** to put credits in it yet. There are no `plus`/`pro` tiers to move a user
+  to. **Per §8 the paid wall gates only three things — AI per-field assist, print, share — and core v2 is
+  unblocked from Payments.** Meanwhile the AI affordance ships visible-but-inert (the `onGetCredits` seam
+  in `AiCreditsContext` is deliberately `undefined`), and `sv2-grant` gives the first N signups 5 credits
+  so it can be *tried* before Payments lands. **Flag this dependency** (now scoped, not blanket).
+- **Gating is on CREDITS, not tier** (decided 2026-07-07, built in `sv2-s10`/`sv2-s10b`). AI per-field
+  assist checks `ai_credits_remaining > 0` and spends **1 credit per field**; it does not branch on
+  `tier`.
+  > **CORRECTED 2026-07-09.** This bullet used to end: *"`tier` remains the thing Payments sets, and the
+  > thing that refills credits. Print and share still gate on `tier`."* **All three claims are now false.**
+  > `users.tier` is **vestigial — nothing reads it, nothing sets it.** Nothing *refills* credits: they are
+  > bought as one-time packs and never expire (no reset job). **Print gates on nothing** (pay-per-order)
+  > and **share gates on the book's own `books.share_unlocked_at`**, not on the account.
+  Single source of truth: §8 and `payments/stripe-full-plan.md`.
 
 ### Pregnancy data layer — shipped (see §5 + `sv2-s8-pregnancy-chapter.md`)
 - `baby_profiles.due_date` + `phase` (V35), `bump_photos` (V36), `BumpCard.jsx`/`BumpDiary.jsx`,
@@ -236,7 +253,7 @@ sv2-s9.0b  Family relationships (refine)   ← ✅ Complete 2026-07-02 (was sv2-
                                             title/relationship split (steps dropped). → sv2-s9.0b-family-relationships.md  [Complete]
 sv2-s6  Fill-in Page Types                ← chapter-divider, growth ("Trio+Note"), prompts, hands&feet
                                             ("Pair+Caption"), bump page. → sv2-s6-fill-in-page-types.md
-                                            [Needs Verification — built 2026-06-27]
+                                            [Complete — confirmed 2026-07-02]
 sv2-s6.5  Prefilled pages                  ← ✅ Complete (2026-06-28). prefill kind (seed-on-display +
                                             refresh) + the new Milestones renderer (polaroid scatter, 7 rows,
                                             editable dates). → sv2-s6.5-prefilled-pages.md  [Complete]
@@ -248,22 +265,50 @@ sv2-s7a  Books + library                   ← books table + backend CRUD + libr
                                             [Complete — verified 2026-06-28]
 sv2-s7b  Guided arc                        ← Model A instantiate + fill mechanics (pick/locked/auto/prefill) +
                                             progress + per-page prompt copy. Depends on s7a.
-                                            → sv2-s7b-guided-arc.md  [Not started]
+                                            → sv2-s7b-guided-arc.md  [Complete — confirmed 2026-07-02]
 sv2-s8  Pregnancy chapter                 ← "Before You Arrived" fixed fill-in pages; size = auto bump tag.
-                                            → sv2-s8-pregnancy-chapter.md
+                                            → sv2-s8-pregnancy-chapter.md  [Complete — confirmed 2026-07-02]
 sv2-s8.5  Unify freeform (retire periods)  ← move freeform off period chapters toward the unified
                                             page-list editor (§4 Q1); converge with guided's Model A.
-                                            Pre-launch direction. → sv2-s8.5-freeform-unify.md [Not started]
+                                            → sv2-s8.5-freeform-unify.md  [Complete — confirmed 2026-07-02]
 sv2-s9  Polish + PDF integration          ← all page types export cleanly; chain the fixed page sequence.
-                                            → sv2-s9-polish-pdf.md
+                                            → sv2-s9-polish-pdf.md  [Complete 2026-07-02]
 sv2-s9.5  Verification walkthrough         ← guided manual pass over s7a/s7b/s8/s8.5/s9 against a clean DB;
                                             sign-off flips them all to Complete. → sv2-s9.5-verification.md
-                                            [Not started]
+                                            [Complete — verified 2026-07-03]
+sv2-s9.6  Paid-bundle plan reconcile       ← planning/tidy pass over the moved paid-bundle docs; no app code.
+                                            → sv2-s9.6-paid-bundle-plan-reconcile.md  [Complete 2026-07-09]
+
+─── PAID BUNDLE (run order below; Payments is the trunk) ───────────────────────
+sv2-grant  Free signup credits (capped)    ← first N signups get 5 credits so ✨ can be tried before buying.
+                                            V46 + AuthService. Run BEFORE Payments S2.
+                                            → sv2-grant-free-credits.md  [Needs Verification 2026-07-09]
+payments/  Stripe track (3 sessions)       ← S1 backend · S2 purchase flow · S3 credit mgmt.
+                                            Migration is V47 (sv2-grant took V46).
+                                            Canonical entry: payments/stripe-full-plan.md  [Not started]
+                                            ⚠️ s0/s1/s2 files are DEPRECATED (subscription era) — see
+                                            deprecated/payments-s*.md. Do not build from them.
 sv2-s10  Per-field AI assist              ← shared "✨ write this for me" field + single-field endpoint.
-                                            → sv2-s10-ai-assist.md
-sv2-s11  Decommission old batched AI      ← DELETE generatePages() + wizard generate step. → sv2-s11-ai-retrofit.md
+                                            → sv2-s10-ai-assist.md  [Backend Complete; FE via s10b]
+sv2-s10b  Assist wiring + refactor         ← AiAssistField wired into all long-text fields + AiCreditsContext.
+                                            → sv2-s10b-assist-wiring-and-refactor.md  [Complete — verified 2026-07-08]
+sv2-s11  Decommission old batched AI      ← DELETE generatePages() + wizard generate step.
+                                            → sv2-s11-ai-retrofit.md  [Complete — confirmed 2026-07-08]
 sv2-s12  Print-on-demand (Lulu)           ← print PDF + Lulu order flow; BLOCKED on external Lulu setup.
-                                            → lulu-print-handoff.md + plans/storybook/sDeferred-print.md
+                                            → lulu-print-handoff.md + sv2-s12-print.md  [Not started]
+sv2-s13  Public share link                 ← fresh build (old sharing backend was removed). In scope per
+                                            user decision 2026-07-02. → sv2-s13-share-link.md  [Not started]
+sv2-hygiene  Remove [CLAUDE-DEBUG] logs    ← ✅ OBSOLETE: s11 deleted every call site (verified 2026-07-09).
+                                            → sv2-hygiene-remove-claude-logging.md  [Complete — by deletion]
+sv2-s14  Paid-bundle hardening             ← webhook idempotency/retries, declined payments, REFUNDS (esp.
+                                            share unlocked on the wrong book), Lulu min-page rejection,
+                                            book-ownership authz on the share purchase (IDOR), and
+                                            enforcing email_verified (read but NEVER enforced — makes the
+                                            sv2-grant cap a promotion, not an abuse control).
+                                            NOT "cancel→downgrade" — there is no subscription to cancel.
+                                            Credit refund on a failed Claude call is ALREADY DONE
+                                            (AiAssistService.java:88) — don't re-litigate.
+                                            → NOT YET WRITTEN  [Not started]
 
 ═══ DROPPED / SUPERSEDED → moved to deprecated/ (see deprecated/README.md) ═══
 deprecated/moment-hero-guided.md          ← ❌ old s5: auto Firsts chapter (firsts now = user-picked pages).
@@ -290,10 +335,11 @@ are the paid bundle, lit up once Payments lands; until then the AI affordance sh
 Mockups for all three live in `mockups/` (`index.html`). All decisions are locked in each plan's
 "Decisions locked" block; these three are **planned, not yet implemented**.
 
-**Deferred storybook sessions** (`plans/storybook/sDeferred-*.md`) are triaged in §7 — short version:
-`sDeferred-print` is promoted into v2 as `sv2-print` (§6); `sDeferred-share-link` is **optional /
-on-demand**; `sDeferred-remove-claude-logging` is a **small hygiene task to do before any public
-launch**, independent of v2 feature work.
+**Deferred storybook sessions** were moved into this folder on 2026-07-02 and are triaged in §7 — short
+version: print is promoted into v2 as **`sv2-s12-print.md`** (§6); share-link is **in scope** as
+**`sv2-s13-share-link.md`** (user decision 2026-07-02, no longer optional);
+**`sv2-hygiene-remove-claude-logging.md`** is **already satisfied** — `sv2-s11` deleted the batch
+`ClaudeClient` path and with it every `[CLAUDE-DEBUG]` call site (verified 2026-07-09).
 
 Pregnancy track now has its planning file: `plans/storybook-v2/sv2-s8-pregnancy-chapter.md` (data layer
 shipped via `plans/pregnancy/` S1–S3; the remaining guided-book chapter rides along with the v2
@@ -427,7 +473,7 @@ Requires `due_date` on `baby_profiles` (or use birthdate as a proxy — letter c
 ### Q8 — LULU integration points
 
 **RECONCILED (2026-06-22):** "LULU" = **Lulu.com print-on-demand**. There is no separate "LULU work"
-landing independently — it **is** the deferred print session (`plans/storybook/sDeferred-print.md`),
+landing independently — it **is** the deferred print session (`sv2-s12-print.md`),
 now promoted into v2 as the `sv2-print` workstream. See **§6** for the folded-in plan and
 `lulu-print-handoff.md` for the external setup that must happen first. The original framing of
 "v2 builds on top of LULU once it lands" was backwards: print builds **on top of** the v2 page types,
@@ -480,7 +526,7 @@ Pregnancy is a bigger UX commitment than any of the above because it requires:
 
 ## 6. Print-on-Demand (Lulu) — folded into v2 as `sv2-print`
 
-> **This is the "LULU work."** It already had a deferred plan: `plans/storybook/sDeferred-print.md`
+> **This is the "LULU work."** It already had a deferred plan: `sv2-s12-print.md`
 > (decisions from Storybook S0 + S2 planning). That file stays as the detailed spec; this section
 > places it inside v2 and records what changed. **Companion doc: `lulu-print-handoff.md`** — the
 > external setup write-up to pass to whoever owns the Lulu account.
@@ -490,7 +536,7 @@ Paid users order a physical printed copy of their book. Lulu (lulu.com) handles 
 the **customer pays through our own Stripe checkout** and we submit a **paid** print job to Lulu (Lulu
 auto-charges a company card for print + ship). We assemble the print-quality PDF and submit the order.
 
-### Decisions already locked (from sDeferred-print.md — still valid)
+### Decisions already locked (from the old sDeferred-print.md — still valid)
 - **Vendor:** Lulu print-on-demand (no inventory).
 - **Gating:** `plus` / `pro` users only; multi-copy ordering supported (grandparents).
 - **Checkout:** ~~redirect to Lulu hosted checkout — no Stripe charge on our side~~ **→ CORRECTED
@@ -514,12 +560,13 @@ auto-charges a company card for print + ship). We assemble the print-quality PDF
 ### Dependencies & blockers
 - ⛔ **External Lulu setup (someone else):** account, API credentials, confirmed trim size / bleed /
   color-profile / min-page-count from Lulu's spec catalog, white-label check. → `lulu-print-handoff.md`.
-- ⚠️ **Payments S1** (`plans/payments/`) is **Not started** — needed for real paid-tier gating and
-  (if we ever add markup) billing. The `tier` column exists so gating *code* can be written, but
-  there's no upgrade path for users yet.
+- ⚠️ **Payments S1** (`payments/stripe-full-plan.md`) is **Not started** — print needs it because *we* are
+  merchant of record (we collect via Stripe, then pay Lulu on a company card). **Not** for tier gating:
+  print is pay-per-order and gates on nothing. Note print needs its **own** variable-amount checkout with
+  a shipping address — the fixed-price digital SKUs don't hand it a reusable flow.
 - ✅ **v2 page types** (sv2-s1…s8) — print should follow these.
 
-### Sessions (unchanged from sDeferred-print.md, renamed under v2)
+### Sessions (unchanged, renamed under v2)
 - **sv2-print-plan** — resolve Lulu API open questions *after* the hand-off setup returns answers
   (trim size, auth model, redirect-vs-POST checkout, white-label, min pages).
 - **sv2-print-s1** — Backend: OpenPDF print assembly (all v2 page types) + Lulu API order submission.
@@ -529,13 +576,14 @@ auto-charges a company card for print + ship). We assemble the print-quality PDF
 
 ## 7. Deferred storybook sessions — triage (which do we actually need?)
 
-The three `plans/storybook/sDeferred-*.md` files, assessed for v2:
+The three formerly-`sDeferred-*` files, **moved into this folder 2026-07-02** and re-triaged for v2.
+Verdicts refreshed during `sv2-s9.6` (2026-07-09):
 
-| Deferred session | Verdict for v2 | Why |
+| Session (new name) | Verdict for v2 | Why |
 |---|---|---|
-| **`sDeferred-print.md`** (Lulu print) | ✅ **Promote into v2** as `sv2-print` (§6) | This *is* the LULU work. Highest-value of the three; blocked only on external setup + Payments. |
-| **`sDeferred-share-link.md`** (public `/book/{token}` share) | 🟡 **Optional / on-demand** | Genuinely useful (grandparents read without an app) and self-contained, but **independent of the v2 book-structure work**. Note: its plan still says it serves legacy chapter `body`; the review-fixes track **removed the old sharing backend** (V25 `book_share_tokens` migration kept, code removed). So this is a **fresh build**, not a resume. Pull in only if sharing is a near-term priority; otherwise leave deferred. Also paid-gated → same Payments caveat as print. |
-| **`sDeferred-remove-claude-logging.md`** (strip `[CLAUDE-DEBUG]` logs) | ✅ **Do before any public launch — small & independent** | Hygiene: removes temporary logging that prints **real family journal/first-time content** to server logs. Not a v2 feature, but a privacy/launch blocker. ~30-min task; do it whenever, definitely before wider rollout. Verify with `grep -rn "CLAUDE-DEBUG" Backend/src`. |
+| **`sv2-s12-print.md`** (Lulu print) | ✅ **In scope** (§6) | This *is* the LULU work. Highest-value of the three; blocked only on external setup + Payments. |
+| **`sv2-s13-share-link.md`** (public `/book/{token}` share) | ✅ **In scope** — user decision 2026-07-02 (was "optional") | Grandparents read without an app. **Fresh build, not a resume:** the old sharing backend was removed (V25 `book_share_tokens` migration kept, code gone) and its plan still describes serving legacy chapter `body` — the book is now `layout_data` v2 pages, so the public renderer must go through `LayoutRenderer` + every `*Canvas`. **Also: the app has no router at all** (no `react-router` dependency; `App.jsx` is an auth gate, not a route table) — `/book/:token` needs a routing decision, not a "check first." Paid-gated → Payments caveat as print. |
+| **`sv2-hygiene-remove-claude-logging.md`** (strip `[CLAUDE-DEBUG]` logs) | ✅ **Already done — by deletion** | `sv2-s11` deleted `generatePages()` and the batch `ClaudeClient` path, taking every `[CLAUDE-DEBUG]` call site with it. Verified 2026-07-09: `grep -rn "CLAUDE-DEBUG" Backend/src` returns nothing. No session needed. |
 
 **Recommendation:** promote print (§6); do the logging cleanup as a standalone hygiene task soon;
 keep share-link deferred until there's product pull for it (and budget it as a fresh build, since the
@@ -626,9 +674,13 @@ The sessions for these page types should **build the manual path first**; the AI
   all page types — ships **free and AI-free**. This removes the Payments hard-blocker from the bulk of
   v2.
 - 🔒 **Payments now gates only three things:** the **AI per-field assist**, **print** (§6), and
-  **share** (§7). Those become a clean "premium" bundle to light up once Payments (`plans/payments/`,
-  currently *Not started*) lands. Until then, the AI affordance ships **visible-but-inert** as an
-  upsell.
+  **share** (§7). Those become a clean "premium" bundle to light up once Payments
+  (`payments/stripe-full-plan.md`, currently *Not started*) lands. Until then the AI affordance ships
+  **visible-but-inert** (`onGetCredits` left `undefined` by `sv2-s10b`).
+  > **Precision, 2026-07-09.** "Gated by Payments" means *needs a way to be paid for* — **not** gated on
+  > `tier`, which nothing reads. Assist gates on the **credit balance**; share gates on that **book's**
+  > `share_unlocked_at`; print gates on **nothing** (pay-per-order). And `sv2-grant` puts 5 credits in the
+  > first N accounts, so the assist is genuinely usable before Payments exists.
 - This **supersedes** the earlier note (in §0 / §6) that paid-tier features broadly block on Payments —
   now precisely scoped to the three above; core book is unblocked.
 

@@ -11,6 +11,22 @@ book and pays you royalties to a bank account — we are **not** using that, so 
 
 ---
 
+## ⚠️ OPEN — confirm with owner (noted 2026-07-07)
+
+We received a Lulu **Client Key + Secret** from the owner. Almost everything else is developer-derivable
+(base URLs are public constants; POD package ID + trim size are our own choice from Lulu's catalog; bleed/
+color/spine/min-page specs come from Lulu's docs + the sandbox API once authenticated). **The one thing to
+confirm with the owner:**
+
+- **Is the Client Key + Secret we got the SANDBOX pair or the PRODUCTION pair?** We build against sandbox
+  first, so we need the sandbox credentials. Also confirm a **separate production pair exists** for later
+  (the setup steps asked for creds in *both* environments).
+
+*(Not urgent — print is the last v2 track and is blocked on Payments regardless. Michael to message the
+owner when convenient.)*
+
+---
+
 ## Before you start (have these ready)
 
 - [ ] The **LLC's legal name + business address**.

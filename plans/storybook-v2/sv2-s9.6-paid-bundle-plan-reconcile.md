@@ -1,6 +1,8 @@
 # SV2-S9.6 — Paid-Bundle Plan Reconcile (tidy before we build)
 
-**Status: Not started — created 2026-07-02.**
+**Status: Complete — confirmed by Michael 2026-07-09.** All reconciliation tasks below are done; the
+"as reconciled" answers are recorded inline. Michael made four pricing/model decisions this session
+(see §Decisions). Docs only — no app code touched.
 **Why this exists:** the paid-bundle plans (Payments, Print, Share, logging hygiene) were written at
 different times across three folders and have drifted from the current storybook-v2 model (books table,
 guided arc, all the v2 page types, the AI-separation model in §8). On 2026-07-02 they were **moved into
@@ -47,8 +49,11 @@ archival** unless we want clean links: `plans/storybook/s0-planning.md`, `plans/
 and root `branch-review.html`. Decision to record here: update or leave.
 
 ### 3. `payments/stripe-full-plan.md` — stale facts (predates books/guided arc)
-- **Migration number:** plan says "next = V32" / `V32__add_stripe_to_users.sql`. **Actual next is V44**
-  (latest on disk is V43). Fix throughout (lines ~5, 41, 49–57, 281, 320).
+- **Migration number:** plan said "next = V32". ✅ **RECONCILED 2026-07-09: actual next is V46**
+  (latest on disk is `V45__drop_family_is_step.sql`). Note this task file itself said "V44" — it had
+  already drifted by two. Re-check `ls Backend/db/migration/` before writing the migration.
+  > **Superseded the same day:** `sv2-grant` took **V46** (`V46__add_free_grant_at.sql`). The Stripe
+  > migration is **V47**. Which rather proves the point — always run the `ls`.
 - **Verify the V23 column claims** against the DB: it asserts `users.tier`, `ai_credits_remaining`, AND
   `credits_reset_at` all exist from V23. Confirm `credits_reset_at` actually exists (the webhook-driven
   reset in Session 3 depends on it) — grep the migrations; if absent, add it to the V44 migration.
@@ -111,20 +116,91 @@ Recommend: separate session — the money/vendor paths deserve their own focused
 Recommended order once credentials return (all buildable against **test/sandbox** first; live keys only
 swap in at deploy):
 
+**Updated 2026-07-09** — the AI track (s10/s10b/s11) was pulled forward and is **already complete**, and
+the hygiene task turned out to be **already satisfied**. Remaining work:
+
 | Order | Session(s) | Count | Needs (live) |
 |---|---|---|---|
-| 1 | **sv2-s9.6** this reconcile pass | 1 | — |
+| ~~1~~ | ~~**sv2-s9.6** this reconcile pass~~ | — | ✅ done 2026-07-09 |
+| ~~—~~ | ~~**sv2-s10 / s10b / s11** AI assist + retrofit~~ | — | ✅ done 2026-07-07/08 (ran early) |
+| 1 | **sv2-grant** free signup credits, capped at first N (`sv2-grant-free-credits.md`) | ~0.5 | — |
 | 2 | **Payments** — S1 backend · S2 frontend · S3 credit mgmt (`payments/`) | 3 | Stripe test→live |
-| 3 | **sv2-s10** AI per-field assist | 1 | Anthropic key (live test) |
-| 4 | **sv2-s11** AI retrofit (delete old batch gen) | 1 | — |
-| 5 | **sv2-s12** print — L0 plan · L1 backend (OpenPDF + Lulu) · L2 frontend | 3 | Lulu sandbox→prod + Payments |
-| 6 | **sv2-s13** share-link (fresh build) | 1–2 | — (paid-gate needs Payments) |
-| 7 | **sv2-hygiene** remove `[CLAUDE-DEBUG]` logging | ~0.5 | — |
-| 8 | **sv2-s14** paid-bundle hardening + verification (§8) | 1 | all |
+| 3 | **sv2-s13** share-link (fresh build) | 1–2 | Payments |
+| 4 | **sv2-s12** print — L0 plan · L1 backend (OpenPDF + Lulu) · L2 frontend | 3 | Lulu sandbox→prod + Payments |
+| ~~—~~ | ~~**sv2-hygiene** remove `[CLAUDE-DEBUG]`~~ | — | ✅ obsolete — s11 deleted every call site |
+| 5 | **sv2-s14** paid-bundle hardening + verification (§8) | 1 | all |
 
-**Total: ~11–12 sessions** (1 reconcile + 3 payments + 2 AI + 3 print + 1–2 share + 0.5 hygiene + 1
-hardening). Payments is the **trunk** — AI assist, print, and share all gate on it (share/print for the
-paywall, print also for Stripe merchant-of-record per Lulu Q4).
+**Total remaining: ~8.5–9.5 sessions** (0.5 grant + 3 payments + 1–2 share + 3 print + 1 hardening). Payments is the
+**trunk**: share gates on its one-time checkout, and print needs it for Stripe merchant-of-record per
+Lulu Q4. **S3 shrank** (no monthly reset job to build) but **print grew** — it needs a second,
+variable-amount checkout flow the credit/share SKUs don't provide.
+
+Share now runs **before** print: it's cheaper, unblocked once Payments lands, and print is still
+waiting on Lulu.
+
+---
+
+## Decisions made this session (Michael, 2026-07-09)
+
+| # | Decision | Recorded in |
+|---|---|---|
+| 1 | **No subscription.** AI credits are sold as **one-time packs**; gating is on balance, never `tier`. Matches what `sv2-s10` already shipped. | `payments/stripe-full-plan.md` (MODEL CHANGE banner) |
+| 2 | **Print is pay-per-order**, gated on nothing. **Pro tier dropped**; `plus` dropped. | `sv2-s12-print.md` |
+| 3 | **Share is a one-time $10, PER BOOK** (not per account). | `sv2-s13-share-link.md` |
+| 4 | **Four SKUs:** $5/50cr · $10/125cr · **$15/150cr + share (recommended)** · $10/share-only. | `payments/stripe-full-plan.md` (SKU table) |
+
+**`users.tier` is now vestigial.** Nothing reads it. Keep the column, build nothing on it.
+
+### Unit economics (for future pricing changes)
+Claude (Haiku 4.5, ≤1024 out) ≈ **$0.002/credit typical, $0.007 worst case**. Stripe's flat
+**2.9% + $0.30** is the dominant cost and has no threshold — the effective cut is `2.9% + $0.30/price`,
+so it falls smoothly with basket size (32.9% at $1, 17.9% at $2, 8.9% at $5, 5.9% at $10, 3.5% at $50).
+This is why the "$2 for 20 credits" idea in `AiAssistService.java:13` was dropped. **Verify the live
+rate in the Stripe dashboard** — international cards and currency conversion add ~1.5% each.
+
+### Free signup grant — DECIDED 2026-07-09 (Michael): capped launch promotion
+
+**The problem it solves.** `AuthService.java:48` inserts only email/hash/display_name, so V23's
+`ai_credits_remaining DEFAULT 0` applies: every new user sees ✨ on every field, clicks it, and is told
+they have no credits — having never seen the feature work. Nobody buys a consumable they haven't tried.
+
+**The decision.** Grant **5 credits to the first N signups**, then stop. `N` defaults to **500** and is
+**configurable** (`FREE_GRANT_LIMIT` env → `application.properties`), so tuning it is not a migration.
+Cost ceiling: 500 × 5 × $0.007 worst case ≈ **$17.50 total**. Ship it **before Payments S2** so you can
+watch how fast real users exhaust 5 credits before committing to pack sizes.
+
+**Two traps — get these right:**
+
+1. **Do NOT derive the counter from credit balances.** `count(*) WHERE ai_credits_remaining > 0` drops a
+   user the moment they spend their last credit, so the cap leaks — grant #501 fires as soon as user #3
+   runs dry. Record *having been granted*, independent of the balance:
+   ```sql
+   ALTER TABLE users ADD COLUMN free_grant_at TIMESTAMPTZ;  -- null = never granted
+   ```
+   It doubles as the once-per-user idempotency guard.
+
+2. **Read-count-then-insert is a TOCTOU race.** Two concurrent signups both read 499 and both grant.
+   Decide inside one statement and let the DB arbitrate — same shape as the Stripe webhook ledger:
+   ```sql
+   UPDATE users
+      SET ai_credits_remaining = ai_credits_remaining + :grantSize,
+          free_grant_at = NOW()
+    WHERE id = :userId
+      AND free_grant_at IS NULL
+      AND (SELECT count(*) FROM users WHERE free_grant_at IS NOT NULL) < :limit;
+   ```
+   Zero rows affected → cap reached or already granted. Either way, no grant, no error.
+
+### ⚠️ Known gap this does NOT close — `email_verified` is never enforced
+`AuthService` reads `email_verified` and returns it in `UserDto`, but **nothing blocks an unverified
+account from logging in and calling the API** (verified 2026-07-09). A "first 500 signups" cap is a
+launch promotion, **not an abuse control**: a script with throwaway emails can drain all 500 grants
+before a real user arrives, and the exposure is bounded only by the cap itself.
+
+If that matters, the cheap fix is to **move the grant from signup to email verification** — the cap
+still applies, but it then counts the first 500 *verified* users. Raises the cost of farming to
+"control a real inbox per account" and costs roughly one `if` statement on the verify endpoint.
+**Not chosen; recorded so a later session doesn't rediscover it.** Fold into `sv2-s14` hardening.
 
 **Buildable before credentials arrive:** everything except the two "swap live keys + final verify" steps and
 Lulu's L0 (which needs the handoff answers). So the vendor round-trip is not a hard stop on progress.
@@ -135,7 +211,7 @@ Lulu's L0 (which needs the handoff answers). So the vendor round-trip is not a h
 1. Every intra-repo link in the moved/paid-bundle docs resolves (no `plans/payments/` or `sDeferred-*`
    danglers in the active set). `grep -rn 'plans/payments/\|sDeferred-' plans/storybook-v2` returns only
    intentional historical mentions.
-2. No stale migration numbers in the payments plan (V44, not V32); column claims verified against
+2. No stale migration numbers in the payments plan (**V46**, not V32/V44); column claims verified against
    `Backend/db/migration/`.
 3. Each paid-bundle plan's **Depends-on** reflects the current model (books/guided arc/v2 page types).
 4. `planning.md` §3 session map + `session-prompts.md` match the files on disk and include the full

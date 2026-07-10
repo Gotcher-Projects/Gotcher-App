@@ -1,356 +1,353 @@
-# Stripe — Full Implementation Plan
+# Payments — Stripe One-Time Checkout (canonical plan)
 
-**Status: Not Started**
-**Supersedes:** s0-planning.md, s1-stripe-backend.md, s2-upgrade-flow.md (keep those for reference)
-**Next migration:** V31 (chapter_photos, S5.2) → **V32** (Stripe columns)
+**Status: Not started.**
+**Rewritten from scratch 2026-07-09.** The previous version was written around a $4.99/mo "Plus"
+subscription and had accumulated a MODEL CHANGE banner contradicting its own later sections and session
+prompts. It has been replaced, not patched. The subscription-era files are in
+`../deprecated/payments-s{0,1,2}-*.md` — **history only, do not build from them.**
+
+**Read `stripe-primer.md` first.** It is the *why*: the object model, the fulfil-on-webhook rule, the
+Spring webhook traps, tax, and the app-store analysis. This file is the *what*.
+
+**Next migration: V47.** `V46__add_free_grant_at.sql` was taken by `sv2-grant` on 2026-07-09. Run
+`ls Backend/db/migration/` before writing — this number has now drifted three times.
 
 ---
 
-## Decisions (S0 resolved)
+## What we sell
 
-All open questions from s0-planning.md are answered here. Do not re-litigate these in implementation sessions.
+Four one-time SKUs (`mode: 'payment'`). No subscription, no tiers, nothing recurring. Prices may rise;
+**nothing outside the Stripe price object hardcodes an amount.**
+
+| SKU | Price | Grants | Scope |
+|---|---|---|---|
+| `credits_50` | $5 | 50 credits | account |
+| `credits_125` | $10 | 125 credits | account |
+| **`bundle_share_150`** ⭐ | **$15** | **150 credits + unlock 1 book** | account **+ book** |
+| `share_only` | $10 | unlock 1 book | book |
+
+The share unlock alone is $10, so the bundle's 150 credits effectively cost $5 (~3.3¢ each — the
+cheapest rate). `share_only` stays as the honest option for someone who wants zero AI.
+
+Printed books are a **separate, variable-amount** checkout built in `sv2-s12`, not part of this track.
+
+### Two scopes in one purchase — the structural consequence
+
+Credits live on `users.ai_credits_remaining` (**account-scoped**). The share unlock lives on **one book**
+(`books.share_unlocked_at`). The bundle grants both. Therefore:
+
+- `POST /billing/checkout` takes an **optional `bookId`** — *required* for `share_only` and
+  `bundle_share_150`, *rejected* for the credit-only packs.
+- The webhook applies the credit grant to the **user** and the unlock to that **specific book**.
+- The idempotency ledger records **what was granted and to which book**, not just a credit count.
+- The purchase UI must **name the book being unlocked.** A user with two books unlocking the wrong one
+  is the refund request we'd be inventing for ourselves — and Stripe keeps its fee on a refund.
+
+---
+
+## Locked decisions — do not re-litigate in a build session
 
 | Question | Decision |
 |---|---|
-| Payment processor | **Stripe** |
-| Checkout flow | **Stripe-hosted checkout** (redirect to Stripe, back on success/cancel) |
-| Pricing | **Plus: $4.99/month** (matches "$5/month" copy in PaidGate) |
-| Pro tier | **Deferred** — launch with Plus only; add Pro when print/Lulu is ready |
-| Free trial | **No** — V1 ships without trial; revisit after first 100 paid users |
-| Lapse behavior | **3-day grace period** on `invoice.payment_failed`; downgrade to `free` on 4th day or `customer.subscription.deleted` |
-| Downgrade content | **Preserve everything** — generated chapters are never hidden or deleted on downgrade |
-| AI credits (Plus) | **10 credits/month**, resets on billing anniversary |
-| Cancellation UX | **Stripe Billing Portal** — zero custom cancel UI to build |
-| Lulu physical print | **We collect via Stripe; pay Lulu wholesale via a company card on file** — the Print API checkout is *external to Lulu* (corrected 2026-07-01; print depends on this Payments work). See `plans/storybook-v2/handoffs/`. |
-| Pricing page | **Modal first** (triggered by PaidGate); add a dedicated `/pricing` page in a later session |
+| Processor | **Stripe** |
+| Checkout flow | **Stripe-hosted** redirect. No Stripe.js, no `pk_...` key, no card data in our frontend. |
+| What we sell | **Four one-time SKUs** (above). Revised 2026-07-09; was a $4.99/mo subscription. |
+| Subscription / Plus / Pro tier | ❌ **Dropped** (2026-07-09) |
+| Trial · lapse · grace · cancellation · Billing Portal | **N/A** — nothing recurring exists to cancel |
+| Monthly credit reset | ❌ **None.** Credits are purchased, not allotted. They don't expire. |
+| AI credit gating | **Balance only** (`ai_credits_remaining >= 1`), 1 credit/field. Never `tier`. Already shipped in `sv2-s10`. |
+| Print gating | **None** — pay-per-order |
+| Share gating | **$10 one-time, per book.** See `../sv2-s13-share-link.md`. |
+| Geography | **US cards only** for v1 — Stripe Radar rule on card issuing country. Built in S1. |
+| Mobile | **Web-only purchases, no IAP.** All purchase UI behind `Capacitor.isNativePlatform()`. |
+| Lulu | We collect via Stripe; pay Lulu wholesale on a company card. Lulu checkout is external. |
+| Pricing surface | **Modal**, triggered from the `onGetCredits` seam. A `/pricing` page needs a router (see below). |
+
+**`users.tier` is vestigial.** Nothing reads it. Keep the column, build nothing on it.
 
 ---
 
-## What Already Exists
+## Ground truth — verified against the codebase 2026-07-09
 
-- `users.tier VARCHAR(20) DEFAULT 'free'` — V23 migration, live in prod
-- `users.ai_credits_remaining INT` — V23, live
-- `users.credits_reset_at TIMESTAMPTZ` — V23, live
-- `Frontend/src/components/ui/PaidGate.jsx` — shows upgrade prompt for free users; button is disabled ("Coming Soon")
-- StorybookTab uses `tier` and `credits` to gate chapter generation
+Facts a build session would otherwise get wrong. Re-verify before trusting.
+
+- ✅ `users.tier`, `users.ai_credits_remaining`, `users.credits_reset_at` all exist (V23, live in prod).
+  `credits_reset_at` goes **unused** — there is no reset job. Leave it.
+- ✅ `users.free_grant_at` exists as of **V46** (`sv2-grant`). The Stripe migration is **V47**.
+- ❌ **`PaidGate.jsx` does not exist.** It was deleted as dead code by
+  `plans/storybook-and-pregnancy-review-fixes/s1-frontend-dead-code.md` (2026-06-19); its prior
+  implementation was preserved in what is now `../deprecated/payments-s2-upgrade-flow.md`. **S2 builds
+  the purchase modal from scratch.** Do not try to extend a component that isn't there.
+- ❌ **StorybookTab no longer reads `tier` or credits.** Nothing in it is gated.
+- ✅ **The integration seam is `Frontend/src/contexts/AiCreditsContext.jsx`** (`sv2-s10b`). It exposes
+  `credits`, `setCredits`, and an **`onGetCredits` callback deliberately left `undefined`** until
+  Payments ships. Wiring it is S2's actual job. Today the out-of-credits state is informational.
+- ✅ `AiAssistService` already **refunds a credit on a failed Claude call** (`AiAssistService.java:88`).
+- ⚠️ **`books` has no `user_id`.** Ownership is `books.baby_profile_id → baby_profiles.user_id`. The
+  `bookId` authorization check is a **two-hop join**, not a column compare. Existing scoping queries key
+  on `baby_profile_id` (`BookService.java`, `StorybookService.java:215`).
+- ⚠️ **V25 `book_share_tokens` is unusable as-is.** It keys `baby_profile_id ... UNIQUE` — one token per
+  *baby*, written before `books` existed (V42). It cannot express a per-book unlock. `sv2-s13` decides
+  whether to reshape or replace it; **this track only adds the `books.share_unlocked_at` entitlement.**
+- ⚠️ **There is no router.** No `react-router` in `Frontend/package.json`; `App.jsx` is an auth gate.
+  The post-checkout return URL needs a decision — see S2.
+- ⚠️ **`/admin/**` is already `permitAll`** in `SecurityConfig` (gated by an `ADMIN_SECRET` header, not
+  JWT). S3's credit-adjustment endpoint would inherit that posture. Look at it deliberately — it mints
+  credits.
+- 🧹 `AiAssistService.java:13` still comments "20 credits for $2". That SKU was dropped (at $2 Stripe's
+  cut is 17.9%). Fix the comment when S1 lands.
 
 ---
 
-## What Needs Building
+## The rule that governs the whole track
 
-### Session 1 — Backend (V32 + Stripe SDK + endpoints)
-### Session 2 — Frontend (pricing modal, redirect flows, billing portal link)
-### Session 3 — Credit management (reset job, admin tooling, display)
+> **Fulfil on the webhook. Never on the redirect.**
+
+`successUrl` is just where the browser lands; arriving there proves nothing. If the success page grants
+credits, anyone who visits it grants themselves credits. Credits and unlocks are granted in **exactly
+one place** — the `checkout.session.completed` handler, behind the idempotency ledger.
+
+Consequence for the UI: the success page **must not assume the grant has landed.** The webhook is not
+ordered relative to the redirect. Show "Confirming your purchase…", poll `GET /auth/me` until the
+balance changes, degrade gracefully after a few seconds.
+
+Full reasoning, plus the Spring-specific webhook traps, in `stripe-primer.md` §3–§4.
 
 ---
 
 ## Session 1 — Backend
 
-### V32 Migration
+### 1. Migration `V47__add_stripe_billing.sql`
 
 ```sql
--- Backend/db/migration/V32__add_stripe_to_users.sql
-ALTER TABLE users
-  ADD COLUMN stripe_customer_id  VARCHAR(100),
-  ADD COLUMN stripe_subscription_id VARCHAR(100),
-  ADD COLUMN tier_expires_at     TIMESTAMPTZ,
-  ADD COLUMN tier_grace_until    TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(100);
+
+-- Entitlement: "this book is paid for." Distinct from the revocable share TOKEN —
+-- regenerating a link must NOT re-charge, so the unlock outlives any single token.
+ALTER TABLE books ADD COLUMN share_unlocked_at TIMESTAMPTZ;
+
+-- Idempotency ledger: one row per successfully-applied Stripe event.
+-- The webhook grants ONLY if the INSERT wins (ON CONFLICT DO NOTHING → 0 rows → skip).
+-- A bundle grants BOTH: credits > 0 AND unlocked_book_id IS NOT NULL.
+CREATE TABLE stripe_events_applied (
+  event_id         VARCHAR(100) PRIMARY KEY,   -- Stripe's evt_... id
+  user_id          BIGINT      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sku              VARCHAR(40) NOT NULL,       -- credits_50 | credits_125 | bundle_share_150 | share_only
+  credits          INT         NOT NULL DEFAULT 0,
+  unlocked_book_id BIGINT      REFERENCES books(id) ON DELETE SET NULL,  -- null for credit packs
+  applied_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
-- `tier_expires_at` — null means active or free; set on `customer.subscription.deleted`
-- `tier_grace_until` — set to NOW() + 3 days on `invoice.payment_failed`; if still set and past, downgrade
+**Do NOT add** `stripe_subscription_id`, `tier_expires_at`, or `tier_grace_until`. There is no
+subscription. This is the single most common way this plan gets built wrong.
 
-### Stripe Java SDK
+### 2. Stripe SDK + config
 
-In `Backend/build.gradle`:
-```groovy
-implementation 'com.stripe:stripe-java:25.+'
-```
+`Backend/build.gradle`: `implementation 'com.stripe:stripe-java:25.+'`
 
-In `application.properties`:
+`application.properties` — one price per SKU, no subscription price:
 ```
 stripe.secret.key=${STRIPE_SECRET_KEY}
 stripe.webhook.secret=${STRIPE_WEBHOOK_SECRET}
-stripe.price.plus.monthly=${STRIPE_PRICE_PLUS_MONTHLY}
+stripe.price.credits50=${STRIPE_PRICE_CREDITS_50}
+stripe.price.credits125=${STRIPE_PRICE_CREDITS_125}
+stripe.price.bundleShare150=${STRIPE_PRICE_BUNDLE_SHARE_150}
+stripe.price.shareOnly=${STRIPE_PRICE_SHARE_ONLY}
 ```
+Mirror into `.env.example` (`sk_test_…`, `whsec_…`, four `price_…`) and `docker-compose.prod.yml`.
 
-In `.env.example`:
-```
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_PLUS_MONTHLY=price_...
-```
+Put `sku` and `credits` in **each Stripe price's metadata** so the webhook reads the grant from the
+event rather than a hardcoded server map that silently drifts from the dashboard.
 
-### New Package: `com.gotcherapp.api.billing`
+### 3. `com.gotcherapp.api.billing`
 
-**Files to create:**
-- `BillingController.java`
-- `BillingService.java`
-- `dto/CheckoutRequest.java`
-- `dto/CheckoutResponse.java`
-- `dto/BillingStatusResponse.java`
+`BillingController` · `BillingService` · `dto/CheckoutRequest` · `dto/CheckoutResponse`
 
-### Endpoints
+#### `POST /billing/checkout` — JWT-protected
 
-#### POST /billing/checkout
-JWT-protected. Creates a Stripe Checkout Session for Plus.
+Request `{ "sku": "bundle_share_150", "bookId": 42 }`.
 
-Request: `{ "plan": "plus" }` (only valid value for now)
+1. Reject an unknown `sku`.
+2. `bookId` **required** for `share_only` / `bundle_share_150`, **rejected** for credit packs.
+3. **Validate the book belongs to the caller** — join through `baby_profiles.user_id`. Skip this and a
+   user pays $10 to unlock a stranger's book. This is an IDOR, not an edge case.
+4. If `users.stripe_customer_id` is null, `Customer.create()` and store it.
+5. `Session.create()` with `mode: 'payment'`, the price ID for the SKU, `clientReferenceId = userId`,
+   `metadata = { sku, bookId }`, a `successUrl` carrying `{CHECKOUT_SESSION_ID}`, and a `cancelUrl`.
+6. Send an `Idempotency-Key` so a double-clicked Buy button can't create two sessions.
 
-Response: `{ "url": "https://checkout.stripe.com/..." }`
+Response `{ "url": "https://checkout.stripe.com/..." }`.
 
-Logic in `BillingService.createCheckoutSession(userId)`:
-1. Look up user. If `stripe_customer_id` is null, call `Customer.create()` with user's email and store the ID.
-2. Call `Session.create()` with:
-   - `customer`: the stored customer ID
-   - `mode`: `subscription`
-   - `lineItems`: the Plus price ID
-   - `successUrl`: `${APP_BASE_URL}/upgrade-success?session_id={CHECKOUT_SESSION_ID}`
-   - `cancelUrl`: `${APP_BASE_URL}/book` (or wherever the user came from)
-   - `clientReferenceId`: userId (for webhook cross-reference)
-3. Return the session URL.
-
-#### POST /billing/webhook (NO JWT — public endpoint)
-Stripe sends events here. Must verify `Stripe-Signature` header.
+#### `POST /billing/webhook` — public, signature-verified
 
 ```java
 @PostMapping(value = "/webhook", consumes = "application/json")
-public ResponseEntity<String> webhook(
-    @RequestBody String payload,
-    @RequestHeader("Stripe-Signature") String sigHeader
-) { ... }
+public ResponseEntity<String> webhook(@RequestBody String payload,
+                                      @RequestHeader("Stripe-Signature") String sigHeader) { ... }
 ```
 
-Handle these events:
+**Take the body as a raw `String`.** Signature verification hashes the exact request bytes; if Spring
+deserializes to a DTO, the re-serialized JSON won't match and verification fails for reasons that look
+like nothing at all.
 
-| Stripe Event | Action |
-|---|---|
-| `checkout.session.completed` | Set `tier='plus'`, store `stripe_customer_id` + `stripe_subscription_id`, set `ai_credits_remaining=10`, set `credits_reset_at=NOW()+30d`, clear `tier_expires_at` + `tier_grace_until` |
-| `customer.subscription.updated` | If plan changed: update tier accordingly |
-| `customer.subscription.deleted` | Set `tier='free'`, clear `stripe_subscription_id`, set `tier_expires_at=NOW()` |
-| `invoice.payment_failed` | Set `tier_grace_until=NOW()+3d` (don't downgrade yet) |
-| `invoice.payment_succeeded` | Clear `tier_grace_until` |
+One event matters: **`checkout.session.completed`.** Resolve the user from `clientReferenceId` and the
+SKU/`bookId` from metadata, then in **one transaction**:
 
-Always return `200 OK` to Stripe even if the event is unrecognized — returning non-2xx causes Stripe to retry.
+1. `INSERT INTO stripe_events_applied (...) ON CONFLICT (event_id) DO NOTHING`
+2. **Only if that insert affected 1 row**, apply the grants:
+   - `UPDATE users SET ai_credits_remaining = ai_credits_remaining + :credits` when `credits > 0`
+   - `UPDATE books SET share_unlocked_at = NOW() WHERE id = :bookId AND share_unlocked_at IS NULL`
 
-#### GET /billing/portal
-JWT-protected. Creates a Stripe Billing Portal session.
+Ignore-and-200 every other event type. No `customer.subscription.*`, no `invoice.*` — we never create
+subscriptions, so Stripe won't send them.
 
-Response: `{ "url": "https://billing.stripe.com/..." }`
+> **Why the ledger.** Stripe retries until it gets a 2xx and can deliver the same event more than once
+> even *after* one. Without the `event_id` primary key, a retry silently grants a second pack of credits
+> nobody paid for. The old subscription plan got away without this because setting `tier='plus'` twice is
+> harmless. **Incrementing a balance twice is not.** This is the most important correctness detail in
+> the track.
 
-Logic: call `com.stripe.model.billingportal.Session.create()` with the user's `stripe_customer_id` and a `returnUrl` of `${APP_BASE_URL}/book`.
+**⚠️ The 401 trap costs real money here.** Per `CLAUDE.md`, an uncaught `RuntimeException` in a
+controller re-dispatches to `/error` unauthenticated and surfaces as **401, not 500**. Stripe reads any
+non-2xx as failure and retries with backoff **for up to ~3 days**. One stray NPE becomes: 401 → retry →
+NPE → retry, for days, while a paying customer receives nothing.
 
-#### GET /billing/status
-JWT-protected. Returns billing state for display in account settings.
+> Catch `Exception`. Log it. Return **200** once the event is durably recorded. Reconcile out of band.
+> Return 4xx **only** for a genuine signature failure.
 
-Response:
-```json
-{
-  "tier": "plus",
-  "creditsRemaining": 7,
-  "creditsResetAt": "2026-06-23T00:00:00Z",
-  "subscriptionId": "sub_...",
-  "gracePeriodUntil": null
-}
-```
+#### ❌ Do not build `GET /billing/portal`
 
-### SecurityConfig update
+The Stripe Billing Portal manages subscriptions. There are none.
 
-Add `/billing/webhook` to the public endpoint list (alongside `/auth/**`):
-```java
-.requestMatchers("/billing/webhook").permitAll()
-```
+#### `GET /billing/status` — optional, probably skip
 
-### Error handling
+Its old response was entirely subscription fields (`tier`, `subscriptionId`, `gracePeriodUntil`). The
+credit balance already reaches the frontend via `user.ai_credits_remaining` on `/auth/me`, which
+`AiCreditsContext` already reads. **Build this only if something needs it that `/auth/me` can't answer.**
 
-All Stripe API calls throw `StripeException`. Catch it in the service, wrap in a descriptive `RuntimeException`, and catch `Exception` (not `RuntimeException`) in the controller — per the Spring Security error dispatch pattern already documented in MEMORY.md.
+### 4. `SecurityConfig`
+
+Add `/billing/webhook` to the existing `permitAll` matcher list (currently `/health`, `/auth/*`,
+`/admin/**`, `/book/public/**`). Stripe doesn't send our JWT — **the signature verification *is* the
+authentication.**
+
+### 5. US-cards-only Radar rule
+
+Block payments whose card issuing country is not `US`. Rationale in `stripe-primer.md` §6.
+
+- **Verify the rule surface in the dashboard first.** The `:card_country:` syntax is recalled from
+  memory, not read from current docs.
+- **A blocked card surfaces as a decline the customer won't understand.** Detect it and show "We
+  currently only sell in the US", not a raw Stripe error. This is a real user-facing state.
+- Restricts who can **pay**, not who can **use** the app.
+
+### 6. Deploy surface
+
+Caddy must proxy `/billing/webhook` to `:3001` with the **`Stripe-Signature` header intact**. A proxy
+that rewrites or drops headers produces the same silent verification failure as body-parsing.
 
 ---
 
 ## Session 2 — Frontend
 
-### 1. Pricing modal
+### 1. Purchase modal — built from scratch
 
-**File:** `Frontend/src/components/ui/UpgradeModal.jsx` (new)
+`PaidGate.jsx` does not exist. Build a new modal showing the **four real SKUs**, triggered from the
+`onGetCredits` callback in `AiCreditsContext` (fired when a user clicks ✨ at zero credits).
 
-Triggered from `PaidGate` when the "Upgrade" button is clicked. A simple dialog with:
+- No "$4.99/month" plan card. No comparison table. No tiers.
+- The share SKUs must **name the book being unlocked**.
+- Button → `POST /billing/checkout` → `window.location.href = data.url`. Loading state while in flight.
+- Handle the US-only decline with a human message.
 
-- Plus plan card: $4.99/month, feature list (10 AI credits/month, storybook chapters, digital book, future print)
-- "Upgrade to Plus" button → calls `POST /billing/checkout` → redirects `window.location.href = data.url`
-- Loading state on the button while the API call completes
-- Close button
+### 2. Return-from-checkout — **decide the routing first**
 
-Keep it simple — one plan, no comparison table for V1.
+There is **no router**. `App.jsx` is an auth gate; `react-router` is not a dependency. Two options, and
+this is a decision, not a check:
 
-**Update `PaidGate.jsx`:**
-- Replace the disabled "Coming Soon" button with an "Upgrade to Plus" button that opens `UpgradeModal`
-- `UpgradeModal` needs `onClose` and `apiRequest` (or use the global `apiRequest` from `api.js`)
+- **Add `react-router`** — cleaner, and `sv2-s13` needs `/book/{token}` anyway. Decide once, together.
+- **Branch on `window.location.pathname`** before the auth gate — no dependency, but a second ad-hoc
+  route later gets ugly.
 
-### 2. Upgrade success page
+Whatever the route, the success screen **polls `GET /auth/me` until the balance changes** rather than
+trusting the redirect (see the rule above). Then refresh the user object so the app sees the credits.
 
-**File:** `Frontend/src/components/UpgradeSuccess.jsx` (new)
+### 3. Native gate
 
-Route: `/upgrade-success?session_id=...`
+Wrap **all** purchase UI in `Capacitor.isNativePlatform()`. On native, leave
+`AiCreditsContext.onGetCredits` **undefined** — exactly as `sv2-s10b` built it — so the out-of-credits
+state stays informational, never a call to action. One seam, both platforms.
 
-On mount:
-1. Call `GET /billing/status` to confirm the tier updated
-2. Refresh the user object (`GET /auth/me`) so the rest of the app immediately sees `tier: 'plus'`
-3. Show a confirmation message: "You're on Plus! 🎉 Your 10 monthly credits are ready."
-4. Link back to Memories → Book
+The **printed book button is the opposite case** and may ship in the app on day one: it's a physical
+good, and Apple's 3.1.3(e) *requires* it be sold outside IAP. See `stripe-primer.md` §9.
 
-**Wire it up in `App.jsx` / router:**
-- If using path-based routing: add a route for `/upgrade-success`
-- If the app is fully SPA (single-page, no router): check `window.location.pathname` on mount and render `UpgradeSuccess` instead of the main app
+### 4. Mobile redirect
 
-### 3. Cancel / manage subscription
+V1: web fallback. Stripe checkout opens in the system browser; the user pays and returns to the app;
+credits appear on next refresh. No universal links until mobile is a real conversion path.
 
-In account settings or profile (wherever the current user menu lives):
-- Show current plan: "Plus · 7 credits remaining"
-- "Manage Subscription" button → calls `GET /billing/portal` → `window.location.href = data.url`
-- Only show this button if `user.tier !== 'free'`
+### ❌ Do not build
 
-### 4. Mobile / Capacitor redirect handling
-
-Stripe redirects back to `APP_BASE_URL/upgrade-success`. On native mobile (iOS/Android via Capacitor), the `successUrl` must be a URL the app can intercept.
-
-Options:
-- **Universal links / App Links** — configure `cradlehq.app` as the associated domain; Stripe redirects to the web URL and iOS/Android opens the app. Requires Apple/Android app association files (`apple-app-site-association`, `assetlinks.json`).
-- **Web fallback** — for V1, the Stripe checkout opens in a browser (not in-app WebView). The user upgrades in Safari/Chrome, then returns to the app. No special linking needed. Credits will be available on next app refresh.
-
-**Recommendation for V1:** Web fallback. Don't add universal link complexity until mobile subscriptions are a meaningful conversion path. Add a note in the success UI: "Return to the CradleHQ app to start using your credits."
-
-### 5. Grace period UI
-
-If `user.tier === 'plus'` but `gracePeriodUntil` is set (from `/billing/status`), show a dismissible banner:
-> "Your payment failed — please update your payment method to keep Plus access."
-> [Update Payment Method] → billing portal
+"Manage Subscription", grace-period banners, downgrade-on-lapse, a cancellation flow. Nothing recurring
+exists.
 
 ---
 
-## Session 3 — Credit Management
+## Session 3 — Credit management (small)
 
-### Monthly credit reset
+**No reset job.** Credits are purchased, not allotted; nothing refills them on a schedule.
 
-AI credits reset on the billing anniversary. Two approaches:
-
-**Option A — Webhook-driven reset (recommended):**
-On `invoice.payment_succeeded` (fires on every successful monthly charge): set `ai_credits_remaining = 10`, update `credits_reset_at = NOW() + 30d`.
-
-No cron job needed. Stripe drives the reset. Simple and accurate.
-
-**Option B — Server-side cron:**
-Check `credits_reset_at` on every API call that costs credits. If past, reset before processing.
-
-Recommendation: Option A (webhook-driven). Already in the webhook handler table above.
-
-### Credit display in UI
-
-In the StorybookTab toolbar area (or the account/settings panel):
-- Show: `"7 / 10 credits · resets Jun 23"`
-- If 0 credits: `"0 credits remaining · resets Jun 23"` with a link to upgrade (for free users) or a note that it resets soon (for Plus users)
-
-Currently `credits` is passed down from `CradleHq.jsx` via `user.ai_credits_remaining`. That field is already in `UserDto` and returned by `/auth/me` — no new backend work for display.
-
-### Admin tooling (manual credit adjustments)
-
-For handling support requests, add a protected admin endpoint:
-
-```
-POST /admin/users/{id}/credits
-{ "amount": 5 }  // adds 5 credits
-```
-
-Gate with a role check (e.g., a hardcoded admin email list or an `is_admin` column) rather than a full RBAC system. Not needed for launch — defer to Session 3.
+- **Balance display:** `"7 credits remaining"` — no `/ 10`, no "resets on…". At zero: `"0 credits
+  remaining"` + "Get more credits" → the modal. `credits` already reaches the UI via `AiCreditsContext`;
+  no new backend work for display.
+- **Admin adjustment** for support requests: `POST /admin/users/{id}/credits  { "amount": 5 }`.
+  ⚠️ `/admin/**` is `permitAll` and relies on the `ADMIN_SECRET` header. Decide deliberately whether
+  that is sufficient for an endpoint that **mints credits**.
 
 ---
 
-## Testing Without a Live Stripe Account
+## Out-of-code prerequisites
 
-1. Create a free Stripe account at stripe.com — test mode is always available, no approval needed
-2. Use Stripe's test card numbers: `4242 4242 4242 4242` (success), `4000 0000 0000 9995` (decline)
-3. For webhooks locally: use the Stripe CLI (`stripe listen --forward-to localhost:3001/billing/webhook`) — this creates a local webhook tunnel and prints `STRIPE_WEBHOOK_SECRET`
-4. Add test Stripe keys to `.env` — test keys start with `sk_test_` and `pk_test_`, safe to use freely
-5. Create a Plus product + recurring price in the Stripe dashboard (test mode), copy the `price_...` ID to `STRIPE_PRICE_PLUS_MONTHLY`
+These are the real schedule risk. Nothing here blocks the **build** — every SKU is sold on the web and
+S1/S2 are fully buildable in test mode.
 
----
+**Blocks the live launch — start now (multi-week):**
+- [ ] LLC Stripe account activation: business details, EIN, bank account, owner identity verification.
+- [ ] A refund posture, especially "I unlocked the wrong book." Stripe keeps its fee on refunds; a
+      chargeback costs ~$15 *on top of* the lost sale. Making the book name unmissable at checkout is
+      cheaper than any refund flow.
+- [ ] **Ask an accountant about tax.** Digital goods are taxable in many US states; EU/UK VAT on digital
+      services applies from the first sale with no threshold. Stripe Tax *collects* but does not
+      *register or remit* — that lands on the LLC. No model is qualified to advise here. The Radar rule
+      narrows this; **it does not close it** (see `stripe-primer.md` §9's US-storefront ≠ US-customers box).
 
-## Files to Create / Modify
+**Blocks S1's first line of code:**
+- [ ] Four Products/Prices created **in test mode**, each with `sku` + `credits` in price metadata.
 
-| File | Change |
-|---|---|
-| `Backend/db/migration/V32__add_stripe_to_users.sql` | New — stripe_customer_id, stripe_subscription_id, tier_expires_at, tier_grace_until |
-| `Backend/build.gradle` | Add stripe-java dependency |
-| `Backend/src/.../billing/BillingController.java` | New — 4 endpoints |
-| `Backend/src/.../billing/BillingService.java` | New — Stripe API calls + DB updates |
-| `Backend/src/.../billing/dto/CheckoutRequest.java` | New |
-| `Backend/src/.../billing/dto/CheckoutResponse.java` | New |
-| `Backend/src/.../billing/dto/BillingStatusResponse.java` | New |
-| `Backend/src/.../config/SecurityConfig.java` | Add /billing/webhook to public endpoints |
-| `Backend/src/main/resources/application.properties` | Add stripe.* config keys |
-| `Backend/.env.example` | Add STRIPE_* env vars |
-| `Frontend/src/components/ui/PaidGate.jsx` | Wire up UpgradeModal instead of disabled button |
-| `Frontend/src/components/ui/UpgradeModal.jsx` | New — pricing dialog + checkout redirect |
-| `Frontend/src/components/UpgradeSuccess.jsx` | New — post-checkout confirmation page |
-| `Frontend/src/App.jsx` | Handle /upgrade-success route or path check |
-| `Frontend/src/components/CradleHq.jsx` | Add "Manage Subscription" link; grace period banner |
+**Blocks app submission, not the build:**
+- [ ] Enroll in Google Play's US external-offers/linking program (required, not automatic).
+- [ ] iOS is separately gated: per `project_apple_developer`, Michael is not the Apple account owner and
+      cannot create Distribution certificates.
 
 ---
 
-## Rollout Order
+## Rollout order
 
-1. **Backend (S1) in test mode** — deploy to prod with Stripe test keys, verify webhooks work
-2. **Frontend (S2)** — pricing modal, success page, billing portal link
-3. **End-to-end test** — full signup → checkout → upgrade success → generate chapter → credit deducted
-4. **Switch to live Stripe keys** — update env vars on VPS, set `STRIPE_SECRET_KEY=sk_live_...`
-5. **Announce** — remove "Coming Soon" label from any remaining surfaces
+1. **S1 backend in test mode** — deploy to prod with **test** keys, verify webhooks land.
+2. **S2 frontend** — modal, redirect, success screen, native gate.
+3. **End-to-end in test:** signup → checkout (`4242…`) → success screen polls → credits appear → ✨
+   spends one. Exercise the 3-D Secure card (`4000 0025 0000 3155`) once; it changes redirect timing.
+   Exercise a decline (`4000 0000 0000 9995`).
+4. **Replay a webhook** (`stripe trigger` twice, or resend from the dashboard) and confirm the ledger
+   blocks the second grant. **This is the test that matters.**
+5. **Switch to live keys** on the VPS. Test and live have **different price IDs** — all six env vars
+   change, not just the secret key.
+6. Hardening pass: `sv2-s14`.
 
 ---
 
-## Session Prompts
+## Session prompts
 
-### S1 — Backend
-
-```
-Payments S1 — Stripe backend integration.
-Plan: plans/storybook-v2/payments/stripe-full-plan.md (Session 1 section)
-Branch: payments-stripe (cut from main)
-
-Decisions are locked in the plan — do not re-ask them.
-
-Next migration is V32 (V31 is reserved for S5.2 chapter photos).
-The tier column already exists from V23. Only add the new Stripe columns.
-
-Order of work:
-1. V32 migration (stripe_customer_id, stripe_subscription_id, tier_expires_at, tier_grace_until)
-2. Add stripe-java to build.gradle + application.properties + .env.example
-3. Create com.gotcherapp.api.billing package with BillingController + BillingService + 3 DTOs
-4. Implement POST /billing/checkout
-5. Implement POST /billing/webhook (handle 5 event types per the plan table)
-6. Implement GET /billing/portal
-7. Implement GET /billing/status
-8. Add /billing/webhook to SecurityConfig public endpoints
-
-Read stripe-full-plan.md fully before writing code.
-Read SecurityConfig.java, application.properties, and build.gradle before touching them.
-All Stripe calls must catch Exception (not RuntimeException) in the controller.
-```
-
-### S2 — Frontend
-
-```
-Payments S2 — Stripe frontend integration.
-Plan: plans/storybook-v2/payments/stripe-full-plan.md (Session 2 section)
-Branch: payments-stripe (continue from S1 or cut from main after S1 merges)
-Depends on: S1 backend endpoints live and reachable
-
-Order of work:
-1. UpgradeModal.jsx — pricing dialog, calls POST /billing/checkout, redirects on success
-2. Update PaidGate.jsx — wire up UpgradeModal instead of disabled button
-3. UpgradeSuccess.jsx — confirmation page, refreshes user object via GET /auth/me
-4. App.jsx — handle /upgrade-success route
-5. CradleHq.jsx — "Manage Subscription" button (GET /billing/portal redirect), grace period banner
-
-Read stripe-full-plan.md fully before writing code.
-Read PaidGate.jsx, CradleHq.jsx, App.jsx before touching them.
-V1 mobile approach: web browser fallback (no universal links yet).
-```
+Live in `session-prompts.md` alongside this file. The prompts in
+`../deprecated/payments-s{0,1,2}-*.md` describe the dead subscription — **do not run them.**

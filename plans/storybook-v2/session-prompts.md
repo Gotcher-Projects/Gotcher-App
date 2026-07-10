@@ -386,18 +386,28 @@ Plan: planning.md §6 + plans/storybook-v2/sv2-s12-print.md (detailed spec).
 External blocker: plans/storybook-v2/lulu-print-handoff.md MUST be filled in first
   (Lulu account, API creds, confirmed trim size / bleed / color profile / min pages,
   redirect-vs-POST checkout, white-label, ToS). Someone with Lulu access owns that.
-Also gated on: Payments S1 (paid-tier gating) — currently Not started.
+Also gated on: Payments (Stripe merchant-of-record) — currently Not started.
 Sequence: LAST v2 workstream — run only after sv2-s1…s8 page types are stable.
 
+⚠️ REVISED 2026-07-09: print is PAY-PER-ORDER, gated on NOTHING. No plus/pro check — there is no
+   subscription and users.tier is vestigial. Print needs its OWN Stripe checkout (variable amount =
+   copies × unit + shipping, plus a shipping address) — the fixed-price credit/share flow does not
+   cover it. Budget a second mode:'payment' flow.
+
 Do NOT start the engineering sessions until the hand-off doc has answers for at least
-Q4 (checkout flow) and Q8 (trim size) — those are hard blockers.
+Q4 (checkout flow) and Q8 (trim size) — those are hard blockers. The doc contradicts itself on trim
+(6×9 in one place, 8×10 in another): BOTH are guesses. Do not hardcode either.
 
 Sub-sessions:
 1. sv2-print-plan — with hand-off answers in hand, lock the Lulu API open questions.
-2. sv2-print-s1 — Backend: OpenPDF print assembly (reproduce ALL v2 page types at 300 DPI,
-   server-side — NOT the client html2canvas→jsPDF path) + Lulu order submission.
-3. sv2-print-s2 — Frontend: "Order a Printed Book" UI (plus/pro only), quantity picker,
-   redirect to Lulu checkout, order confirmation.
+2. sv2-print-s1 — Backend: OpenPDF print assembly + Lulu order submission.
+   ⚠️ THE BIG LIFT: reproduce EVERY page type at 300 DPI server-side — 10 named templates + the
+   freeform LayoutRenderer fallback + the cover (built as raw DOM). Read the dispatch in
+   storybookPdf.js and match it; the page-type lists in the plan docs have drifted twice. The
+   data-driven pages (birth-day, people, family-tree, milestones) need live pageData. The Lulu API
+   call at the end is trivial by comparison — scope accordingly.
+3. sv2-print-s2 — Frontend: "Order a Printed Book" UI (ANY user), quantity picker, shipping address,
+   Stripe checkout, order confirmation.
 
 Read sv2-s12-print.md, lulu-print-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
 ```
@@ -453,4 +463,152 @@ Keep: users.tier + ai_credits_remaining (now meter sv2-ai-assist), the whole bui
 
 Read sv2-s11-ai-retrofit.md, StorybookService.java, StorybookController.java, StorybookWizard.jsx
 before touching anything.
+```
+
+---
+
+# ═══ PAID BUNDLE ═══
+Run order + status reconciled in `sv2-s9.6` (2026-07-09). Payments is the **trunk** — share and print
+both gate on its one-time checkout. Model: **no subscription.** Credits and the share unlock are
+one-time purchases; print is pay-per-order. `users.tier` is vestigial — never gate on it.
+
+---
+
+## SV2-S9.6 — Paid-bundle plan reconcile  ✅ COMPLETE 2026-07-09  (docs only, no app code)
+
+```
+Session SV2-S9.6 — reconcile the paid-bundle plans against reality before any of them are built.
+Plan: plans/storybook-v2/sv2-s9.6-paid-bundle-plan-reconcile.md
+NO APP CODE. Plan edits + reference fixes only.
+
+Decisions locked this session (Michael):
+- Credits = one-time packs, NOT a subscription. Gate on balance, never on tier.
+- Print = pay-per-order, no tier gate. Pro tier dropped.
+- Share = one-time $10, PER BOOK (not per account).
+- SKUs: $5/50cr · $10/125cr · $15/150cr+share (recommended) · $10/share-only.
+
+Findings already recorded: next migration is V46 (not V32/V44); credits_reset_at exists (V23) and
+goes unused; [CLAUDE-DEBUG] already gone (s11); PaidGate.jsx does not exist; there is NO react-router
+in the project; AiAssistService already refunds a credit on a failed Claude call.
+```
+
+> **Superseded since:** V46 was taken by `sv2-grant` (free_grant_at) later the same day — the Stripe
+> migration is **V47**. Everything else above still holds.
+
+---
+
+## SV2-GRANT — Free signup credits, capped at first N users  (small; run BEFORE Payments S2)
+
+```
+Session SV2-GRANT — give the first N signups 5 free AI credits so they can try ✨ before buying.
+Plan: plans/storybook-v2/sv2-grant-free-credits.md
+Origin of the decision: sv2-s9.6-paid-bundle-plan-reconcile.md → "Free signup grant"
+
+Why: new users currently start at 0 credits (V23 DEFAULT 0; AuthService.java:48 inserts only
+email/hash/display_name). They see ✨ everywhere, click, and are told they have none — having never
+seen it work. Nobody buys a consumable they haven't tried.
+
+Build:
+- Migration: ALTER TABLE users ADD COLUMN free_grant_at TIMESTAMPTZ;  (null = never granted)
+- Config: FREE_GRANT_LIMIT (default 500) + FREE_GRANT_SIZE (default 5). Env-driven, NOT hardcoded —
+  tuning N must never require a migration.
+- AuthService: after the signup INSERT, attempt the grant.
+
+⚠️ TRAP 1 — do NOT count `ai_credits_remaining > 0` to decide if the cap is reached. That drops a user
+   the moment they spend their last credit, so grant #501 fires as soon as user #3 runs dry. Count
+   free_grant_at IS NOT NULL.
+⚠️ TRAP 2 — read-count-then-insert is a TOCTOU race; two concurrent signups both read 499 and both
+   grant. Do it in ONE conditional UPDATE guarded by `free_grant_at IS NULL AND (subquery) < :limit`.
+   Zero rows affected = cap reached or already granted. Not an error.
+
+Ship before Payments S2 so you can measure how fast real users burn 5 credits before locking pack sizes.
+
+NOT in scope (recorded in s9.6, folded into sv2-s14): email_verified is never enforced, so this cap is
+a launch promotion, not an abuse control — a script with throwaway emails can drain all 500 grants.
+```
+
+---
+
+## PAYMENTS — Stripe one-time checkout  (3 sessions: S1 backend · S2 frontend · S3 credit mgmt)
+
+```
+Session PAYMENTS — one-time Stripe checkout. THE TRUNK: share + print both depend on it.
+Canonical plan: plans/storybook-v2/payments/stripe-full-plan.md  ← read the MODEL CHANGE banner first.
+
+There is NO subscription. Do not build: tier_expires_at, tier_grace_until, grace-period UI,
+downgrade-on-lapse, Billing Portal, "Manage Subscription", monthly credit reset, Pro tier.
+
+S1 backend: V47 migration (stripe_customer_id + books.share_unlocked_at + stripe_events_applied
+  ledger — V46 was taken by sv2-grant) · Stripe SDK · POST /billing/checkout (mode:'payment', takes
+  sku + optional bookId — VALIDATE OWNERSHIP: books has no user_id, join via baby_profiles.user_id)
+  · POST /billing/webhook.
+  ⚠️ The webhook MUST be idempotent. Stripe retries; a double-grant hands out credits nobody paid
+  for. Insert the evt_ id first, grant only if that insert won. One transaction.
+S2 frontend: credit-pack + share purchase modal. PaidGate.jsx DOES NOT EXIST — build fresh. The real
+  seam is the onGetCredits callback in Frontend/src/contexts/AiCreditsContext.jsx (left undefined
+  on purpose in s10b). Success screen needs a route — the app has no router (see s13).
+S3 credit mgmt: admin credit adjustment + balance display. NO reset job (nothing to reset).
+
+Also: fix the stale "20 credits for $2" comment in AiAssistService.java:13 to match the real SKUs.
+
+Geography (decided 2026-07-09): Stripe Radar rule blocking non-US card countries — build in S1. Verify
+the rule syntax in the dashboard first. A blocked card is a DECLINE: surface "We currently only sell in
+the US", not a raw Stripe error. Restricts who can PAY, not who can USE the app.
+
+Mobile (decided 2026-07-09): app stores are already US-only. Digital SKUs are Stripe/web ONLY — no IAP.
+In S2, gate ALL purchase UI behind Capacitor.isNativePlatform(). On native, leave
+AiCreditsContext.onGetCredits UNDEFINED (exactly as s10b built it) so the out-of-credits state stays
+informational. See stripe-primer.md §9 for the App Store clauses and the staged-submission plan.
+```
+
+---
+
+## SV2-S13 — Public share link  (fresh build; $10 per book)
+
+```
+Session SV2-S13 — public /book/{token} share link. FRESH BUILD, not a resume.
+Plan: plans/storybook-v2/sv2-s13-share-link.md  ← read the RECONCILED header first.
+Depends on: Payments (the $10 purchase).
+
+⚠️ THE APP HAS NO ROUTER. No react-router dependency; App.jsx is an auth gate. Decide: add a router,
+   or branch on window.location.pathname before the gate. This is a decision, not a check.
+⚠️ The old sharing backend was REMOVED (V25 book_share_tokens migration kept, code gone). That table
+   predates multi-book — confirm its shape before reusing it.
+⚠️ Separate the ENTITLEMENT (books.share_unlocked_at — paid once) from the TOKEN (revocable secret).
+   Regenerating a link must NOT re-charge.
+⚠️ The public renderer goes through LayoutRenderer + EVERY *Canvas — same dispatch set as
+   Frontend/src/lib/storybookPdf.js (10 templates + freeform fallback + cover). Read that file; do
+   not trust any page-type list in a plan doc. Data-driven pages need pageData, PII-filtered.
+
+Gate on the book's unlock state, NOT on tier.
+```
+
+---
+
+## SV2-HYGIENE — Remove [CLAUDE-DEBUG] logging  ✅ COMPLETE BY DELETION (2026-07-09)
+
+```
+NO SESSION NEEDED. sv2-s11 deleted the batch ClaudeClient path and every [CLAUDE-DEBUG] call site.
+Verify: grep -rn "CLAUDE-DEBUG" Backend/src   → returns nothing.
+```
+
+---
+
+## SV2-S14 — Paid-bundle hardening + verification  (NOT YET WRITTEN)
+
+```
+Session SV2-S14 — one focused pass over the money/vendor paths before they sit on prod untouched.
+Plan file does not exist yet — write it first.
+
+Cover: webhook idempotency + retry replay · declined/failed payments · refunds (esp. share unlocked
+on the wrong book) · Lulu order rejection below min page count · low-balance alert on the Anthropic
+card · book-ownership authz on the share purchase (IDOR).
+
+⚠️ email_verified is READ but NEVER ENFORCED (AuthService, verified 2026-07-09) — an unverified
+   account can log in and hit the API. That makes the free-grant cap (sv2-grant) a promotion, not an
+   abuse control: throwaway emails can drain all N grants. Fix: enforce verification at login, and/or
+   move the grant from signup to the verify endpoint.
+
+ALREADY DONE, don't re-litigate: AiAssistService refunds the credit on a failed Claude call
+(AiAssistService.java:88).
 ```

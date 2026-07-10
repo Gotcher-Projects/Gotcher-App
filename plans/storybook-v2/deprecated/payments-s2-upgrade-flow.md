@@ -1,4 +1,9 @@
 # Payments S2 — Upgrade Flow (Frontend)
+> ⚠️ **SUPERSEDED — ARCHIVAL ONLY.** `stripe-full-plan.md` is canonical. This file predates the
+> **2026-07-09 model change**: there is no subscription, no `plus`/`pro` tier, and no tier-based
+> gating anywhere. Credits and the share unlock are one-time purchases; print is pay-per-order.
+> Do not implement from this file.
+
 **Status:** Not started
 **Branch:** `payments-s2`
 **Depends on:** Payments S1

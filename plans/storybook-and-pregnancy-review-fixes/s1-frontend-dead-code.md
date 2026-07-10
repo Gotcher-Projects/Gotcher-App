@@ -7,7 +7,9 @@
 
 > **Implemented 2026-06-19.** All items done. `npm run test` (193 passed) and `npm run build` green.
 > **PaidGate decision:** removed now (was unused), but its prior implementation + a removal note
-> were added to `plans/payments/s2-upgrade-flow.md` task 1 so the payments feature can re-create it.
+> were added to what is now `plans/storybook-v2/deprecated/payments-s2-upgrade-flow.md` task 1
+> (moved + deprecated 2026-07-09) so the payments feature can re-create it. Note the payments model has
+> since changed to one-time SKUs — the new purchase modal is built fresh; that file is reference only.
 > Awaiting Michael's manual smoke test before marking Complete.
 
 ---
