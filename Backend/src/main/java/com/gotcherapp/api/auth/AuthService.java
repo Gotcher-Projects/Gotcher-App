@@ -4,6 +4,7 @@ import com.gotcherapp.api.auth.dto.*;
 import com.gotcherapp.api.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,13 +25,19 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final int freeGrantLimit;
+    private final int freeGrantSize;
 
     public AuthService(JdbcTemplate jdbc, JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       @Value("${app.free-grant.limit:500}") int freeGrantLimit,
+                       @Value("${app.free-grant.size:5}") int freeGrantSize) {
         this.jdbc = jdbc;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationService = emailVerificationService;
+        this.freeGrantLimit = freeGrantLimit;
+        this.freeGrantSize = freeGrantSize;
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -56,6 +63,8 @@ public class AuthService {
         String email = (String) row.get("email");
         String displayName = (String) row.get("display_name");
 
+        int credits = grantFreeCredits(userId);
+
         String accessToken = jwtUtil.generateAccessToken(userId, email);
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, refreshToken, 7);
@@ -66,7 +75,40 @@ public class AuthService {
             log.warn("Failed to send verification email to {}: {}", email, e.getMessage());
         }
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", 0));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", credits));
+    }
+
+    // Grant the launch promotion to the first `freeGrantLimit` signups (sv2-grant). Returns the user's
+    // resulting credit balance — 0 when the cap is reached, so a late signup gets a normal account.
+    //
+    // The cap check and the write live in ONE statement: a read-then-write would let two concurrent
+    // signups both observe limit-1 and both grant. This is not fully race-free either — under READ
+    // COMMITTED the count subquery reads a snapshot, and concurrent signups touch different rows, so
+    // simultaneous grants can still overshoot by roughly the number of in-flight registrations. That is
+    // accepted: the cap is a spend ceiling, not a correctness boundary. What the statement DOES
+    // guarantee is the part that matters — `free_grant_at IS NULL` is evaluated against the row
+    // Postgres locks, so a user can never be granted twice.
+    //
+    // Never let this fail a signup. A user created without a grant is self-consistent (free_grant_at
+    // stays null), so we log and fall through to a 0-credit account, same stance as the verification
+    // email below.
+    private int grantFreeCredits(Long userId) {
+        if (freeGrantLimit <= 0 || freeGrantSize <= 0) return 0;
+        try {
+            List<Map<String, Object>> granted = jdbc.queryForList(
+                "UPDATE users SET ai_credits_remaining = ai_credits_remaining + ?, free_grant_at = NOW() " +
+                "WHERE id = ? AND free_grant_at IS NULL " +
+                "AND (SELECT count(*) FROM users WHERE free_grant_at IS NOT NULL) < ? " +
+                "RETURNING ai_credits_remaining",
+                freeGrantSize, userId, freeGrantLimit
+            );
+            if (granted == null || granted.isEmpty()) return 0;  // cap reached, or already granted
+            Object balance = granted.get(0).get("ai_credits_remaining");
+            return balance != null ? ((Number) balance).intValue() : 0;
+        } catch (Exception e) {
+            log.warn("Free credit grant failed for user {}: {}", userId, e.getMessage());
+            return 0;
+        }
     }
 
     public AuthResponse login(LoginRequest req) {
