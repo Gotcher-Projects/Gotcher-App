@@ -67,6 +67,22 @@ Credits live on `users.ai_credits_remaining` (**account-scoped**). The share unl
 
 ---
 
+## Pre-flight checklist — P0.5 outcomes (decided 2026-07-10)
+
+Owners and dates for the prerequisites that block *taking real money* but not the build. None of these
+gate P1–P11 (all sandbox). Do **not** let them stay unowned.
+
+| # | Item | Decision / owner | Blocks | State |
+|---|---|---|---|---|
+| 1 | **LLC Stripe activation** | Owned by the **LLC owner**. Michael saw no "activate/finish setup" prompt in the dashboard → **likely already activated**; owner to give the definitive yes. | P12 only | ✅ likely done; owner confirms |
+| 2 | **Refund posture (wrong-book unlock)** | **Move the unlock to the correct book — never cash-refund** (last resort only). Requests → **`privacy@cradlehq.app`** (inbox now exists), best-effort SLA, handled by Michael. | — | ✅ decided |
+| 3 | **Tax** | Owner's problem (decided 2026-07-10). **Open to-do:** Michael forwards `handoffs/tax-note-for-owner.md` to the owner **before the first live payment (P12)** — obligation attaches at first live dollar. P5 US-only Radar rule is partial mitigation, not elimination. | P12 only | ⏳ note not yet sent |
+| 4 | **Pricing** | All four SKUs **stay as-is**. Confirm live fee rate in the dashboard at P12 (intl cards/FX add ~1.5% each). | — | ✅ confirmed |
+| 5 | **Free-grant abuse gap** | **Ship the signup grant as-is** now (worst case ~$17.50, bounded by the 500 cap). `email_verified` enforcement + this decision **revisited at `sv2-s14`** — sv2-s14 must actually be written. | — | ✅ ship; revisit at sv2-s14 |
+| — | **Radar for Fraud Teams** | **Off until P5.** Base Radar (ML scoring) is free & already on; Fraud Teams (custom rules, incl. the US-only rule) is **$0.02/screened txn**, no reliable free trial. Free to build/test in the sandbox at P5; only costs once live (P12). Role can reach Radar → Rules. | P5/P12 | ✅ deferred to P5 |
+
+---
+
 ## Ground truth — verified against the codebase 2026-07-09
 
 Facts a build session would otherwise get wrong. Re-verify before trusting.
@@ -115,6 +131,12 @@ Full reasoning, plus the Spring-specific webhook traps, in `stripe-primer.md` §
 
 ---
 
+> **Sessions are sliced smaller than these three headings.** "Session 1" below is 8–14 hours of work —
+> a migration, an SDK, a checkout endpoint, a webhook, an idempotency ledger, and a fraud rule. It is
+> split into **P0–P12, each ≤2 hours**, in `session-prompts.md` (2026-07-10). The webhook (**P3**) gets a
+> session to itself: it is the one place a bug either hands out credits nobody paid for or takes money and
+> grants nothing. The headings below remain the *specification*; the prompts are the *run order*.
+
 ## Session 1 — Backend
 
 ### 1. Migration `V47__add_stripe_billing.sql`
@@ -144,7 +166,11 @@ subscription. This is the single most common way this plan gets built wrong.
 
 ### 2. Stripe SDK + config
 
-`Backend/build.gradle`: `implementation 'com.stripe:stripe-java:25.+'`
+`Backend/build.gradle`: `implementation 'com.stripe:stripe-java:33.+'`
+
+> **Corrected 2026-07-10.** This said `25.+`, which in Gradle resolves *within* major 25 — a major that
+> no longer receives updates. Latest is **33.0.0** (pins API version `2026-04-22.dahlia`). Note
+> `sv2-onboarding-explainers.md` says 32.x; it is also stale. Check Maven Central before writing.
 
 `application.properties` — one price per SKU, no subscription price:
 ```
@@ -317,13 +343,21 @@ S1/S2 are fully buildable in test mode.
 - [ ] A refund posture, especially "I unlocked the wrong book." Stripe keeps its fee on refunds; a
       chargeback costs ~$15 *on top of* the lost sale. Making the book name unmissable at checkout is
       cheaper than any refund flow.
-- [ ] **Ask an accountant about tax.** Digital goods are taxable in many US states; EU/UK VAT on digital
-      services applies from the first sale with no threshold. Stripe Tax *collects* but does not
-      *register or remit* — that lands on the LLC. No model is qualified to advise here. The Radar rule
-      narrows this; **it does not close it** (see `stripe-primer.md` §9's US-storefront ≠ US-customers box).
+- [x] ~~**Ask an accountant about tax.**~~ ⛔ **Not our problem — the owner's** (decided 2026-07-10).
+      Forward `handoffs/tax-note-for-owner.md` and proceed; **do not wait for a reply.** It blocks no
+      session. The obligation begins at the first **live** charge, so the note just has to be sent before
+      **P12**. Working mitigation: the P5 US-cards-only Radar rule, which narrows the exposure but
+      **does not close it** (see `stripe-primer.md` §9's US-storefront ≠ US-customers box). Digital goods
+      are taxable in many US states; Stripe Tax *collects* but does not *register or remit*.
 
-**Blocks S1's first line of code:**
-- [ ] Four Products/Prices created **in test mode**, each with `sku` + `credits` in price metadata.
+**Blocks P1's first line of code:**
+- [ ] Four Products/Prices created **in a test sandbox**, each with `sku` + `credits` in price metadata.
+      → **`p0-account-setup.md`** walks this end-to-end (first login, role check, SKUs, keys, CLI).
+      Note Stripe replaced the test-mode toggle with **Sandboxes** (verified 2026-07-10); older docs,
+      including our own `stripe-explainer.html`, describe the old UI.
+- [ ] Confirm the **Developer role** can create Products/Prices and edit Radar rules. It grants API keys,
+      webhooks, and logs; the rest is unconfirmed. If blocked, the owner must raise the role. **Check this
+      in P0's first ten minutes** — it silently blocks the whole track.
 
 **Blocks app submission, not the build:**
 - [ ] Enroll in Google Play's US external-offers/linking program (required, not automatic).

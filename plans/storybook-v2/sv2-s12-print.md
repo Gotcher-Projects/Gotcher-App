@@ -9,6 +9,22 @@
 
 **Status:** Not started — blocked on external Lulu setup
 **Depends on:** v2 page types stable ✅ · Payments (Stripe merchant-of-record) · Lulu handoff answers
+
+> ## 🛑 DO NOT RUN THIS PLAN AS WRITTEN — it is not sliced (2026-07-10)
+>
+> **L1 below is estimated at 15–70 hours.** That is not a session; it is a project with a session's name
+> on it. Two things must happen before any of this is built:
+>
+> 1. **Decide the renderer.** The 15-vs-70 spread is one undecided question — see the ⚠️ box under
+>    "Page types" below. `storybookPdf.js` already renders every canvas; the plan's OpenPDF port may be
+>    unnecessary. **Spike headless-Chrome print-to-PDF first.** A couple of hours to possibly save thirty.
+> 2. **Slice L0/L1/L2 into ≤2h sessions**, using velocity measured from Payments P0–P5.
+>
+> Both are tasks in **`sv2-reslice-checkpoint.md`** (runs after Payments P5). Michael asked on 2026-07-10
+> that this not get lost; a backstop note also sits in the Payments **P12** cutover prompt.
+>
+> The core v2 track was scoped as 9 sessions and ran as ~22, because big sessions got split *after* they
+> had already grown too big. This is the biggest one left. Split it before, not during.
 *(The old "scrapbook builder rewrite (S7–S10), shareable link, Payments S1 tier check" line is dead:
 the rewrite shipped, share is independent, and there is no tier to check.)*
 

@@ -247,6 +247,20 @@
   </aside>
 
   <main class="main">
+    <div style="border:2px solid #b42318;background:#fff4f3;color:#5a1410;border-radius:10px;padding:18px 20px;margin:0 0 24px;">
+      <strong style="display:block;font-size:1.05rem;margin-bottom:8px;">⚠️ OUT OF DATE — do not learn Stripe from this document (2026-07-10)</strong>
+      <p style="margin:0 0 10px;">This explainer was written on 2026-07-03, against a <strong>$4.99/month "Plus" subscription</strong>
+      that <strong>no longer exists</strong>. The pricing model changed on 2026-07-09. Everything below about subscriptions,
+      the Billing Portal, grace periods, monthly credit allotments, and tier upgrades describes a product we are
+      <strong>not building</strong>.</p>
+      <p style="margin:0 0 10px;"><strong>What's true now:</strong> four <strong>one-time</strong> SKUs — $5/50 credits ·
+      $10/125 credits · $15/150 credits + share unlock · $10/share-only. Nothing recurring. Nothing to cancel.
+      <code>users.tier</code> is vestigial. Credits never expire and never refill.</p>
+      <p style="margin:0;">Read <code>plans/storybook-v2/payments/stripe-primer.md</code> (the why) and
+      <code>plans/storybook-v2/payments/p0-account-setup.md</code> (the first-login walkthrough) instead.
+      A rewrite of this page is queued. Also stale here: <code>stripe-java</code> is at <strong>33.x</strong>, not 32.x,
+      and Stripe has replaced the test-mode toggle with <strong>Sandboxes</strong>.</p>
+    </div>
     <header class="hero">
       <div class="col">
         <span class="eyebrow">◆ Owner ramp-up · money IN</span>

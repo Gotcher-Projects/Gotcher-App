@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adding CradleHQ Products in Stripe</title>
+<style>
+  :root {
+    --bg: #f7f7f9;
+    --card: #ffffff;
+    --ink: #1c1c22;
+    --muted: #5c5c6b;
+    --line: #e4e4ea;
+    --accent: #635bff;      /* Stripe indigo */
+    --accent-soft: #efeeff;
+    --warn-bg: #fff6e5;
+    --warn-line: #f0c869;
+    --warn-ink: #7a5200;
+    --code-bg: #f0f0f4;
+    --ok: #1a7f4b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --card: #1f1f26;
+      --ink: #ececf0;
+      --muted: #9a9aa8;
+      --line: #33333d;
+      --accent: #a5a0ff;
+      --accent-soft: #2a2840;
+      --warn-bg: #332a12;
+      --warn-line: #6b5518;
+      --warn-ink: #f0c869;
+      --code-bg: #2a2a33;
+      --ok: #56d68d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 2rem 1rem 5rem;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  header {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 .3rem; }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.5rem 0 .8rem;
+    padding-top: .6rem;
+  }
+  h2 .num {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 1.6em; height: 1.6em;
+    text-align: center;
+    line-height: 1.6em;
+    font-size: .85em;
+    margin-right: .5rem;
+  }
+  .sub { color: var(--muted); margin: 0; }
+  p { margin: .7rem 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    margin: 1rem 0;
+  }
+  code {
+    background: var(--code-bg);
+    padding: .12em .4em;
+    border-radius: 5px;
+    font-family: "SF Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .88em;
+  }
+  ol, ul { padding-left: 1.3rem; }
+  li { margin: .4rem 0; }
+  .callout {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-left: 4px solid var(--warn-line);
+    color: var(--warn-ink);
+    border-radius: 8px;
+    padding: .9rem 1.1rem;
+    margin: 1.2rem 0;
+  }
+  .callout strong { color: var(--warn-ink); }
+  .callout .tag { font-weight: 700; text-transform: uppercase; font-size: .72rem; letter-spacing: .05em; display:block; margin-bottom:.2rem;}
+  .tablewrap { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td {
+    border: 1px solid var(--line);
+    padding: .55rem .7rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+  th { background: var(--accent-soft); font-weight: 600; }
+  td code { white-space: nowrap; }
+  .why {
+    border-left: 3px solid var(--accent);
+    padding: .2rem 0 .2rem 1rem;
+    color: var(--muted);
+    margin: 1rem 0;
+  }
+  .why b { color: var(--ink); }
+  footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .85rem;
+  }
+  .pill {
+    display:inline-block; background: var(--accent-soft); color: var(--accent);
+    border-radius: 999px; padding: .1em .7em; font-size:.8rem; font-weight:600;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="pill">CradleHQ · Stripe setup</p>
+    <h1>Adding our products in Stripe</h1>
+    <p class="sub">How to create the four things CradleHQ sells. ~30 minutes. No coding — just the Stripe dashboard.</p>
+  </header>
+
+  <div class="why">
+    <b>The one idea to hold onto:</b> Stripe needs to know <i>what</i> we sell before our code can charge for it.
+    Each thing we sell is a <b>Product</b> (a name) with one <b>Price</b> (an amount). Our code never mentions
+    dollar amounts — it only ever refers to a Price by its id (<code>price_1abc…</code>). Change a price in the
+    dashboard and the code keeps working, because it reads everything it needs from the Price itself.
+  </div>
+
+  <h2><span class="num">1</span>Get into the right place</h2>
+  <div class="card">
+    <ol>
+      <li>Go to <a href="https://dashboard.stripe.com">dashboard.stripe.com</a> and log in.</li>
+      <li><strong>Confirm you are in a Sandbox (test mode), not Live.</strong> Stripe now uses an
+          environment / <b>Sandbox</b> picker (it replaced the old test-mode switch). Everything you make in a
+          sandbox is fake-money and stays there — perfect for setup. When we go live later, these four products
+          get recreated in Live mode and get <b>brand-new price ids</b>. Test and Live never share ids.</li>
+      <li>Open <b>Product catalog</b> in the left nav.</li>
+    </ol>
+  </div>
+
+  <h2><span class="num">2</span>The four things we sell</h2>
+  <p>Create each row below as its own Product. Three are credit packs; one unlocks sharing a finished book.</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Product name</th><th>Price</th><th>Billing</th><th>metadata <code>sku</code></th><th>metadata <code>credits</code></th></tr>
+      </thead>
+      <tbody>
+        <tr><td>50 AI credits</td><td>$5.00</td><td>One-time</td><td><code>credits_50</code></td><td><code>50</code></td></tr>
+        <tr><td>125 AI credits</td><td>$10.00</td><td>One-time</td><td><code>credits_125</code></td><td><code>125</code></td></tr>
+        <tr><td>150 AI credits + share unlock</td><td>$15.00</td><td>One-time</td><td><code>bundle_share_150</code></td><td><code>150</code></td></tr>
+        <tr><td>Share unlock</td><td>$10.00</td><td>One-time</td><td><code>share_only</code></td><td><code>0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="num">3</span>Create one product (repeat four times)</h2>
+  <div class="card">
+    <ol>
+      <li><b>Product catalog → ＋ Add product.</b></li>
+      <li>Enter the <b>Name</b> from the table.</li>
+      <li>Set the <b>amount</b> (e.g. <code>5.00</code>) and currency <b>USD</b>.</li>
+      <li><b>Set billing to One-off / One time.</b> (See the warning below — this is the #1 mistake.)</li>
+      <li>Save the product.</li>
+    </ol>
+  </div>
+
+  <div class="callout">
+    <span class="tag">⚠ Gotcha #1 — billing type</span>
+    Stripe <strong>defaults every price to “Recurring”</strong> (a subscription). We sell <strong>nothing</strong>
+    recurring — no monthly plan anywhere. You must switch it to <strong>One-off / One time</strong>. A price left
+    as recurring will be rejected by our code and cost an hour of confusion later.
+  </div>
+
+  <h2><span class="num">4</span>Add the metadata — on the <u>Price</u>, not the Product</h2>
+  <div class="card">
+    <p>After saving, open the product, click into its <b>Price</b>, find the <b>Metadata</b> section, and add
+       <b>two rows</b> exactly as in the table:</p>
+    <ul>
+      <li><code>sku</code> &rarr; e.g. <code>credits_50</code></li>
+      <li><code>credits</code> &rarr; e.g. <code>50</code> &nbsp;(use <code>0</code> for “Share unlock”)</li>
+    </ul>
+    <p>In the current dashboard you usually can’t add price metadata while first creating the product — create it,
+       then click into the price to edit it.</p>
+  </div>
+
+  <div class="callout">
+    <span class="tag">⚠ Gotcha #2 — metadata belongs on the Price</span>
+    When someone pays, Stripe notifies our server with an event that points at the <strong>Price</strong>. Our code
+    reads <code>credits</code> and <code>sku</code> off that Price to decide what to grant — it never looks at the
+    Product. Metadata sitting only on the Product is invisible to us. Put it on the <strong>Price</strong>. Don’t
+    duplicate it onto the Product too — two copies drift apart the day someone edits one and forgets the other.
+  </div>
+
+  <div class="why">
+    <b>Why <code>credits: 0</code> instead of leaving it off the Share-unlock price?</b> So that <i>every</i> price
+    we sell carries the same two keys. That single invariant keeps the payment code simple — read <code>credits</code>,
+    grant that many, no special cases. The key that makes the share unlock special is its <code>sku</code>
+    (<code>share_only</code>), not the zero.
+  </div>
+
+  <h2><span class="num">5</span>Grab each Price id</h2>
+  <div class="card">
+    <p>On each Price you’ll see an id that starts with <code>price_1…</code>. Copy all four and hand them to the
+       developer (or paste into the app’s config).</p>
+    <div class="callout" style="background:var(--accent-soft);border-color:var(--accent);border-left-color:var(--accent);color:var(--ink);">
+      <span class="tag" style="color:var(--accent);">Copy the right id</span>
+      Copy the <code>price_1…</code> id — <strong>not</strong> the <code>prod_…</code> id. The <code>prod_</code>
+      one is the product; our code only uses <code>price_</code>.
+    </div>
+  </div>
+
+  <h2 style="color:var(--ok);">✓ Done when</h2>
+  <div class="card">
+    <ul>
+      <li>Four products exist <b>in the sandbox</b>.</li>
+      <li>Each has a <b>one-time</b> USD price.</li>
+      <li>Each <b>Price</b> carries <code>sku</code> + <code>credits</code> metadata.</li>
+      <li>You’ve captured the four <code>price_1…</code> ids.</li>
+    </ul>
+  </div>
+
+  <footer>
+    Internal setup note for CradleHQ. When moving from Sandbox to Live, repeat all of this in Live mode — the Live
+    products get their own, different <code>price_</code> ids. Never paste a Secret key (<code>sk_…</code>) into a
+    document, email, or screenshot.
+  </footer>
+</main>
+</body>
+</html>

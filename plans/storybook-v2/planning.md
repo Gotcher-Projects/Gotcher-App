@@ -283,11 +283,18 @@ sv2-s9.6  Paid-bundle plan reconcile       ← planning/tidy pass over the moved
 sv2-grant  Free signup credits (capped)    ← first N signups get 5 credits so ✨ can be tried before buying.
                                             V46 + AuthService. Run BEFORE Payments S2.
                                             → sv2-grant-free-credits.md  [Needs Verification 2026-07-09]
-payments/  Stripe track (3 sessions)       ← S1 backend · S2 purchase flow · S3 credit mgmt.
-                                            Migration is V47 (sv2-grant took V46).
-                                            Canonical entry: payments/stripe-full-plan.md  [Not started]
+payments/  Stripe track (P0–P12, ≤2h each) ← re-sliced 2026-07-10; the old 3-session split hid 8–14h
+                                            sessions. P0 account setup · P0.5 open questions ·
+                                            P1 V47 · P2 checkout · P3 webhook+ledger ⚠️ · P4 hardening ·
+                                            P5 Radar · P6–P9 frontend · P10–P11 · P12 live cutover.
+                                            Run order: payments/session-prompts.md
+                                            Canonical spec: payments/stripe-full-plan.md  [Not started]
                                             ⚠️ s0/s1/s2 files are DEPRECATED (subscription era) — see
                                             deprecated/payments-s*.md. Do not build from them.
+🛑 RE-SLICE CHECKPOINT (after P5)          ← STOP AND TALK. Calibrate against 6 measured sessions, decide
+                                            the print renderer (swings ~30h), then slice s13/s12/s14 —
+                                            none of which are sliced, and s12 L1 is a 15–70h "session".
+                                            → sv2-reslice-checkpoint.md  [Not started]
 sv2-s10  Per-field AI assist              ← shared "✨ write this for me" field + single-field endpoint.
                                             → sv2-s10-ai-assist.md  [Backend Complete; FE via s10b]
 sv2-s10b  Assist wiring + refactor         ← AiAssistField wired into all long-text fields + AiCreditsContext.

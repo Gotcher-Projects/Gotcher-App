@@ -9,6 +9,9 @@ Frontend/coverage/
 .env.*.local
 .DS_Store
 .claude/
+# Agent skills installed via `npx skills add` (regenerable, local tooling)
+.agents/
+skills-lock.json
 Backend/build/
 Backend/.gradle/
 Backend/bin/

@@ -1,7 +1,12 @@
 # Stripe — Account Setup Hand-off
 
 **Purpose:** set up an **LLC-owned** Stripe account, activate it for live payments, and invite the developer
-as a team member so they can wire up subscriptions. No secrets change hands by email for Stripe.
+as a team member so they can wire up payments. No secrets change hands by email for Stripe.
+
+> **Updated 2026-07-10.** This doc originally said "subscriptions" and a `$4.99/mo` recurring price.
+> **There is no subscription.** CradleHQ sells four **one-time** SKUs (credit packs + a per-book share
+> unlock). The owner-side steps below are unchanged — account, EIN, bank, activate, invite the developer.
+> ✅ **Done:** the account exists and the developer has been invited (2026-07-10).
 **Money flow:** Stripe is where **money comes IN** — customers pay CradleHQ through Stripe, and Stripe pays
 out to the **LLC's bank account**. (This is the account that later also funds the print feature, where we
 collect the customer's payment here and pay the printer separately.)
@@ -49,10 +54,19 @@ inside the account once the invite is accepted — it's listed here only so you 
 Once invited, the developer configures these from inside the account and reads the values directly:
 
 ```
-STRIPE_SECRET_KEY=sk_live_...          # live Secret key, from Developers → API keys
-STRIPE_WEBHOOK_SECRET=whsec_...        # from the production webhook endpoint they add
-STRIPE_PRICE_PLUS_MONTHLY=price_...     # the "Plus" $4.99/mo recurring price they create
+STRIPE_SECRET_KEY=sk_live_...              # live Secret key, from Developers → API keys
+STRIPE_WEBHOOK_SECRET=whsec_...            # from the production webhook endpoint they add
+STRIPE_PRICE_CREDITS_50=price_...          # $5  → 50 credits
+STRIPE_PRICE_CREDITS_125=price_...         # $10 → 125 credits
+STRIPE_PRICE_BUNDLE_SHARE_150=price_...    # $15 → 150 credits + unlock one book
+STRIPE_PRICE_SHARE_ONLY=price_...          # $10 → unlock one book
 ```
+All four are **one-time** prices, not recurring.
+
+> **⚠️ One thing the owner may still need to do.** The **Developer** role grants API keys, webhooks, and
+> logs. Whether it can create **Products/Prices** and edit **Radar rules** is not documented clearly. If
+> the developer finds those greyed out at first login, the owner must raise the role to Administrator (or
+> create the four Products themselves). It's a five-minute change that otherwise blocks all payment work.
 
 ## Notes / gotchas
 
