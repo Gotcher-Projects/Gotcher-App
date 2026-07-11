@@ -1,9 +1,18 @@
-# Payments P5 — Radar US-only rule + decline UX
+# Payments P8 — Radar US-only rule + decline UX
 
 **Status:** Not started
-**Est:** ~1.5 hours · **Depends on:** P2 (a real checkout to test against) · **Blocks:** the re-slice checkpoint runs after this
-**Launch prompt:** `session-prompts.md` → P5
+**Est:** ~1.5 hours · **Depends on:** P2 (a checkout to test against) **+ P6/P7** (see reorder note) · **Blocks:** nothing
+**Launch prompt:** `session-prompts.md` → P8
 **Read first:** `stripe-full-plan.md` §5 + `stripe-primer.md` §6, §9
+
+> **Reordered to run after P7 (Michael, 2026-07-11).** The Radar rule is buildable any time, but a blocked
+> card surfaces as a generic decline **on Stripe's hosted page**, which we can't customize — and our app
+> only regains control on the cancel redirect, where Stripe doesn't pass the reason. So the "US-only"
+> message has no honest in-app home until the **P6 purchase modal** exists (as a *pre-checkout geo hint*)
+> and the **P7 return screen** handles the cancel path. Build the rule + the message together, here, once
+> both exist. Radar = the authoritative gate (card issuing country); the geo hint = the friendly message.
+> This session was **P5** before the 2026-07-11 renumber; the re-slice checkpoint that once sat after it is
+> **dropped** (see `session-prompts.md`).
 
 Block payments from non-US cards, and make the block **legible** to the customer instead of a raw Stripe
 error. This is both a fraud posture and — importantly — the partial mitigation the tax discussion leans on
@@ -57,11 +66,10 @@ P0.5 #3.
 ## Not this session
 
 Live-mode Radar rule (P12) · anything about actual tax registration/remittance (owner's, not ours) · the
-frontend purchase modal (P7 — though the decline message may share components; build the state here).
+frontend purchase modal (P6 — though the decline message may share components; build the state here).
 
 ## Closing note
 
-Record the actual duration — this is the **sixth** measured session (P0, P0.5, P1–P5 minus the checkpoint),
-and **`../sv2-reslice-checkpoint.md` runs immediately after P5.** That checkpoint uses P0–P5's real
-durations to re-slice sv2-s13 / s12 / s14. So writing down this number honestly is the whole reason the
-checkpoint sits here.
+Record the actual duration. Note whether the Radar rule surface and the `:card_country:` syntax matched the
+current docs (both were recalled from memory), and whether the Developer role could edit rules at all. The
+re-slice checkpoint that once sat after this session is **dropped** — see `session-prompts.md`.

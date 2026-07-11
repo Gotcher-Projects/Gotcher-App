@@ -1,9 +1,12 @@
 # SV2 — Re-slice checkpoint (STOP AND TALK)
 
-**Status:** Not started
+**Status:** Deferred by decision (Michael, 2026-07-11). Happy with the current **payments** slicing
+(P0–P12, already ≤2h) — not running this as a payments gate. The parts that still matter are NOT about
+payments: the **print-renderer decision** in `sv2-s12` (headless-Chrome vs OpenPDF, a ~30h swing — see
+Task 2) and the fact that **`sv2-s14` has no plan file**. Handle those **when the print/share tracks
+actually start**, not now. Nothing here blocks continuing payments.
 **Est:** ~1.5 hours · **No code.**
-**Run:** after **Payments P5** (backend complete: migration, checkout, webhook, hardening, Radar) and
-**before** `sv2-s13`, `sv2-s12`, or `sv2-s14` are started.
+**Run:** ~~after Payments P5, before sv2-s13/s12/s14~~ → **deferred to whenever print/share begins.**
 
 > **This is a deliberate stop.** The point of session-based work is chunks small enough to code *and
 > verify* in one sitting. That has repeatedly not happened. This checkpoint exists to fix the remaining
@@ -34,9 +37,9 @@ Payments was re-sliced up front (P0–P12, ≤2h each) on 2026-07-10. **The rema
 | Plan | Current est. | Sliced? | Notes |
 |---|---|---|---|
 | `sv2-s13-share-link.md` | 6–12h | ❌ | One plan file, one session, no split |
-| `sv2-s12-print.md` L0 | 3–5h | ❌ | Blocked on Lulu account existing |
-| **`sv2-s12-print.md` L1** | **15–70h** | ❌ | **The monster. Range depends on an undecided question — see below.** |
-| `sv2-s12-print.md` L2 | 5–9h | ❌ | |
+| `print/print-full-plan.md` L0 | 3–5h | ❌ | Blocked on Lulu account existing |
+| **`print/print-full-plan.md` L1** | **15–70h** | ❌ | **The monster. Range depends on an undecided question — see below.** |
+| `print/print-full-plan.md` L2 | 5–9h | ❌ | |
 | `sv2-s14` hardening | 6–10h | ❌ | **Plan file does not exist yet.** |
 
 A 15–70h "session" is not a session. It is a project.
@@ -56,9 +59,13 @@ six is a velocity.
 
 ## Task 2 — Settle the print renderer question FIRST
 
+> **✅ RESOLVED 2026-07-11: headless Chrome (option B).** Lulu accepts **sRGB** (no CMYK step), so the
+> raster path's worst risk is moot and Chrome's vector output is clearly best; OpenPDF (40–70h) dropped.
+> Print is now sliced into `print/pr0–pr9`. The analysis below is kept for the record. **Task 2 done.**
+
 **This one decision swings ~30 hours.** Slicing L1 before answering it is meaningless.
 
-`sv2-s12-print.md` mandates **OpenPDF, server-side** — reimplementing ten React canvases (**1,806 LOC**),
+`print/print-full-plan.md` mandates **OpenPDF, server-side** — reimplementing ten React canvases (**1,806 LOC**),
 plus `LayoutRenderer`'s freeform fallback, plus a DOM-built cover, as Java PDF drawing calls, pixel-faithful
 at 300 DPI. That's **40–70h**, and the plan admits it is "the main risk of the whole session."
 
@@ -77,7 +84,7 @@ So the real question is **resolution and print-fidelity, not a rendering port.**
 
 - [ ] **Spike headless Chrome print-to-PDF for one page.** A couple of hours to potentially save thirty.
 - [ ] Blockers: **bleed** and **CMYK**. Both are open, both depend on Lulu's spec, which is unconfirmed
-      (`lulu-print-handoff.md` Q8 — trim size is still a guess, and the doc contradicts itself: 6×9" in one
+      (`print/lulu-spec-handoff.md` Q8 — trim size is still a guess, and the doc contradicts itself: 6×9" in one
       place, 8×10" in another).
 
 > **Related, and it undermines the plan's own reasoning:** `sv2-s12` says "phone uploads are 3000+ px —

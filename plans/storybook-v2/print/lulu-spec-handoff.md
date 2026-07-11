@@ -1,10 +1,40 @@
 # Lulu Print-on-Demand — Setup Hand-off
 
-**Status: Hand-off — needs an owner. BLOCKS `sv2-print` (see `planning.md` §6).**
+**Status: Partially resolved (2026-07-11) — renderer + PDF spec answered from Lulu's public docs; the
+account-level items (product/trim SKU, credentials, sandbox) still need an owner.** BLOCKS `sv2-print`.
 **Audience:** whoever owns the Lulu account / vendor relationship (likely Michael, or a delegate).
 **Created:** 2026-06-22
-**Companion:** detailed spec in `plans/storybook-v2/sv2-s12-print.md`; placement in `planning.md` §6;
+**Companion:** detailed spec in `plans/storybook-v2/print/print-full-plan.md`; placement in `../planning.md` §6;
 **account-setup hand-offs in `plans/storybook-v2/handoffs/`**.
+
+---
+
+## ✅ RESOLVED 2026-07-11 — renderer decision + PDF spec (from Lulu's public docs)
+
+**Renderer = headless Chrome, server-side (`page.pdf()`)**, not OpenPDF. It renders the real React canvas
+components (no reimplementation of the eleven canvases — that whole "big lift" evaporates), emitting vector
+text + native-res images. OpenPDF (the old plan) is dropped. See `print-full-plan.md` "Page types" box.
+
+Lulu's documented file spec, which makes this clean:
+
+| Spec | Answer | Consequence |
+|---|---|---|
+| **Color (Q10)** | **sRGB accepted** — printers prefer sRGB and convert to CMYK themselves | **No CMYK step / no Ghostscript.** Chrome outputs sRGB natively. |
+| **Resolution (Q14)** | 300 PPI min (≤600) | Render at 300 |
+| **Bleed (Q9)** | **0.125"/side** (page = trim + 0.25"); NO trim/bleed marks; 0.5" safety margin | CSS `@page` |
+| **Fonts (Q11)** | Must be embedded or outlined | Chrome embeds automatically |
+| **Cover (Q13)** | **Separate PDF** from interior; spine width depends on page count | Generate interior + a separate cover PDF |
+| Other | Flatten transparency; single-page layout (no spreads) | Renderer notes |
+
+Sources: Lulu "PDF Creation Settings" (help.lulu.com), Lulu API Getting-Started guide, api.lulu.com/docs.
+
+**Still needs an owner with a Lulu account (account-level, not knowable from docs):**
+- **Trim size / product → `pod_package_id` (Q8):** pick the product in Lulu's **Pricing Calculator** and
+  **download the "Product Sheet"** (lists every option + its `pod_package_id`). Format is
+  `[TrimSize].[Color].[Quality].[Binding].[Paper].[CoverFinish]`, e.g. `0800X1000.FC.STD.PB…` = 8×10"
+  full-color perfect-bound. Photo baby book → **FC (full color)**; trim (8×10 / 8.5×8.5) is a cost/feel call.
+- **Credentials + sandbox** (client id/secret; developers.lulu.com), **min/max page count (Q12)**, cover
+  dimension/spine calc, white-label (Q15), and API terms (Q16).
 
 ---
 
@@ -59,22 +89,21 @@ reach them (env vars — see "Hand-back format"). Once these land, we unblock `s
 8. **Trim size:** our drafts assumed **8×10"** (one note also says 6×9 was an earlier assumption).
    **Confirm the exact trim size from Lulu's spec catalog** and the product SKU/pod-package-id we'll
    target. Everything in the print renderer depends on this number.
-9. **Bleed:** required bleed margin (commonly 0.125")?
-10. **Color profile:** does Lulu require **CMYK**, or accept **RGB**? (Our PDF tooling outputs RGB by
-    default; CMYK conversion is extra work — need to know up front.)
-11. **Fonts:** must fonts be **embedded** in the PDF? (Affects our script/display fonts.)
-12. **Minimum & maximum page count** for the chosen product. (A user with only a couple of chapters may
-    fall *below* the minimum — we may need filler/blank pages or a "not enough content yet" gate.)
-13. **Cover spec:** separate cover PDF vs interior PDF? Spine-width formula (depends on page count +
-    paper)? Wrap/bleed dims for the cover?
-14. **Resolution:** confirm **300 DPI** is the target for images at the chosen trim size.
+9. [x] **Bleed:** **0.125"/side** (page = trim + 0.25"); no trim/bleed marks; 0.5" safety margin. *(Answered 2026-07-11.)*
+10. [x] **Color profile:** **sRGB accepted** — Lulu prefers sRGB and converts to CMYK. No CMYK work on our side. *(Answered 2026-07-11.)*
+11. [x] **Fonts:** **embedded or outlined.** Headless Chrome embeds fonts automatically. *(Answered 2026-07-11.)*
+12. [ ] **Minimum & maximum page count** for the chosen product. (A user with only a couple of chapters may
+    fall *below* the minimum — we may need filler/blank pages or a "not enough content yet" gate.) *Owner-dependent (per product).*
+13. [x] **Cover spec:** **separate cover PDF** from interior; spine width depends on page count (Lulu provides
+    a cover-dimension calc given `pod_package_id` + page count). *(Answered 2026-07-11; exact dims need the SKU.)*
+14. [x] **Resolution:** **300 PPI min (≤600).** *(Answered 2026-07-11.)*
 
 ### D. Business / legal
 15. **White-labeling:** does the shipped package arrive **unbranded** (not "Lulu")? Is a packing-slip /
     branding customization available? (We don't want the keepsake to feel third-party.)
 16. **Terms of service:** any restrictions on **reselling**, on **subscription-model apps**, or on
     automated order submission via API? Confirm our use case is permitted.
-17. **Economics sanity-check** (informational — see `sv2-s12-print.md` "Rough Economics"): confirm the
+17. **Economics sanity-check** (informational — see `print-full-plan.md` "Rough Economics"): confirm the
     actual print cost for the chosen product so we can set/verify any retail markup.
 
 ---
@@ -97,11 +126,11 @@ reach them (env vars — see "Hand-back format"). Once these land, we unblock `s
 
 ---
 
-## Dependency note (for `planning.md` / status tracking)
+## Dependency note (for `../planning.md` / status tracking)
 
 - **`sv2-print` is BLOCKED on this hand-off.** Engineering cannot finalize the print PDF renderer
   (trim size, bleed, color) or the order flow (redirect vs POST) without these answers.
 - It is **also** gated on **Payments S1** (`plans/storybook-v2/payments/`, currently *Not started*) for real
   paid-tier gating — the `tier` column exists, but there's no upgrade path for users yet.
 - **Owner: TBD** — assign someone with Lulu account access. Until assigned, print stays the last,
-  blocked v2 workstream. Re-evaluate the rest of `planning.md` §4 Q8 once answers return.
+  blocked v2 workstream. Re-evaluate the rest of `../planning.md` §4 Q8 once answers return.

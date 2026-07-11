@@ -2,14 +2,14 @@
 
 **Status:** Needs Verification — implemented 2026-07-10. Compiles, `./gradlew test` green, and verified
 live against the demo account (real `cs_test_` sessions created). Awaiting Michael's sign-off.
-**Est:** ~2–3 hours (most likely to spill — split rather than rush) · **Depends on:** P1 · **Blocks:** P3, P7
+**Est:** ~2–3 hours (most likely to spill — split rather than rush) · **Depends on:** P1 · **Blocks:** P3, P6
 **Launch prompt:** `session-prompts.md` → P2
 
 > **Build notes (2026-07-10):** package `com.gotcherapp.api.billing` — `Sku` enum (wireName +
 > requiresBookId, with a comment to revisit toward a config map if it grows), `CheckoutRequest`/
 > `CheckoutResponse` records, `BillingService`, `BillingController`. Decisions from the design chat:
 > enum SKU model; placeholder `successUrl` (`${FRONTEND_URL}/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
-> P8 builds the page); **derived** idempotency key (`checkout_{user}_{sku}_{book}_{60s-bucket}`) so a
+> P7 builds the page); **derived** idempotency key (`checkout_{user}_{sku}_{book}_{60s-bucket}`) so a
 > double-click collapses to one session. IDOR → 404 (not 403) so we don't confirm a book exists.
 > `Stripe.apiKey` set once in `BillingService.@PostConstruct`. No SecurityConfig change — /billing/checkout
 > is covered by `anyRequest().authenticated()`; the /billing/webhook permitAll is P3.
@@ -95,7 +95,7 @@ Stripe page with the **right amount** and, for a share SKU, the **right book nam
 ## Not this session
 
 The webhook / any fulfilment (P3) · adding `/billing/webhook` to `SecurityConfig` (P3) · the frontend modal
-(P7) · the Radar rule (P5). This session ends at "Stripe shows the right page." Resist paying.
+(P6) · the Radar rule (P8). This session ends at "Stripe shows the right page." Resist paying.
 
 ## Closing note
 

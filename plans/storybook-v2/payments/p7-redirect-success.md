@@ -1,8 +1,8 @@
-# Payments P8 — Redirect return + success screen
+# Payments P7 — Redirect return + success screen
 
 **Status:** Not started
-**Est:** ~2 hours · **Depends on:** P3 (webhook grants), P7 (something to return from) · **Blocks:** P10
-**Launch prompt:** `session-prompts.md` → P8
+**Est:** ~2 hours · **Depends on:** P3 (webhook grants), P6 (something to return from) · **Blocks:** P10
+**Launch prompt:** `session-prompts.md` → P7
 **Read first:** `stripe-full-plan.md` Session 2 + `stripe-primer.md` §3
 
 Come back from Stripe without lying to the user. The success screen **confirms** a purchase — it never
@@ -34,7 +34,7 @@ is **not guaranteed**. So:
 ## After confirmation
 
 **Refresh the user object** so the entire app sees the new balance (the same `/auth/me` →
-`AiCreditsContext` path that already feeds the UI). Route per the **P6** decision.
+`AiCreditsContext` path that already feeds the UI). Route per the **P5** decision.
 
 ## Mobile (v1)
 
@@ -49,7 +49,7 @@ conversion path — see P9.)
 - [ ] It polls `/auth/me` and reflects the balance once the webhook lands.
 - [ ] It degrades to "on its way" if the webhook is slow, never to a false failure.
 - [ ] The app-wide user object refreshes so the balance is current everywhere.
-- [ ] Routed per P6.
+- [ ] Routed per P5.
 
 ## Not this session
 

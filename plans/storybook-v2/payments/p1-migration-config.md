@@ -122,7 +122,7 @@ four real SKUs so the next reader isn't misled.
 ## Not this session
 
 Any Stripe SDK call · the checkout endpoint (P2) · the webhook (P3) · `SecurityConfig` changes for
-`/billing/webhook` (P3) · the Radar rule (P5). If you're touching the network, you've gone too far.
+`/billing/webhook` (P3) · the Radar rule (P8). If you're touching the network, you've gone too far.
 
 ## Closing note
 

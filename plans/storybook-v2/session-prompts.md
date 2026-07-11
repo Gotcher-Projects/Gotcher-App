@@ -382,8 +382,8 @@ Read sv2-s8-pregnancy-chapter.md, GuidedBook.jsx, BumpCard.jsx, the Firsts-chapt
 
 ```
 Session SV2-PRINT — physical book ordering via Lulu print-on-demand.
-Plan: planning.md §6 + plans/storybook-v2/sv2-s12-print.md (detailed spec).
-External blocker: plans/storybook-v2/lulu-print-handoff.md MUST be filled in first
+Plan: planning.md §6 + plans/storybook-v2/print/print-full-plan.md (detailed spec).
+External blocker: plans/storybook-v2/print/lulu-spec-handoff.md MUST be filled in first
   (Lulu account, API creds, confirmed trim size / bleed / color profile / min pages,
   redirect-vs-POST checkout, white-label, ToS). Someone with Lulu access owns that.
 Also gated on: Payments (Stripe merchant-of-record) — currently Not started.
@@ -409,7 +409,7 @@ Sub-sessions:
 3. sv2-print-s2 — Frontend: "Order a Printed Book" UI (ANY user), quantity picker, shipping address,
    Stripe checkout, order confirmation.
 
-Read sv2-s12-print.md, lulu-print-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
+Read print/print-full-plan.md, print/lulu-spec-handoff.md, storybookPdf.js, bookCanvas.jsx before coding.
 ```
 
 ---

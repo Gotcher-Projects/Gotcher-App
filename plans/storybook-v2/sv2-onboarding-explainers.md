@@ -24,7 +24,7 @@ to also publish each as an Artifact for easy viewing. Confirm location at sessio
 
 ## Approach (this is "exploratory work")
 1. **Ground in OUR decisions first** — read `plans/storybook-v2/payments/stripe-full-plan.md`,
-   `plans/storybook-v2/sv2-s12-print.md`, `lulu-print-handoff.md`, `handoffs/` (money-flow + owner runbook),
+   `plans/storybook-v2/print/print-full-plan.md`, `print/lulu-spec-handoff.md`, `handoffs/` (money-flow + owner runbook),
    and `planning.md` §6/§8. The explainers describe **CradleHQ's specific setup**, not generic tutorials.
 2. **Fetch CURRENT vendor docs** (WebFetch/WebSearch) so API details, endpoints, and code samples are
    accurate and not from memory — Stripe and Lulu both change. Capture real reference URLs to cite.
@@ -54,7 +54,7 @@ to also publish each as an Artifact for easy viewing. Confirm location at sessio
 
 ## `lulu-explainer.html` — outline
 - **What Lulu print-on-demand is** + the **Print API** (they print + ship; no inventory).
-- **Our specific model** (from sv2-s12-print.md + lulu-print-handoff.md §Q4): checkout is **external to Lulu** —
+- **Our specific model** (from print/print-full-plan.md + print/lulu-spec-handoff.md §Q4): checkout is **external to Lulu** —
   **we collect payment via our own Stripe**, then POST a **paid** print job; Lulu auto-charges a **company card**
   for print + ship. **OpenPDF** assembles a **300 DPI** print PDF **server-side** (reproduces every v2 page type
   — not the client html2canvas path). **Sandbox → prod.**
@@ -62,7 +62,7 @@ to also publish each as an Artifact for easy viewing. Confirm location at sessio
 - **What MICHAEL does (owner side)**: create the Lulu **developer** account (Print API, not the consumer wizard),
   business/tax + company card, get **sandbox + prod** client id/secret, and **confirm the print spec** — trim
   size, bleed, RGB vs CMYK, embedded fonts, **min/max page count**, cover/spine, white-label shipping, ToS
-  (subscription-app API allowed). Cross-link `lulu-print-handoff.md` (the exact question list) + `handoffs/`.
+  (subscription-app API allowed). Cross-link `print/lulu-spec-handoff.md` (the exact question list) + `handoffs/`.
 - **What the CODE does (dev side)**: OAuth **client-credentials** token; assemble interior + cover PDF (OpenPDF,
   300 DPI, embedded fonts); **create a print job**; **pricing/shipping** estimate before checkout; optional
   **order-status webhook**. Note the min-page-count gate (short books may fall below Lulu's minimum).
@@ -86,8 +86,8 @@ to also publish each as an Artifact for easy viewing. Confirm location at sessio
 Session: build the Stripe + Lulu onboarding explainers.
 Plan: plans/storybook-v2/sv2-onboarding-explainers.md — follow it.
 
-Do exploratory research: read our own plans first (payments/stripe-full-plan.md, sv2-s12-print.md,
-lulu-print-handoff.md, handoffs/, planning.md §6/§8), THEN WebFetch/WebSearch the CURRENT Stripe and Lulu
+Do exploratory research: read our own plans first (payments/stripe-full-plan.md, print/print-full-plan.md,
+print/lulu-spec-handoff.md, handoffs/, planning.md §6/§8), THEN WebFetch/WebSearch the CURRENT Stripe and Lulu
 docs for accurate endpoints, code samples, and reference URLs (don't rely on memory for API specifics).
 
 Produce two standalone HTML docs (repo root, like deployment-guide.html — confirm location with me first):

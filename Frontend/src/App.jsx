@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import CradleHq from "./components/CradleHq";
 import LoginPage from "./components/LoginPage";
+import PublicBookPage from "./components/PublicBookPage";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AiCreditsProvider } from "./contexts/AiCreditsContext";
@@ -10,6 +11,11 @@ export default function App() {
   const [checked, setChecked] = useState(false);
   const [verifiedBanner, setVerifiedBanner] = useState(null); // 'success' | 'error' | null
   const [resetToken, setResetToken] = useState(null);
+
+  // Public shared-book route (sv2-s13), served OUTSIDE the auth gate. Lightweight routing per Payments P5:
+  // a pathname branch, no router. On native the pathname is "/", so this is a no-op there.
+  const bookTokenMatch = window.location.pathname.match(/^\/book\/([^/]+)/);
+  const publicBookToken = bookTokenMatch ? decodeURIComponent(bookTokenMatch[1]) : null;
 
   useEffect(() => {
     async function boot() {
@@ -61,6 +67,15 @@ export default function App() {
   async function handleLogout() {
     await logoutUser();
     setUser(null);
+  }
+
+  // Public book link opens for anyone — render it before (and independent of) the session check.
+  if (publicBookToken) {
+    return (
+      <ThemeProvider>
+        <PublicBookPage token={publicBookToken} />
+      </ThemeProvider>
+    );
   }
 
   if (!checked) return null;

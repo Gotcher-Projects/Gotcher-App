@@ -79,7 +79,7 @@ say clearly is whether Developer can create **Products/Prices** and **Radar rule
 
 - [ ] **Developers → API keys** — can you see a `sk_test_…` Secret key? (Expected: yes)
 - [ ] **Product catalog** — is there a "＋ Add product" button, or is it greyed out?
-- [ ] **Radar → Rules** — can you see the rules editor? (We need this in P5, not today.)
+- [ ] **Radar → Rules** — can you see the rules editor? (We need this in P8, not today.)
 
 If Products or Radar are blocked, **stop and ask the owner** to either raise your role to Administrator or
 create the four Products themselves. This is a five-minute email that otherwise blocks the whole track.
@@ -93,7 +93,7 @@ Not tasks. Just look, and write down what you see. Both feed **P0.5**, the decis
       or Settings → Business). Activation gates *live* payments only — P1 through P11 run fine in the
       sandbox either way. But if it hasn't been *started*, that's a multi-week clock nobody has started,
       and it's the single thing most likely to make us finish the build and then sit waiting.
-- [ ] **Can you open Radar → Rules?** (Also part of the role check above.) We need it in P5, not today.
+- [ ] **Can you open Radar → Rules?** (Also part of the role check above.) We need it in P8, not today.
 
 Don't try to fix either. Just report them.
 
@@ -199,13 +199,13 @@ Any future expiry, any CVC, any ZIP.
 
 Every session from here is scoped to a ≤2h cap. That cap is currently a *guess* — nobody has measured a
 session against it. P0 is the first data point. If P0 ran 3.5 hours, every downstream estimate is wrong by
-the same factor and we should find that out now rather than at P7.
+the same factor and we should find that out now rather than at P6.
 
 Also note: what took longer than expected, and what was trivial? Feeds **P0.5** and the re-slice checkpoint.
 
 ## Not this session
 
-Activation, EIN, bank account (owner's job, multi-week, blocks *live* only) · the Radar US-only rule (P5) ·
+Activation, EIN, bank account (owner's job, multi-week, blocks *live* only) · the Radar US-only rule (P8) ·
 any Java (P1) · live-mode keys (P12, and they are **different price ids** — test and live are separate
 universes) · **refund posture, tax, and who owns the unowned items → P0.5**, immediately after this.
 

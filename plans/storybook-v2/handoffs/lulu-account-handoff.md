@@ -7,7 +7,7 @@ checkout**, and Lulu charges a **company card on file** for printing + shipping.
 card, not a payout bank account.** (Lulu also has a separate *Bookstore/retail* product where Lulu sells the
 book and pays you royalties to a bank account — we are **not** using that, so don't link a bank account.)
 **Companion:** the print **spec** questions (trim size, bleed, color profile, min pages) live in
-`../lulu-print-handoff.md`. This doc covers the **account + credentials**.
+`../print/lulu-spec-handoff.md`. This doc covers the **account + credentials**.
 
 ---
 
@@ -47,7 +47,7 @@ owner when convenient.)*
    uses **OAuth client-credentials** — you'll get a **client key + client secret** per environment.
 5. From Lulu's **product catalog**, capture the **POD package ID (SKU)** and **trim size** for the book
    we'll print. (The rest of the print spec — bleed, color profile, min/max pages, cover — is answered in
-   `../lulu-print-handoff.md`.)
+   `../print/lulu-spec-handoff.md`.)
 6. **Skim the API Terms of Service:** confirm API order submission from a **subscription app** is permitted,
    and check **white-label / unbranded shipping** (the keepsake should not arrive branded "Lulu").
 

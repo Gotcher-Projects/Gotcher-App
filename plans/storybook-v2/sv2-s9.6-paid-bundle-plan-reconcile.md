@@ -19,7 +19,7 @@ untouched** (the stated goal).
 | Old location | New location |
 |---|---|
 | `plans/payments/` (whole folder: `stripe-full-plan.md` canonical + `s0/s1/s2` + `session-prompts.md`) | `plans/storybook-v2/payments/` |
-| `plans/storybook/sDeferred-print.md` | `plans/storybook-v2/sv2-s12-print.md` |
+| `plans/storybook/sDeferred-print.md` | `plans/storybook-v2/print/print-full-plan.md` |
 | `plans/storybook/sDeferred-share-link.md` | `plans/storybook-v2/sv2-s13-share-link.md` |
 | `plans/storybook/sDeferred-remove-claude-logging.md` | `plans/storybook-v2/sv2-hygiene-remove-claude-logging.md` |
 
@@ -27,7 +27,7 @@ untouched** (the stated goal).
 book share-link — and was intentionally left where it is. Don't conflate the two.
 
 **Operational references already fixed at move time** (handoffs README + developer-credentials +
-stripe-account, `lulu-print-handoff.md`, `session-prompts.md`, `sv2-s10-ai-assist.md`, the moved payments
+stripe-account, `print/lulu-spec-handoff.md`, `session-prompts.md`, `sv2-s10-ai-assist.md`, the moved payments
 files' self-refs). What remains is below.
 
 ---
@@ -65,7 +65,7 @@ and root `branch-review.html`. Decision to record here: update or leave.
 - The plan's frontend refs (`PaidGate.jsx`, `CradleHq.jsx`, `App.jsx` routing) predate current
   components — spot-check they still exist / are the right integration points before S2.
 
-### 4. `sv2-s12-print.md` — scope + dependency drift
+### 4. `print/print-full-plan.md` — scope + dependency drift
 - **Depends-on** line still reads "scrapbook builder rewrite (S7–S10), shareable link, Payments S1" — the
   first is done/obsolete; restate as: **v2 page types stable + Payments (Stripe merchant-of-record) +
   Lulu handoff answers**.
@@ -145,7 +145,7 @@ waiting on Lulu.
 | # | Decision | Recorded in |
 |---|---|---|
 | 1 | **No subscription.** AI credits are sold as **one-time packs**; gating is on balance, never `tier`. Matches what `sv2-s10` already shipped. | `payments/stripe-full-plan.md` (MODEL CHANGE banner) |
-| 2 | **Print is pay-per-order**, gated on nothing. **Pro tier dropped**; `plus` dropped. | `sv2-s12-print.md` |
+| 2 | **Print is pay-per-order**, gated on nothing. **Pro tier dropped**; `plus` dropped. | `print/print-full-plan.md` |
 | 3 | **Share is a one-time $10, PER BOOK** (not per account). | `sv2-s13-share-link.md` |
 | 4 | **Four SKUs:** $5/50cr · $10/125cr · **$15/150cr + share (recommended)** · $10/share-only. | `payments/stripe-full-plan.md` (SKU table) |
 

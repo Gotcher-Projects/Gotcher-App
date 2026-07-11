@@ -1,7 +1,7 @@
 # Payments P9 — Native gate + polish
 
 **Status:** Not started
-**Est:** ~1.5 hours · **Depends on:** P7 · **Blocks:** nothing
+**Est:** ~1.5 hours · **Depends on:** P6 · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → P9
 **Read first:** `stripe-full-plan.md` Session 2 → native gate + `stripe-primer.md` §9
 
@@ -38,7 +38,7 @@ See `stripe-primer.md` §9 for the staged-submission plan and the full rationale
 
 ## Also
 
-Handle the **P5 US-only decline message** here if it wasn't finished in P5.
+Handle the **P8 US-only decline message** here if it wasn't finished in P8.
 
 ## Done when
 
@@ -49,7 +49,7 @@ Handle the **P5 US-only decline message** here if it wasn't finished in P5.
 
 ## Not this session
 
-The web purchase modal itself (P7) · anything about actual App Store submission/certs (separate track;
+The web purchase modal itself (P6) · anything about actual App Store submission/certs (separate track;
 Michael isn't the Apple account owner — see `project_apple_developer`). This is the client-side gate only.
 
 ## Closing note

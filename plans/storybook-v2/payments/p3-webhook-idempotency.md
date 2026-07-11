@@ -2,7 +2,7 @@
 
 **Status:** Needs Verification — implemented 2026-07-11. Signature verify, real-metadata grant, replay
 no-op, book unlock, and unknown-type ignore all verified live. Awaiting Michael's sign-off.
-**Est:** ~2–4 hours · **Depends on:** P2 · **Blocks:** P4, P8
+**Est:** ~2–4 hours · **Depends on:** P2 · **Blocks:** P4, P7
 **Launch prompt:** `session-prompts.md` → P3
 **Read first:** `stripe-primer.md` §3–§4 **and** `stripe-full-plan.md` Session 1 → webhook. Both.
 
@@ -78,7 +78,7 @@ customer gets nothing. Log, reconcile out of band, return 200. Return **4xx only
 failure.
 
 **⚠️ 4. Fulfil here, NEVER on the redirect.** The `successUrl` proves nothing — anyone can visit it. If
-credits are ever granted on the success page, anyone can mint them (this is P8's cardinal rule too).
+credits are ever granted on the success page, anyone can mint them (this is P7's cardinal rule too).
 
 ## The one event that matters
 
@@ -107,7 +107,7 @@ subscriptions, so Stripe won't send them, but ignore them gracefully regardless.
 ## Not this session
 
 Production endpoint registration / the prod `whsec_` (P4) · Caddy header passthrough (P4) · decline/3-DS
-card exercises (P4) · the success screen (P8). Today is the local, CLI-forwarded happy path **plus the
+card exercises (P4) · the success screen (P7). Today is the local, CLI-forwarded happy path **plus the
 replay test** — nothing production-facing.
 
 ## Closing note

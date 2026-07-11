@@ -14,7 +14,7 @@ AI is a **separate, opt-in, paid-gated per-field "write this for me" assist**. T
 from Payments** — only the AI assist, print, and share sit behind the paid wall.  
 **Reference:** `research.md` (Precious Five competitive analysis)  
 **LULU / print-on-demand:** now an explicit v2 workstream — see §6 and the hand-off doc
-`lulu-print-handoff.md`. **External dependency:** the Lulu account + API + spec confirmation is
+`print/lulu-spec-handoff.md`. **External dependency:** the Lulu account + API + spec confirmation is
 setup work someone other than the implementing session must do first.
 
 ---
@@ -286,15 +286,17 @@ sv2-grant  Free signup credits (capped)    ← first N signups get 5 credits so 
 payments/  Stripe track (P0–P12, ≤2h each) ← re-sliced 2026-07-10; the old 3-session split hid 8–14h
                                             sessions. P0 account setup · P0.5 open questions ·
                                             P1 V47 · P2 checkout · P3 webhook+ledger ⚠️ · P4 hardening ·
-                                            P5 Radar · P6–P9 frontend · P10–P11 · P12 live cutover.
-                                            Run order: payments/session-prompts.md
-                                            Canonical spec: payments/stripe-full-plan.md  [Not started]
+                                            P5–P7 frontend (routing · modal · success) · P8 Radar ·
+                                            P9 native gate · P10–P11 · P12 live cutover.
+                                            (Renumbered 2026-07-11: Radar moved P5→P8, behind the
+                                            frontend; P1–P4 done.)  Run order: payments/session-prompts.md
+                                            Canonical spec: payments/stripe-full-plan.md  [In progress]
                                             ⚠️ s0/s1/s2 files are DEPRECATED (subscription era) — see
                                             deprecated/payments-s*.md. Do not build from them.
-🛑 RE-SLICE CHECKPOINT (after P5)          ← STOP AND TALK. Calibrate against 6 measured sessions, decide
-                                            the print renderer (swings ~30h), then slice s13/s12/s14 —
-                                            none of which are sliced, and s12 L1 is a 15–70h "session".
-                                            → sv2-reslice-checkpoint.md  [Not started]
+🛑 RE-SLICE CHECKPOINT — DROPPED           ← was a payments gate; print is now sliced (print/pr0–pr9),
+                                            so its trigger is moot. Loose ends (s12 renderer decision,
+                                            s13/s14 slicing) handled when print/share start, not here.
+                                            → sv2-reslice-checkpoint.md  [Deferred]
 sv2-s10  Per-field AI assist              ← shared "✨ write this for me" field + single-field endpoint.
                                             → sv2-s10-ai-assist.md  [Backend Complete; FE via s10b]
 sv2-s10b  Assist wiring + refactor         ← AiAssistField wired into all long-text fields + AiCreditsContext.
@@ -302,7 +304,8 @@ sv2-s10b  Assist wiring + refactor         ← AiAssistField wired into all long
 sv2-s11  Decommission old batched AI      ← DELETE generatePages() + wizard generate step.
                                             → sv2-s11-ai-retrofit.md  [Complete — confirmed 2026-07-08]
 sv2-s12  Print-on-demand (Lulu)           ← print PDF + Lulu order flow; BLOCKED on external Lulu setup.
-                                            → lulu-print-handoff.md + sv2-s12-print.md  [Not started]
+                                            → print/ folder: sliced pr0–pr9 (session-prompts.md). Renderer
+                                              DECIDED = headless Chrome (2026-07-11). [Not started]
 sv2-s13  Public share link                 ← fresh build (old sharing backend was removed). In scope per
                                             user decision 2026-07-02. → sv2-s13-share-link.md  [Not started]
 sv2-hygiene  Remove [CLAUDE-DEBUG] logs    ← ✅ OBSOLETE: s11 deleted every call site (verified 2026-07-09).
@@ -343,7 +346,7 @@ Mockups for all three live in `mockups/` (`index.html`). All decisions are locke
 "Decisions locked" block; these three are **planned, not yet implemented**.
 
 **Deferred storybook sessions** were moved into this folder on 2026-07-02 and are triaged in §7 — short
-version: print is promoted into v2 as **`sv2-s12-print.md`** (§6); share-link is **in scope** as
+version: print is promoted into v2 as **`print/print-full-plan.md`** (§6); share-link is **in scope** as
 **`sv2-s13-share-link.md`** (user decision 2026-07-02, no longer optional);
 **`sv2-hygiene-remove-claude-logging.md`** is **already satisfied** — `sv2-s11` deleted the batch
 `ClaudeClient` path and with it every `[CLAUDE-DEBUG]` call site (verified 2026-07-09).
@@ -480,9 +483,9 @@ Requires `due_date` on `baby_profiles` (or use birthdate as a proxy — letter c
 ### Q8 — LULU integration points
 
 **RECONCILED (2026-06-22):** "LULU" = **Lulu.com print-on-demand**. There is no separate "LULU work"
-landing independently — it **is** the deferred print session (`sv2-s12-print.md`),
+landing independently — it **is** the deferred print session (`print/print-full-plan.md`),
 now promoted into v2 as the `sv2-print` workstream. See **§6** for the folded-in plan and
-`lulu-print-handoff.md` for the external setup that must happen first. The original framing of
+`print/lulu-spec-handoff.md` for the external setup that must happen first. The original framing of
 "v2 builds on top of LULU once it lands" was backwards: print builds **on top of** the v2 page types,
 not the other way around.
 
@@ -533,9 +536,9 @@ Pregnancy is a bigger UX commitment than any of the above because it requires:
 
 ## 6. Print-on-Demand (Lulu) — folded into v2 as `sv2-print`
 
-> **This is the "LULU work."** It already had a deferred plan: `sv2-s12-print.md`
+> **This is the "LULU work."** It already had a deferred plan: `print/print-full-plan.md`
 > (decisions from Storybook S0 + S2 planning). That file stays as the detailed spec; this section
-> places it inside v2 and records what changed. **Companion doc: `lulu-print-handoff.md`** — the
+> places it inside v2 and records what changed. **Companion doc: `print/lulu-spec-handoff.md`** — the
 > external setup write-up to pass to whoever owns the Lulu account.
 
 ### What it is
@@ -543,30 +546,32 @@ Paid users order a physical printed copy of their book. Lulu (lulu.com) handles 
 the **customer pays through our own Stripe checkout** and we submit a **paid** print job to Lulu (Lulu
 auto-charges a company card for print + ship). We assemble the print-quality PDF and submit the order.
 
-### Decisions already locked (from the old sDeferred-print.md — still valid)
+### Decisions already locked
 - **Vendor:** Lulu print-on-demand (no inventory).
-- **Gating:** `plus` / `pro` users only; multi-copy ordering supported (grandparents).
-- **Checkout:** ~~redirect to Lulu hosted checkout — no Stripe charge on our side~~ **→ CORRECTED
-  (2026-07-01): Lulu's Print API checkout is *external* — we collect the customer's payment via our own
-  Stripe checkout, then POST a *paid* print job (Lulu auto-charges a company card). Print therefore
-  DEPENDS ON Payments/Stripe.** (See `plans/storybook-v2/handoffs/` + `lulu-print-handoff.md` Q4.)
+- **Gating:** ~~`plus` / `pro` users only~~ **→ anyone; pay-per-order, no tier gate** (2026-07-09;
+  `users.tier` is vestigial). Multi-copy ordering supported (grandparents).
+- **Checkout:** ~~redirect to Lulu hosted checkout~~ **→ CORRECTED (2026-07-01): Lulu's Print API checkout
+  is *external* — we collect the customer's payment via our own Stripe checkout, then POST a *paid* print
+  job (Lulu auto-charges a company card). Print DEPENDS ON Payments/Stripe.** (See `handoffs/` +
+  `print/lulu-spec-handoff.md`.) It needs its **own variable-amount** checkout with a shipping address.
 - **Print is separate from AI credits** — ordering doesn't consume credits.
-- **PDF library:** **OpenPDF** (server-side, Apache-licensed) — replaces client-side jsPDF for print.
+- **Renderer:** ~~OpenPDF~~ **→ headless Chrome, server-side (2026-07-11).** Renders the real React
+  components (no canvas reimplementation); vector text, native-res images, sRGB, 0.125" bleed, 300 PPI.
+  PDF spec answered from Lulu docs — see `print/lulu-spec-handoff.md` → "RESOLVED 2026-07-11".
 - **Images:** fetch raw Cloudinary upload URLs server-side (phone uploads are 3000px+, enough for
   300 DPI); **do not** use Cloudinary transformations (free-tier credit limits).
 
 ### What changed by folding into v2
-- **Page set is bigger.** The print renderer must reproduce **all v2 page types** (Letter, BirthDay,
-  People, MomentHero, Gallery, ChapterDivider, Bump) at 300 DPI server-side — not just the legacy
-  scrapbook layouts the original print plan assumed. This is the main scope increase.
-- **Two book modes to print.** Guided Book and Scrapbook both need to flow into the same print
-  assembler. Decide whether a print = one mode or the user picks (mirrors the sv2-s8 PDF question).
+- **No canvas reimplementation.** Under headless Chrome the print renderer renders the **real** page
+  components — the old "reproduce all v2 page types in a Java PDF lib" scope increase evaporated. Work is
+  now a print-view route + the Chrome infra (see `print/pr1`–`pr3`).
+- **Sliced (2026-07-11):** the 15–70h "L1" is replaced by `print/pr0–pr9`, ≤2h each. See `print/session-prompts.md`.
 - **Sequencing:** print is the **last** v2 workstream — it should consume finished, stable page types,
   not chase them while they change.
 
 ### Dependencies & blockers
 - ⛔ **External Lulu setup (someone else):** account, API credentials, confirmed trim size / bleed /
-  color-profile / min-page-count from Lulu's spec catalog, white-label check. → `lulu-print-handoff.md`.
+  color-profile / min-page-count from Lulu's spec catalog, white-label check. → `print/lulu-spec-handoff.md`.
 - ⚠️ **Payments S1** (`payments/stripe-full-plan.md`) is **Not started** — print needs it because *we* are
   merchant of record (we collect via Stripe, then pay Lulu on a company card). **Not** for tier gating:
   print is pay-per-order and gates on nothing. Note print needs its **own** variable-amount checkout with
@@ -588,7 +593,7 @@ Verdicts refreshed during `sv2-s9.6` (2026-07-09):
 
 | Session (new name) | Verdict for v2 | Why |
 |---|---|---|
-| **`sv2-s12-print.md`** (Lulu print) | ✅ **In scope** (§6) | This *is* the LULU work. Highest-value of the three; blocked only on external setup + Payments. |
+| **`print/print-full-plan.md`** (Lulu print) | ✅ **In scope** (§6) | This *is* the LULU work. Highest-value of the three; blocked only on external setup + Payments. |
 | **`sv2-s13-share-link.md`** (public `/book/{token}` share) | ✅ **In scope** — user decision 2026-07-02 (was "optional") | Grandparents read without an app. **Fresh build, not a resume:** the old sharing backend was removed (V25 `book_share_tokens` migration kept, code gone) and its plan still describes serving legacy chapter `body` — the book is now `layout_data` v2 pages, so the public renderer must go through `LayoutRenderer` + every `*Canvas`. **Also: the app has no router at all** (no `react-router` dependency; `App.jsx` is an auth gate, not a route table) — `/book/:token` needs a routing decision, not a "check first." Paid-gated → Payments caveat as print. |
 | **`sv2-hygiene-remove-claude-logging.md`** (strip `[CLAUDE-DEBUG]` logs) | ✅ **Already done — by deletion** | `sv2-s11` deleted `generatePages()` and the batch `ClaudeClient` path, taking every `[CLAUDE-DEBUG]` call site with it. Verified 2026-07-09: `grep -rn "CLAUDE-DEBUG" Backend/src` returns nothing. No session needed. |
 

@@ -1,59 +1,76 @@
-# Payments P4 — Webhook hardening + deploy surface
+# Payments P4 — Webhook hardening (LOCAL ONLY)
 
-**Status:** Not started
-**Est:** ~1.5 hours · **Depends on:** P3 · **Blocks:** nothing directly (but P8's success screen assumes a real webhook lands)
+**Status:** Needs Verification — Bucket A (11 automated tests, green) + Bucket B (all real-card flows run
+& observed live, 2026-07-11) both done. Awaiting Michael's sign-off to mark Complete.
+**Est:** ~1.5 hours · **Depends on:** P3 · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → P4
 **Read first:** `stripe-primer.md` §4, §8
 
-P3 proved the webhook works against the CLI on your laptop. P4 proves it survives **production**: real card
-flows in the sandbox, the decline and 3-D Secure paths, Caddy passing the signature header through intact,
-and the **production** webhook endpoint registered (which gets a *different* `whsec_` than the CLI's).
+P3 proved the webhook against hand-signed events. P4 hardens it two ways that stay **entirely local**:
+automated regression tests, and **real cards paid through Stripe's hosted page** in the sandbox.
+
+> **⚠️ No production in this session — deferred to P12 (decided 2026-07-11, Michael).** All prod-touching
+> work (registering the prod webhook endpoint, VPS env, deploy, Caddy confirm) moves to **P12**, because
+> `cradlehq.app` is **live with real users**: shipping a half-built payments feature risks a real person
+> stumbling onto a broken/confusing checkout. The whole payments feature deploys **once, when it's done.**
 
 ---
 
 ## What you're actually doing, in one paragraph
 
-Two things break a webhook in production that never show up on localhost: a reverse proxy that mangles the
-signature header, and using the CLI's `whsec_` where the production endpoint's `whsec_` belongs. This
-session exercises the real card paths end-to-end in the sandbox, then wires the production surface so that
-when P12 flips to live keys, the plumbing is already proven.
+Two kinds of hardening, both on your laptop. First, turn the manual P3 checks into **automated tests** so a
+future change can't silently break the grant/idempotency guarantees. Second, drive a **real card through the
+hosted Stripe checkout page** (which the hand-signed P3 tests skipped) and confirm the money actually flows
+to a grant via the webhook — plus the decline and 3-D Secure paths, which behave differently.
 
 ---
 
-## Steps
+## Bucket A — Automated tests (regressions for P3)
 
-1. **Real end-to-end in the sandbox.** `4242 4242 4242 4242` → success → confirm credits land **via the
-   webhook**, not the redirect. Watch the event in `stripe listen` and the dashboard event log.
-2. **Decline path.** `4000 0000 0000 9995` → no grant, no crash, sane logging.
-3. **3-D Secure path.** `4000 0025 0000 3155` → forces a challenge and **changes redirect timing**.
-   Exercise it once so P8's polling assumptions are grounded in reality.
-4. **⚠️ Caddy must proxy `/billing/webhook` to `:3001` with the `Stripe-Signature` header INTACT.** A proxy
-   that rewrites or drops headers produces the **same silent verification failure** as body-parsing in P3.
-   Verify the header arrives unmodified.
-5. **⚠️ Register the production endpoint** in the Stripe Dashboard (Developers → Webhooks). It gets a
-   **completely different `whsec_`** than the CLI printed. They are not interchangeable; the wrong one
-   fails signature verification with no error that names the cause. Put the prod `whsec_` in the VPS
-   secrets, not the CLI one.
-6. **Ledger tests.** Add/confirm tests around: replay (same event twice), unknown event type
-   (ignore-and-200), malformed/invalid signature (4xx).
+- Replay: the same `evt_` id grants once; a second delivery is a no-op.
+- Unknown event type → 200, no grant.
+- Malformed / invalid signature → 400.
+- (Optional) credit-pack vs share vs bundle grant shapes.
 
-**Deploy to prod with TEST keys** and confirm a real webhook lands from Stripe → the ledger records it →
-credits move. This is a test-mode deploy; live keys are P12.
+These lock in the exact behaviors verified by hand in P3 so they can't regress.
+
+## Bucket B — Real-card flows via the hosted page (local `stripe listen`)
+
+Run `Backend/stripe-listen.sh` in its own terminal, then pay real test cards through the Checkout URLs our
+`/billing/checkout` returns:
+
+1. **`4242 4242 4242 4242`** → success → credits land **via the webhook**, not the redirect. Watch the
+   event in `stripe listen` and confirm the balance moved.
+2. **`4000 0000 0000 9995`** → decline → no grant, no crash, sane logging.
+3. **`4000 0025 0000 3155`** → 3-D Secure challenge → **changes redirect timing**; exercise once so P7's
+   polling assumptions are grounded.
+
+Someone has to complete the hosted page — decide at run time: **click through manually** (~5 min) or
+**drive it with a headless browser** (repeatable, adds a dependency). Any future expiry / CVC / ZIP.
 
 ## Done when
 
-- [ ] `4242` success grants via webhook in the sandbox, end-to-end, through the deployed prod surface.
-- [ ] Decline and 3-D Secure paths both behave (no grant / correct grant, no crash).
-- [ ] Caddy passes `Stripe-Signature` through unmodified; a real Stripe-sent event verifies.
-- [ ] The **production** webhook endpoint is registered and its `whsec_` (not the CLI's) is in prod secrets.
-- [ ] Ledger tests (replay, unknown type, bad signature) are green.
+- [x] Automated tests cover replay, unknown type, and bad signature (all green). — `GrantServiceTest`
+      (replay + 3 grant shapes), `BillingWebhookServiceTest` (unknown type no-op, bad-sig aborts,
+      metadata/credits parsing), `BillingWebhookControllerTest` (200/400/500 mapping). 11 tests, 2026-07-11.
+- [x] `4242` paid through the hosted page grants via the **webhook**, end to end, locally. — demo user
+      802→852 (+50) on `checkout.session.completed`; the surrounding `charge.*`/`payment_intent.*` events
+      all returned 200 and granted nothing. Ledger row recorded; a `stripe events resend` of the same event
+      returned 200 with **no** second grant (balance held at 852). 2026-07-11.
+- [x] Decline and 3-D Secure paths both behave (no grant / correct grant, no crash). — `4000…9995` declined
+      on the hosted page (insufficient funds); `charge.failed`/`payment_intent.payment_failed` → 200, no
+      grant, balance held, no errors in the API log. `4000…0025…3155` (3DS) presented the challenge, and on
+      completion granted +50 (852→902); the `checkout.session.completed` webhook still landed ~1s after
+      completion — the 3DS challenge is user-facing only, it does **not** delay the webhook (note for P7). 2026-07-11.
+- [x] **Nothing was deployed to prod.** — all work stayed on `payments-v1` against the local Docker DB.
 
-## Not this session
+## Not this session — all moved to P12
 
-Live-mode keys / live price ids (P12 — a separate universe) · the frontend success screen (P8) · the Radar
-rule (P5). This is still **test mode**, just deployed and proven on real infrastructure.
+Registering the production webhook endpoint · the prod `whsec_` · Caddy `Stripe-Signature` passthrough
+confirmation · putting `STRIPE_*` env vars on the VPS · any deploy. **All of it is P12**, the single point
+where the finished, gated payments feature first reaches production.
 
 ## Closing note
 
-Record the actual duration. Note especially whether the Caddy/prod-webhook wiring was trivial or fiddly —
-that's the part with no localhost analogue, and it feeds the P0.5/re-slice calibration.
+Record the actual duration. Note whether the real-card flows surprised you vs. the hand-signed P3 tests —
+especially the 3-D Secure redirect timing, which P7 depends on.

@@ -34,4 +34,4 @@ git.
 ## Related engineering plans (the code side)
 
 - Stripe integration: `../payments/stripe-full-plan.md`
-- Lulu print spec (trim/bleed/color/min-pages): `../lulu-print-handoff.md`
+- Lulu print spec (trim/bleed/color/min-pages): `../print/lulu-spec-handoff.md`
