@@ -9,8 +9,9 @@ import java.util.function.Function;
 
 // Per-field "✨ write this for me" assist (sv2-s10) — the ONLY AI surface in v2. It words a single
 // text field the user already has; it never creates pages or book structure. Gated purely on the
-// credit balance (1 credit per call) — NOT on subscription tier. Credits are the unit we sell
-// (e.g. a one-time "20 credits for $2" pack); anyone with ≥1 credit can use it, 0 credits → buy more.
+// credit balance (1 credit per call) — NOT on subscription tier. Credits are the unit we sell, in
+// one-time packs (credits_50 $5, credits_125 $10, bundle_share_150 $15 + a share unlock); anyone
+// with ≥1 credit can use it, 0 credits → buy more.
 @Service
 public class AiAssistService {
 

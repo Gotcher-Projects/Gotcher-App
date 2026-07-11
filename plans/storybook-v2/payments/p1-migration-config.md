@@ -1,8 +1,15 @@
 # Payments P1 — V47 migration + config plumbing
 
-**Status:** Not started
+**Status:** Needs Verification — implemented 2026-07-10. Flyway applied V47 (log: "now at version v47"),
+app booted, `./gradlew test` green, schema objects confirmed via psql. Awaiting Michael's sign-off.
 **Est:** ~1.5 hours · **Depends on:** P0 (SKUs + keys exist in a sandbox) · **Blocks:** P2
 **Launch prompt:** `session-prompts.md` → P1
+
+> **Build note (2026-07-10):** pinned `com.stripe:stripe-java:33.1.0` (exact stable) rather than the plan's
+> `33.+` — Maven Central lists 33.2.0 only as alpha/beta and even tags a beta as `<release>`, so a dynamic
+> range could pull a pre-release. Mirrored the six `stripe.*` env vars into `application.properties`,
+> `.env.example` (already from P0), and `docker-compose.prod.yml`. Migration also carries an
+> `idx_stripe_events_user` index (not in the plan's DDL — cheap, and the webhook/admin will query by user).
 
 **Schema and config only — no Stripe API calls yet.** By the end the app boots, Flyway applies a new
 migration, tests are green, and nothing about the running behaviour has changed. This is the boring,

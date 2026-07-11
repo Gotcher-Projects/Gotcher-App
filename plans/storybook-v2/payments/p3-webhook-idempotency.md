@@ -1,9 +1,32 @@
 # Payments P3 — Webhook + idempotency ledger ⚠️ THE ONE THAT MATTERS
 
-**Status:** Not started
+**Status:** Needs Verification — implemented 2026-07-11. Signature verify, real-metadata grant, replay
+no-op, book unlock, and unknown-type ignore all verified live. Awaiting Michael's sign-off.
 **Est:** ~2–4 hours · **Depends on:** P2 · **Blocks:** P4, P8
 **Launch prompt:** `session-prompts.md` → P3
 **Read first:** `stripe-primer.md` §3–§4 **and** `stripe-full-plan.md` Session 1 → webhook. Both.
+
+> **Build notes (2026-07-11):** `GrantService` (@Transactional, separate bean — dodges the self-invocation
+> proxy trap), `BillingWebhookService` (verify + parse + `Session.retrieve(expand line_items.data.price)`
+> to read `credits` from Price metadata, then delegate), `BillingWebhookController` (raw `@RequestBody
+> String`). `/billing/webhook` added to SecurityConfig permitAll. Added `Backend/stripe-listen.sh` helper.
+> Design decisions (from the chat): credits from Price metadata; `event_id` dedup; @Transactional grant
+> bean; malformed metadata → log + record + 200 + grant 0.
+>
+> **Two judgment calls made during build (flag if you disagree):**
+> 1. **Unexpected processing error → HTTP 500** (explicitly caught, not letting it become a 401), so a
+>    transient failure gets retried (grants are idempotent). This is a slight deviation from the plan's
+>    literal "4xx only for signature" — I judged silently 200-dropping a paid event to be worse.
+> 2. **No `payment_status == "paid"` guard.** We're card-only (synchronous), so
+>    `checkout.session.completed` ⇒ paid. If async payment methods are ever enabled, add the guard +
+>    handle `checkout.session.async_payment_succeeded` (candidate for sv2-s14).
+>
+> **Verified live (demo user 2, baseline 802 credits; side-effects reverted after):** bad signature→400;
+> credits_50 signed event→200, credits 802→852 (read from real Price metadata); **replay same evt_→200,
+> 852→852 (no second grant)**; share_only+book5→200, book5.share_unlocked set + credits unchanged (0);
+> unknown event type→200 ignore. Ledger held exactly the applied rows; CLI `whsec_` confirmed == `.env`.
+> Verified by hand-signed events against real sessions created by our own /billing/checkout — a real-card
+> browser payment through the hosted page is P4's job.
 
 **This is the single most important correctness surface in the whole product.** A bug here either hands out
 credits nobody paid for, or takes money and grants nothing. **Be rested before you start this one.** Don't

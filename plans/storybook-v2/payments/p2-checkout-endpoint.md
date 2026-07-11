@@ -1,8 +1,24 @@
 # Payments P2 — `POST /billing/checkout`
 
-**Status:** Not started
+**Status:** Needs Verification — implemented 2026-07-10. Compiles, `./gradlew test` green, and verified
+live against the demo account (real `cs_test_` sessions created). Awaiting Michael's sign-off.
 **Est:** ~2–3 hours (most likely to spill — split rather than rush) · **Depends on:** P1 · **Blocks:** P3, P7
 **Launch prompt:** `session-prompts.md` → P2
+
+> **Build notes (2026-07-10):** package `com.gotcherapp.api.billing` — `Sku` enum (wireName +
+> requiresBookId, with a comment to revisit toward a config map if it grows), `CheckoutRequest`/
+> `CheckoutResponse` records, `BillingService`, `BillingController`. Decisions from the design chat:
+> enum SKU model; placeholder `successUrl` (`${FRONTEND_URL}/upgrade-success?session_id={CHECKOUT_SESSION_ID}`,
+> P8 builds the page); **derived** idempotency key (`checkout_{user}_{sku}_{book}_{60s-bucket}`) so a
+> double-click collapses to one session. IDOR → 404 (not 403) so we don't confirm a book exists.
+> `Stripe.apiKey` set once in `BillingService.@PostConstruct`. No SecurityConfig change — /billing/checkout
+> is covered by `anyRequest().authenticated()`; the /billing/webhook permitAll is P3.
+>
+> **Verified (live, demo account user 2, books 5/7):** unknown sku→400, credit-pack+bookId→400,
+> share-no-bookId→400, foreign book→404, credits_50→200 URL, share_only+book5→200 URL. Idempotency:
+> two rapid identical calls returned the SAME session (deduped). `stripe_customer_id` stored
+> (`cus_…`). Session on Stripe: `amount_total=1000`, `mode=payment`, `client_reference_id="2"`,
+> `metadata={sku, bookId}` — the exact inputs P3 consumes.
 
 Build the endpoint that turns "I want to buy SKU X (for book Y)" into a Stripe-hosted checkout URL. JWT-
 protected. It creates the Checkout Session and hands back a URL — it does **not** grant anything. Granting

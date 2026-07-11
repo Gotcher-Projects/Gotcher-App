@@ -48,7 +48,8 @@ public class SecurityConfig {
                     "/auth/forgot-password",
                     "/auth/reset-password",
                     "/admin/**",
-                    "/book/public/**"
+                    "/book/public/**",
+                    "/billing/webhook"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
