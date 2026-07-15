@@ -12,7 +12,7 @@ import NewBookChooser from "@/components/storybook/NewBookChooser";
 import GuidedBookView from "@/components/storybook/GuidedBookView";
 import FirstPicker from "@/components/storybook/FirstPicker";
 import { arcFor, expandArcToChapterSeeds, arcEntryById } from "@/lib/guidedBookArc";
-import { seedMomentHeroFromFirst, featuredFirstTimeIds, chapterHasContent, guidedProgress, collectUsedKeys } from "@/lib/guidedBook";
+import { seedMomentHeroFromFirst, featuredFirstTimeIds, chapterHasContent, guidedProgress, collectUsedKeys, filledPageCount } from "@/lib/guidedBook";
 import BookSwitcher from "@/components/storybook/BookSwitcher";
 import YourBooksShelf from "@/components/storybook/YourBooksShelf";
 import ShareSection from "@/components/storybook/ShareSection";
@@ -411,6 +411,9 @@ export default function StorybookTab({
       <ShareSection
         bookId={activeBookId}
         shareUnlocked={!!activeBook?.shareUnlocked}
+        finished={!!activeBook?.finished}
+        pagesAdded={filledPageCount(sorted)}
+        onFinishedChange={(val) => setBooks(b => b.map(x => x.id === activeBookId ? { ...x, finished: val } : x))}
         onError={onError}
       />
 

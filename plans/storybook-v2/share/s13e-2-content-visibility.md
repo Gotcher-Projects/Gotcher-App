@@ -1,6 +1,16 @@
 # Share s13e-2 — Content-based public visibility + "finished" flag (backend)
 
-**Status:** Not started
+**Status:** Complete (verified 2026-07-14 — live: V49 applied; /books `finished` + PATCH toggle; Noah guided-full
+showed 35/35, Lily guided-sparse showed 19/30 with empty slots dropped + data-driven pages kept by their data,
+Noah freeform showed all pages; pageData correctly scoped. 10 unit tests + full backend suite green.)
+
+_Implementation:_ V49 adds `books.finished_at`; Book DTO exposes derived
+`finished`; `UpdateBookRequest.finished` handled in `BookService.update` (PATCH /books/{id}). `PublicBookService`
+now content-based: freeform → all pages (empty book → chapters:[]); guided → filled pages via `pageIsFilled`
+(blocks via a Tiptap `jsonHasText` walk + data-driven pages by their data + divider-section rule). Payload carries
+`type` + `finished`; pageData scoped to shown pages. `PublicBookServiceTest` rewritten (10 cases); full suite green.
+**Left to verify live** (needs backend restart for V49): freeform=all vs guided=filled-only against Noah(full)/Lily(sparse);
+`/books` `finished`; PATCH toggles it.
 **Est:** ~2h (the core of s13e) · **Depends on:** s13b ✅ · **Blocks:** s13e-3
 **Scope:** BACKEND (`PublicBookService`, `BookService`/`Book` DTO, `UpdateBookRequest`, a migration). No frontend.
 

@@ -214,7 +214,7 @@ class BookServiceTest {
     @Test
     void update_returnsEmpty_whenNoProfile() {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.empty());
-        assertEquals(Optional.empty(), bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest("X", null, null)));
+        assertEquals(Optional.empty(), bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest("X", null, null, null)));
     }
 
     @Test
@@ -222,7 +222,7 @@ class BookServiceTest {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
         when(jdbc.queryForList(contains("SELECT"), eq(BOOK_ID), eq(PROFILE_ID))).thenReturn(List.of(sampleRow()));
 
-        Optional<Book> result = bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest(null, null, null));
+        Optional<Book> result = bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest(null, null, null, null));
 
         assertTrue(result.isPresent());
         assertEquals("Lily's First Year", result.get().title());
@@ -236,7 +236,7 @@ class BookServiceTest {
         when(jdbc.queryForList(contains("UPDATE books SET title"), eq("Renamed"), eq(BOOK_ID), eq(PROFILE_ID)))
             .thenReturn(List.of(updated));
 
-        Optional<Book> result = bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest("Renamed", null, null));
+        Optional<Book> result = bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest("Renamed", null, null, null));
 
         assertTrue(result.isPresent());
         assertEquals("Renamed", result.get().title());
@@ -246,7 +246,7 @@ class BookServiceTest {
     void update_throwsIllegalArgument_forInvalidTheme() {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
         assertThrows(IllegalArgumentException.class,
-            () -> bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest(null, "neon", null)));
+            () -> bookService.update(USER_ID, BOOK_ID, new UpdateBookRequest(null, "neon", null, null)));
     }
 
     // ── duplicate ───────────────────────────────────────────────────────────────

@@ -15,16 +15,34 @@ export function chapterKind(chapter) {
   return arcEntryById(chapter?.anchorKey)?.kind ?? "fill";
 }
 
-/** True if any page block carries real content — non-empty text or a placed photo. */
-export function chapterHasContent(chapter) {
-  for (const page of chapter?.layoutData?.pages || []) {
-    for (const b of page.blocks || []) {
-      if (b.type === "photo" && b.url) return true;
-      if (b.type === "text" && contentToPlainText(b.content || "").trim()) return true;
-      if (b.type === "l-wrap" && (b.url || contentToPlainText(b.content || "").trim())) return true;
-    }
+/** True if a single page's blocks carry real content — non-empty text or a placed photo. */
+export function pageHasBlockContent(page) {
+  for (const b of page?.blocks || []) {
+    if (b.type === "photo" && b.url) return true;
+    if (b.type === "text" && contentToPlainText(b.content || "").trim()) return true;
+    if (b.type === "l-wrap" && (b.url || contentToPlainText(b.content || "").trim())) return true;
   }
   return false;
+}
+
+/** True if any page block carries real content — non-empty text or a placed photo. */
+export function chapterHasContent(chapter) {
+  return (chapter?.layoutData?.pages || []).some(pageHasBlockContent);
+}
+
+/**
+ * Share s13e-3: a rough "N pages added" count for the owner's share section — pages with block content
+ * across all chapters. Approximate on purpose (it doesn't count data-driven pages, whose fill lives in
+ * profile data, not blocks); the public link's authoritative content filter runs server-side.
+ */
+export function filledPageCount(chapters) {
+  let n = 0;
+  for (const ch of chapters || []) {
+    for (const page of ch?.layoutData?.pages || []) {
+      if (pageHasBlockContent(page)) n++;
+    }
+  }
+  return n;
 }
 
 // ── Tri-state page progress (sv2-s7.5c) ──────────────────────────────────────

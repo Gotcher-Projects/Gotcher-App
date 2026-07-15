@@ -15,13 +15,32 @@ import { SHARE_SKUS } from "@/components/PurchaseModal";
  *
  * Regenerating a link never re-charges — the entitlement is `books.share_unlocked_at`, which the token
  * lifecycle never touches (s13a).
+ *
+ * s13e-3: the unlocked state also carries a "Mark as finished" toggle — an unfinished book shows a
+ * work-in-progress gate/badge on the public link (visibility itself is content-based, decided server-side).
  */
-export default function ShareSection({ bookId, shareUnlocked, onError }) {
+export default function ShareSection({ bookId, shareUnlocked, finished, pagesAdded = 0, onFinishedChange, onError }) {
   const { openPurchase } = usePurchase();
   const [shareUrl, setShareUrl] = useState(null);
   const [loading, setLoading] = useState(false); // initial token fetch
   const [busy, setBusy] = useState(false);        // mint / regenerate / revoke in flight
   const [copied, setCopied] = useState(false);
+  const [savingFinished, setSavingFinished] = useState(false);
+
+  async function toggleFinished() {
+    if (savingFinished) return;
+    const next = !finished;
+    setSavingFinished(true);
+    onFinishedChange?.(next);   // optimistic
+    try {
+      await apiRequest(`/books/${bookId}`, { method: "PATCH", body: JSON.stringify({ finished: next }) });
+    } catch {
+      onFinishedChange?.(!next); // revert
+      onError?.("Couldn't update — please try again");
+    } finally {
+      setSavingFinished(false);
+    }
+  }
 
   // Load the existing token when this book is unlocked. Re-runs on book switch so the URL always
   // matches the active book (never a stale token from the previously-viewed one).
@@ -105,7 +124,7 @@ export default function ShareSection({ bookId, shareUnlocked, onError }) {
   return (
     <Shell>
       <p className="text-sm text-muted-foreground max-w-md mx-auto">
-        Anyone with this link can read the published pages. They don't need an account.
+        Anyone with this link can read your book. They don't need an account.
       </p>
 
       {loading ? (
@@ -137,6 +156,28 @@ export default function ShareSection({ bookId, shareUnlocked, onError }) {
           </button>
         </>
       )}
+
+      {/* Mark as finished (s13e-3) — controls the visitor work-in-progress note, not which pages show. */}
+      <div className="mt-5 flex items-center gap-4 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-left">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">Mark as finished</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {finished
+              ? "Visitors see your book as complete."
+              : "Visitors see a “work in progress” note until you switch this on."}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1.5">📖 {pagesAdded} page{pagesAdded === 1 ? "" : "s"} added</p>
+        </div>
+        <button
+          role="switch"
+          aria-checked={!!finished}
+          onClick={toggleFinished}
+          disabled={savingFinished}
+          className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 disabled:opacity-50 ${finished ? "bg-emerald-600" : "bg-muted-foreground/40"}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${finished ? "translate-x-5" : ""}`} />
+        </button>
+      </div>
     </Shell>
   );
 }

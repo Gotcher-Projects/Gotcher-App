@@ -33,7 +33,7 @@ class BookControllerTest {
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(USER_ID, "test@example.com");
 
     private static Book sampleBook() {
-        return new Book(BOOK_ID, 99L, "freeform", "Lily's Book", "classic", null, null, 0, "2026-06-28T00:00:00Z", null, false);
+        return new Book(BOOK_ID, 99L, "freeform", "Lily's Book", "classic", null, null, 0, "2026-06-28T00:00:00Z", null, false, false);
     }
 
     // ── GET /books ──────────────────────────────────────────────────────────────
@@ -67,21 +67,21 @@ class BookControllerTest {
     @Test
     void update_returns200_whenPresent() {
         when(bookService.update(eq(USER_ID), eq(BOOK_ID), any())).thenReturn(Optional.of(sampleBook()));
-        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest("New", null, null));
+        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest("New", null, null, null));
         assertEquals(HttpStatus.OK, r.getStatusCode());
     }
 
     @Test
     void update_returns404_whenEmpty() {
         when(bookService.update(eq(USER_ID), eq(BOOK_ID), any())).thenReturn(Optional.empty());
-        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest("New", null, null));
+        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest("New", null, null, null));
         assertEquals(HttpStatus.NOT_FOUND, r.getStatusCode());
     }
 
     @Test
     void update_returns400_onInvalidTheme() {
         when(bookService.update(eq(USER_ID), eq(BOOK_ID), any())).thenThrow(new IllegalArgumentException("bad theme"));
-        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest(null, "neon", null));
+        var r = controller.update(PRINCIPAL, BOOK_ID, new UpdateBookRequest(null, "neon", null, null));
         assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
     }
 

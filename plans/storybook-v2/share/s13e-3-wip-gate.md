@@ -1,6 +1,12 @@
 # Share s13e-3 — WIP gate + "Mark as finished" toggle (frontend)
 
-**Status:** Not started
+**Status:** Complete (verified 2026-07-14 by Michael — gate/badge/? help + toggle all confirmed in-browser).
+
+_Implementation:_ `PublicBookPage`: WIP badge (fixed) + `?` help popover +
+once-per-session ack gate (`sessionStorage['wip-ack:'+token]`), shown when `finished===false` && pages exist;
+finished/empty unchanged. `ShareSection`: "Mark as finished" toggle (PATCH /books/{id} {finished}, optimistic) +
+"📖 N pages added" line (`filledPageCount`). Build clean, 336 FE tests pass.
+**Left to verify live:** incognito unfinished book → gate → badge + ? help; toggle finished in-app → refresh → clean.
 **Est:** ~2h · **Depends on:** s13e-2 (payload `finished`/`type`; the `finished` flag + PATCH) · **Blocks:** nothing
 **Scope:** FRONTEND (`PublicBookPage.jsx`, `StorybookTab.jsx`/`ShareSection.jsx`). No backend.
 

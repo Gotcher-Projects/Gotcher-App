@@ -28,7 +28,7 @@ public class BookService {
     // Every SELECT / RETURNING uses this list so mapRow() stays in sync. Concatenated (not a text
     // block) to avoid the trailing-whitespace RETURNING gotcha (reference_java_textblock_returning_gotcha).
     private static final String COLS =
-        "id, baby_profile_id, type, title, theme, cover_photo_url, cover_subtitle, sort_order, created_at, updated_at, share_unlocked_at";
+        "id, baby_profile_id, type, title, theme, cover_photo_url, cover_subtitle, sort_order, created_at, updated_at, share_unlocked_at, finished_at";
 
     private static final Set<String> VALID_TYPES  = Set.of("guided", "freeform");
     private static final Set<String> VALID_THEMES = Set.of("classic", "coral", "midnight", "meadow");
@@ -177,6 +177,10 @@ public class BookService {
             setClauses.add("cover_subtitle = ?");
             params.add(s);
         }
+        if (req.finished() != null) {
+            // Owner "Mark as finished" (s13e-2): set/clear the timestamp; no param (NOW()/NULL are literals).
+            setClauses.add(req.finished() ? "finished_at = NOW()" : "finished_at = NULL");
+        }
 
         if (setClauses.isEmpty()) {
             return getOwned(bookId, profileId.get());
@@ -294,7 +298,9 @@ public class BookService {
             row.get("updated_at") != null ? row.get("updated_at").toString() : null,
             // Derived boolean, not the timestamp. A duplicated book returns null here (its INSERT omits
             // the column) → not unlocked, which is correct: the entitlement is per-book and paid-for.
-            row.get("share_unlocked_at") != null
+            row.get("share_unlocked_at") != null,
+            // Same: a duplicated book is not "finished" (its INSERT omits the column).
+            row.get("finished_at") != null
         );
     }
 }

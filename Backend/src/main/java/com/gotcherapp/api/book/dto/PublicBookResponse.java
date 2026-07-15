@@ -14,9 +14,11 @@ import java.util.Map;
  */
 public record PublicBookResponse(
     String babyName,            // FIRST name only
+    String type,                // freeform | guided (drives content-selection meaning on the client)
+    boolean finished,           // books.finished_at set — drives the visitor work-in-progress gate/badge (s13e-2)
     String theme,               // book theme key (canvas theming)
     Cover cover,
-    List<Chapter> chapters,     // published + v2 only, in order; empty => "still being written"
+    List<Chapter> chapters,     // content-selected + v2 only, in order; empty => "still being written"
     PageData pageData
 ) {
     /** Cover fields. subtitle is RESOLVED server-side; the cover never carries a raw birthdate. */

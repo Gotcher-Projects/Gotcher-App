@@ -14,5 +14,8 @@ public record Book(
     String updatedAt,
     // Share s13c: derived boolean (books.share_unlocked_at != null), NOT the raw timestamp. Drives the
     // StorybookTab share section (upsell when false, manage controls when true). Set by the Payments webhook.
-    Boolean shareUnlocked
+    Boolean shareUnlocked,
+    // Share s13e-2: derived boolean (books.finished_at != null). Owner-set "Mark as finished"; drives the
+    // work-in-progress gate/badge on the public link, not which pages show.
+    Boolean finished
 ) {}
