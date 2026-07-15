@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Check, Download, Loader2 } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 import { arcEntryById } from "@/lib/guidedBookArc";
 import { guidedProgress, groupGuidedSections, chapterStatus, chapterKind } from "@/lib/guidedBook";
 
@@ -103,7 +103,7 @@ function PageRow({ chapter, onOpenBuilder, onPick, firstsAvailable }) {
 }
 
 export default function GuidedBookView({
-  title, chapters, firsts, onOpenBuilder, onPick, onDownloadPdf, exportingPdf,
+  title, chapters, firsts, onOpenBuilder, onPick,
 }) {
   const { done, partial, total, autoFilled } = guidedProgress(chapters);
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -170,13 +170,7 @@ export default function GuidedBookView({
         </div>
       ))}
 
-      <div className="flex items-center justify-between gap-3 pt-2 text-center">
-        <p className="text-xs text-muted-foreground">🔒 Pages are pre-set — fill them in any order.</p>
-        <Button variant="outline" size="sm" className="gap-1.5 flex-shrink-0" onClick={onDownloadPdf} disabled={exportingPdf}>
-          {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-          {exportingPdf ? "Exporting…" : "Download PDF"}
-        </Button>
-      </div>
+      <p className="text-xs text-muted-foreground pt-2 text-center">🔒 Pages are pre-set — fill them in any order.</p>
     </div>
   );
 }

@@ -28,7 +28,7 @@ The old subscription-era prompts are in `../deprecated/payments-s{0,1,2}-*.md`. 
 | P8 | Radar US-only rule + decline UX | 1.5h | P2, **P6/P7** (message needs the modal + return screen) |
 | P9 | Native gate + polish | 1.5h | P6 |
 | P10 | Balance display | 1h | P7 |
-| P11 | Admin credit endpoint | 1.5h | P1 |
+| P11 ⏸️ | Admin credit endpoint — **Deferred** (not needed for launch; revisit at higher volume) | 1.5h | P1 |
 | P12 | Live-mode cutover | 1.5h | all + activation |
 
 **Renumbered 2026-07-11 (Michael).** The Radar/decline session used to be P5; it's now **P8**, after the

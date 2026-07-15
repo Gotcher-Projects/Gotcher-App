@@ -93,8 +93,10 @@ public class BillingService {
                 .setQuantity(1L)
                 .build())
             .putMetadata("sku", sku.wireName())
-            .setSuccessUrl(frontendUrl + "/upgrade-success?session_id={CHECKOUT_SESSION_ID}")
-            .setCancelUrl(frontendUrl + "/upgrade-cancelled");
+            // Return as query params on the app root, handled in App.jsx boot like email_verified/reset_token
+            // (Payments P5/P7 — lightweight routing, no dedicated route). The success page CONFIRMS, never grants.
+            .setSuccessUrl(frontendUrl + "/?upgrade=success&session_id={CHECKOUT_SESSION_ID}")
+            .setCancelUrl(frontendUrl + "/?upgrade=cancelled");
         if (bookId != null) {
             params.putMetadata("bookId", String.valueOf(bookId));   // P3 sets books.share_unlocked_at for this id
         }

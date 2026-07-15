@@ -1,5 +1,10 @@
 # Storybook V2 — Session Opening Prompts
 
+> **Scope: the CORE-BOOK sessions (`sv2-s1 … s9`), all now Complete.** Kept as historical AS-BUILT record.
+> The active paid-bundle tracks have their **own** prompt files — **payments:** `payments/session-prompts.md`;
+> **print:** `print/session-prompts.md`. For what's current across all of v2, see `planning.md` → "📍 Status
+> map & canonical pointers".
+
 Copy-paste the relevant block at the start of each session.
 
 Research context: `plans/storybook-v2/research.md` (Precious Five analysis)

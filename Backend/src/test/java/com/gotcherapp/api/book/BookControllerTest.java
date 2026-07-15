@@ -33,7 +33,7 @@ class BookControllerTest {
     private static final AuthPrincipal PRINCIPAL = new AuthPrincipal(USER_ID, "test@example.com");
 
     private static Book sampleBook() {
-        return new Book(BOOK_ID, 99L, "freeform", "Lily's Book", "classic", null, null, 0, "2026-06-28T00:00:00Z", null);
+        return new Book(BOOK_ID, 99L, "freeform", "Lily's Book", "classic", null, null, 0, "2026-06-28T00:00:00Z", null, false);
     }
 
     // ── GET /books ──────────────────────────────────────────────────────────────

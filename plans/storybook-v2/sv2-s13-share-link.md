@@ -1,10 +1,18 @@
 # SV2-S13 — Shareable Book Link
 
+> **📁 SLICED 2026-07-12 into `share/` (three ≤2h sessions).** This file remains the **canonical detailed
+> spec**; the buildable sessions + run order live in **`share/session-prompts.md`** →
+> `share/s13a-token-backend.md` · `share/s13b-public-page.md` · `share/s13c-share-section.md`.
+> **Also note:** the billing/unlock half is **already built** in Payments P2/P3 (`books.share_unlocked_at`,
+> `checkout {sku, bookId}` with the IDOR check, the webhook `GrantService` unlock). What's left is the token,
+> the public read path, and the share UI. **Decisions locked (2026-07-12):** mint requires an unlocked book;
+> "PII-filtered" = scope-don't-censor. See `share/session-prompts.md`.
+
 > **RECONCILED 2026-07-09 (`sv2-s9.6`).** Everything below the "Key Decisions" heading predates the
 > v2 book model and was written against a subscription that no longer exists. Read the corrections in
 > this header first — where the old body contradicts them, the header wins.
 
-**Status:** Not started — **IN SCOPE** (user decision 2026-07-02; was "optional/deferred")
+**Status:** Not started — **IN SCOPE** (user decision 2026-07-02; was "optional/deferred"). **Sliced → `share/`.**
 **Depends on:** v2 page types stable ✅ · Payments (one-time Stripe checkout) · **not** print
 
 ## Goal
@@ -144,8 +152,9 @@ Do not show draft chapters on the public page.
 ### Privacy
 The public page must return only:
 - Baby's first name
-- The book's **published** pages (`status = 'published'` — still a live concept: `ScrapbookBuilder.jsx:552`
-  sets it, `storybookPdf.js:204` filters on it) and their `layout_data`
+- The **published chapters'** pages (`status` is **chapter-level** — `ScrapbookBuilder.jsx:552` sets
+  `status: 'published'` on the chapter, `storybookPdf.js:204` filters `chapters.filter(c => c.status === 'published')`)
+  and their `layout_data`. Filter at the chapter level, not per page.
 - The `pageData` payload the data-driven canvases need, **PII-filtered**
 
 No email, birth date, parent name, or any other PII.

@@ -11,5 +11,8 @@ public record Book(
     String coverSubtitle,
     Integer sortOrder,
     String createdAt,
-    String updatedAt
+    String updatedAt,
+    // Share s13c: derived boolean (books.share_unlocked_at != null), NOT the raw timestamp. Drives the
+    // StorybookTab share section (upsell when false, manage controls when true). Set by the Payments webhook.
+    Boolean shareUnlocked
 ) {}

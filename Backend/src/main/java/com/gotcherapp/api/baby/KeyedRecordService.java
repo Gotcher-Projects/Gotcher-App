@@ -41,11 +41,19 @@ public abstract class KeyedRecordService {
     public List<Map<String, Object>> getAchieved(Long userId) {
         Optional<Long> profileId = repo.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
+        return getAchievedByProfileId(profileId.get());
+    }
+
+    /**
+     * Profile-scoped variant (no user context). Used by the public shared-book path (Share s13b),
+     * which resolves the profile from a share token rather than an authenticated user.
+     */
+    public List<Map<String, Object>> getAchievedByProfileId(Long profileId) {
         return jdbc.queryForList(
             "SELECT " + keyColumn + " AS key, to_char(" + orderByColumn + ", 'YYYY-MM-DD') AS \"achievedAt\"" +
             " FROM " + tableName +
             " WHERE baby_profile_id = ? ORDER BY " + orderByColumn,
-            profileId.get()
+            profileId
         );
     }
 

@@ -51,7 +51,9 @@ activated; **confirm the definitive yes with the owner before running this sessi
    the owner `stripe-add-products-guide.html` for this — it's the same four SKUs.)
 2. **Register the live webhook endpoint** → a **new `whsec_`** (different from test and from the CLI).
 3. **Swap all six env vars** on the VPS (secret key, webhook secret, four price ids). Redeploy.
-4. **Re-apply the Radar US-only rule in live** — rules are per-mode. This is also our tax mitigation (P8).
+4. **Verify the Radar US-only rule in live** — `Block if :card_country: != 'US'`. It was **already added
+   in live** during P8 (2026-07-12), so this is a *confirm it's active*, not a create. Rules are per-mode;
+   this is also our tax mitigation (P8).
 5. **⛔ Confirm `handoffs/tax-note-for-owner.md` was SENT** to the owner (P0.5 #3 logged it as not-yet-sent).
    **Sent, not answered.** The tax obligation begins at the first live charge — which is the next step.
    Don't wait for a reply.

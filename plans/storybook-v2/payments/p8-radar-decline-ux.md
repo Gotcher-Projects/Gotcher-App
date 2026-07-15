@@ -1,6 +1,18 @@
 # Payments P8 — Radar US-only rule + decline UX
 
-**Status:** Not started
+**Status:** Complete (2026-07-12) — Radar rule `:card_country: != 'US'` blocks a UK test card in the sandbox
+(verified); static "Payments are currently US-only" notice added to `PurchaseModal`. See notes below.
+
+> **Notes from the build (2026-07-12):**
+> - Rule expression that works: **`Block if :card_country: != 'US'`** (the memory-guess was right).
+> - Fraud Teams enabled on a **free trial** (billing starts ~Aug 11) — irrelevant to us: sandbox is free, and
+>   live doesn't bill until real charges (P12+).
+> - **Gotcha hit:** rules are **per-mode**. The rule was first added in **live** by mistake; had to re-add it
+>   in the **sandbox** to make the test fire. Silver lining: **live already has the rule**, so P12 just
+>   *verifies* it rather than creating it.
+> - Confirmed the hosted-page decline is **not customizable** ("Your card was declined — try a debit card"
+>   is Stripe's generic text, and actively misleading here). This is exactly why the fix is the upfront
+>   modal notice, not a reactive message.
 **Est:** ~1.5 hours · **Depends on:** P2 (a checkout to test against) **+ P6/P7** (see reorder note) · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → P8
 **Read first:** `stripe-full-plan.md` §5 + `stripe-primer.md` §6, §9
@@ -8,9 +20,9 @@
 > **Reordered to run after P7 (Michael, 2026-07-11).** The Radar rule is buildable any time, but a blocked
 > card surfaces as a generic decline **on Stripe's hosted page**, which we can't customize — and our app
 > only regains control on the cancel redirect, where Stripe doesn't pass the reason. So the "US-only"
-> message has no honest in-app home until the **P6 purchase modal** exists (as a *pre-checkout geo hint*)
-> and the **P7 return screen** handles the cancel path. Build the rule + the message together, here, once
-> both exist. Radar = the authoritative gate (card issuing country); the geo hint = the friendly message.
+> message has no honest in-app home until the **P6 purchase modal** exists — where we now show a **static
+> US-only notice** (decided 2026-07-11, see below). Radar = the authoritative gate (card issuing country);
+> the modal notice = the courtesy heads-up.
 > This session was **P5** before the 2026-07-11 renumber; the re-slice checkpoint that once sat after it is
 > **dropped** (see `session-prompts.md`).
 
@@ -41,11 +53,19 @@ this session is turning that into an honest "we currently only sell in the US" m
 
 Block payments whose **card issuing country ≠ US**. Rationale in `stripe-primer.md` §6.
 
-## The decline UX (the half that's easy to skip)
+## The decline UX — decided: a static upfront notice (Michael, 2026-07-11)
 
-**⚠️ A blocked card surfaces as a decline the customer won't understand.** Detect this specific case and
-show **"We currently only sell in the US"** — not a raw Stripe error string. This is a real user-facing
-state, not a log line. International **free** users are entirely unaffected; only paying is gated.
+**We can't reactively "make the decline legible."** With hosted Checkout, a Radar block shows a **generic
+"card declined" on Stripe's page that we can't customize**, and a blocked attempt produces **no webhook and
+no return signal** — so the app never learns it was a country block. Detect-and-message is not feasible.
+
+**Instead:** show a small **static "Payments are currently US-only" line in the `PurchaseModal`** (P6), to
+everyone, before they leave for Stripe. Deterministic, no geo detection, no false positives — it just sets
+expectations so a non-US buyer isn't surprised by a bare decline. The **Radar rule is the actual
+enforcement**; this line is only the courtesy. International **free** users are entirely unaffected; only
+paying is gated.
+
+Rejected: an IP geo-hint (needs a geo source; IP-country ≠ card-country → false positives; still only a hint).
 
 ## ⚠️ This does NOT solve tax
 
@@ -55,13 +75,21 @@ Digital-goods tax rules vary by US state too. See the "US storefront ≠ US cust
 `stripe-primer.md` §9. **An accountant answers the tax question, not this rule** — that's the owner's, per
 P0.5 #3.
 
+## Pre-flight — verify in the sandbox dashboard FIRST (gates the whole session)
+
+- [ ] Developer role can open **Radar → Rules** (P0 left this unconfirmed — if blocked, it's an owner action).
+- [ ] Can create a **custom rule** (Radar for Fraud Teams — free in sandbox).
+- [ ] Read the **actual rule syntax** off the current editor (the `:card_country:` form was from memory).
+- [ ] Grab a **non-US test card** number from Stripe's current docs (don't recall from memory).
+
 ## Done when
 
-- [ ] A non-US test card is blocked by the Radar rule in the sandbox.
-- [ ] The block renders as a human "US-only" message, not a raw decline.
-- [ ] A US test card (`4242…`) still sails through unaffected.
-- [ ] Free international usage of the app is untouched.
-- [ ] Noted for P12: this rule must be **re-created in live mode**.
+- [x] A non-US test card is **blocked** by the Radar rule in the sandbox (`4000 0082 6000 0000`, UK);
+      `4242…` (US) still sails through.
+- [x] A static **"Payments are currently US-only"** notice shows in the `PurchaseModal` (everyone, always).
+- [x] Free international usage of the app is untouched (only paying is gated).
+- [x] For P12: the live rule already exists (added by mistake during this session), so P12 **verifies** it
+      rather than creating it; billing on it starts at the first live charge.
 
 ## Not this session
 

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
 import { profilePhase } from "../lib/pregnancy";
+import CreditsPill from "./CreditsPill";
 import PregnancyShell from "./pregnancy/PregnancyShell";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
@@ -544,6 +545,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <CreditsPill />
             {user?.display_name && (
               <span className="text-sm text-slate-600">Hi, <strong>{user.display_name}</strong></span>
             )}

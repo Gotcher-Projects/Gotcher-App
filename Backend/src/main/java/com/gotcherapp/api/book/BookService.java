@@ -28,7 +28,7 @@ public class BookService {
     // Every SELECT / RETURNING uses this list so mapRow() stays in sync. Concatenated (not a text
     // block) to avoid the trailing-whitespace RETURNING gotcha (reference_java_textblock_returning_gotcha).
     private static final String COLS =
-        "id, baby_profile_id, type, title, theme, cover_photo_url, cover_subtitle, sort_order, created_at, updated_at";
+        "id, baby_profile_id, type, title, theme, cover_photo_url, cover_subtitle, sort_order, created_at, updated_at, share_unlocked_at";
 
     private static final Set<String> VALID_TYPES  = Set.of("guided", "freeform");
     private static final Set<String> VALID_THEMES = Set.of("classic", "coral", "midnight", "meadow");
@@ -291,7 +291,10 @@ public class BookService {
             (String) row.get("cover_subtitle"),
             row.get("sort_order") != null ? ((Number) row.get("sort_order")).intValue() : null,
             row.get("created_at") != null ? row.get("created_at").toString() : null,
-            row.get("updated_at") != null ? row.get("updated_at").toString() : null
+            row.get("updated_at") != null ? row.get("updated_at").toString() : null,
+            // Derived boolean, not the timestamp. A duplicated book returns null here (its INSERT omits
+            // the column) → not unlocked, which is correct: the entitlement is per-book and paid-for.
+            row.get("share_unlocked_at") != null
         );
     }
 }

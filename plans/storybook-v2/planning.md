@@ -1,21 +1,52 @@
 # Storybook V2 — Planning
 
-**Status: Living reference — core v2 SHIPPED, paid bundle remains.** Open questions in §4 decided;
-LULU/print folded in (§6); deferred-session triage (§7); AI-separation model (§8).
-**Where things stand (2026-07-09):** sv2-s1…s9.6 are **Complete** (core book verified 2026-07-03).
-What's left is the **paid bundle**: `sv2-grant` (Needs Verification) → **Payments** (the trunk) →
-`sv2-s13` share → `sv2-s12` print → `sv2-s14` hardening. See the run order in §3.
-**Pricing model changed 2026-07-09:** no subscription, four one-time SKUs, `users.tier` vestigial.
-Sections written before that date may still say "paid tier" — where they conflict,
-`payments/stripe-full-plan.md` wins.  
-**Depends on:** storybook review-fixes track **Complete** (s1–s11) + S13/S15 **Complete**. See §0.  
-**Key model shift (§8):** core book is **AI-free by default** (built from your data + your own words);
-AI is a **separate, opt-in, paid-gated per-field "write this for me" assist**. This **unblocks core v2
-from Payments** — only the AI assist, print, and share sit behind the paid wall.  
-**Reference:** `research.md` (Precious Five competitive analysis)  
-**LULU / print-on-demand:** now an explicit v2 workstream — see §6 and the hand-off doc
-`print/lulu-spec-handoff.md`. **External dependency:** the Lulu account + API + spec confirmation is
-setup work someone other than the implementing session must do first.
+**Status: Living reference — core v2 + AI assist SHIPPED; payments BUILD-complete; print / share / hardening remain.**
+The status map directly below is the **source of truth for what's current and where the live plan lives** (last
+reconciled **2026-07-12**). The deeper sections (§0–§8) retain full history/rationale and may lag — where they
+conflict with the map or with `payments/stripe-full-plan.md`, those win.
+
+**Key model shift (§8), still in force:** core book is **AI-free by default** (built from your data + your own
+words); AI is a **separate, opt-in, per-field "write this for me" assist** gated on the **credit balance**. This
+unblocked core v2 from Payments — only AI assist, print, and share sit behind the paywall.
+**Pricing (changed 2026-07-09):** no subscription; four one-time SKUs (credit packs + per-book share unlock);
+`users.tier` is **vestigial** (nothing reads it). Pre-07-09 text saying "paid tier / Plus / Pro" is stale.
+**Reference:** `research.md` (Precious Five analysis).
+
+---
+
+## 📍 Status map & canonical pointers (reconciled 2026-07-12)
+
+The one place to find the live plan for each track. If a section deeper in this doc names a different file or
+session number, **this map wins.**
+
+### ✅ Done (shipped / verified; kept below as historical record)
+| Track | Sessions | Canonical plan |
+|---|---|---|
+| **Core book** — all page types, guided book, pregnancy chapter, polish/PDF | `sv2-s1 … s9.6` (+ `s7.5a–e`) | per-session files + §3; verified 2026-07-03 (`sv2-s9.5`) |
+| **AI per-field assist** — `AiAssistField` + single-field endpoint; old batched page-gen deleted | `sv2-s10` / `s10b` / `s11` | `sv2-s10b-assist-wiring-and-refactor.md` |
+| **Free signup credits** (5 credits to first N accounts) | `sv2-grant` | `sv2-grant-free-credits.md` *(Needs Verification)* |
+| **Payments — BUILD complete** (checkout, webhook+ledger, modal, redirect, Radar, native gate, balance pill) | `P0–P10` | **`payments/session-prompts.md`** + `payments/stripe-full-plan.md` |
+
+### ⬜ Remaining (in build order)
+| # | Track | Status | Canonical plan |
+|---|---|---|---|
+| **1** | **Public share link** (`/book/{token}`) | Not started — **UNBLOCKED, next** (P2/P3 built the unlock; P5 built the route shell). **Sliced `s13a–s13c`** 2026-07-12 | **`share/session-prompts.md`** (+ spec `sv2-s13-share-link.md`) |
+| **2** | **Print-on-demand (Lulu)** | Not started — **sliced `pr0–pr9`** (headless Chrome); `pr1–pr3` buildable now, `pr4+` blocked on owner-side `pr0` | **`print/session-prompts.md`** + `print/print-full-plan.md` + `print/lulu-spec-handoff.md` |
+| **3** | **Paid-bundle hardening** (refunds, share IDOR, `email_verified`, webhook retries) | Not started — **plan file NOT YET WRITTEN** | *(to write)* `sv2-s14-*.md` |
+| **—** | **Payments P12 live cutover** | Blocked on **LLC Stripe activation** (owner) + first prod deploy; run near launch | `payments/p12-live-cutover.md` |
+| **—** | **Payments P11 admin credit lever** | **Deferred** (Michael 2026-07-12) — revisit at higher volume | `payments/p11-admin-credits.md` |
+
+### ❌ Superseded / refactored / rejected — do NOT build from these
+| File(s) | Was | Now → |
+|---|---|---|
+| `deprecated/moment-hero-guided.md`, `deprecated/firsts-chapter.md`, `deprecated/circular-avatar-crop.md` | old `s5` / `s7` / `s6.6` | **Dropped** in the 2026-06-27 direction change (guided book = pre-designed fill-in). See `deprecated/README.md`. |
+| `deprecated/payments-s0/s1/s2-*.md` | subscription-era Payments | **Dropped 2026-07-09** (no subscription). Live plan → `payments/`. See `deprecated/README.md`. |
+| §6 "Sessions": `sv2-print-plan` / `sv2-print-s1` / `sv2-print-s2` (OpenPDF, 3 sessions) | old print plan | **Refactored 2026-07-11** → `print/pr0–pr9` (headless Chrome renders the real React components; no OpenPDF). |
+| `sv2-reslice-checkpoint.md` | payments/print re-slice gate | **Deferred** (Michael 2026-07-11) — print already sliced; trigger moot. |
+| `sv2-s9.0a-multi-photo-firsts-ux.md` | s4 in-card redesign | **Dropped 2026-07-02.** |
+| `sv2-s10-ai-assist.md` | AI assist v1 | **Superseded by `sv2-s10b`** (kept as backend reference). |
+| `sv2-s7-guided-book-shell.md` | S7 shell | **Split** into `sv2-s7a` + `sv2-s7b` (file is now an overview). |
+| top-level `session-prompts.md` | core-book opening prompts | **Historical** — those sessions are Complete. Payments/print have their **own** `session-prompts.md`. |
 
 ---
 
@@ -578,11 +609,15 @@ auto-charges a company card for print + ship). We assemble the print-quality PDF
   a shipping address — the fixed-price digital SKUs don't hand it a reusable flow.
 - ✅ **v2 page types** (sv2-s1…s8) — print should follow these.
 
-### Sessions (unchanged, renamed under v2)
-- **sv2-print-plan** — resolve Lulu API open questions *after* the hand-off setup returns answers
-  (trim size, auth model, redirect-vs-POST checkout, white-label, min pages).
-- **sv2-print-s1** — Backend: OpenPDF print assembly (all v2 page types) + Lulu API order submission.
-- **sv2-print-s2** — Frontend: "Order a Printed Book" UI, quantity picker, redirect, confirmation.
+### Sessions — REFACTORED 2026-07-11 into `print/pr0–pr9`
+> ⚠️ **Superseded.** The old three-session `sv2-print-plan / sv2-print-s1 (OpenPDF) / sv2-print-s2` shape is
+> **dead.** The renderer is now **headless Chrome** rendering the real React page components (no OpenPDF
+> reimplementation), and the work is sliced into ten ≤2h sessions. **Canonical:** `print/session-prompts.md`
+> (run order + prompts) and `print/print-full-plan.md` (spec). Summary of the current slices:
+- **pr0** — Lulu account setup (owner-side, no code): `pod_package_id`/trim, API creds, min-page count.
+- **pr1–pr3** — headless-Chrome infra spike → print-view route → interior PDF assembly. *Buildable now* against a placeholder trim size.
+- **pr4–pr6** — cover PDF (spine from page count) → Lulu API (OAuth/upload/print job) → cost/shipping estimate. Need `pr0`'s SKU/creds.
+- **pr7–pr9** — variable-amount Stripe checkout + address → "Order a Book" UI + min-page gate → order confirmation/status.
 
 ---
 

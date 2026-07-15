@@ -1,6 +1,8 @@
 # Payments P6 — Purchase modal
 
-**Status:** Not started (re-scoped 2026-07-11 — see decision box)
+**Status:** Complete (2026-07-11) — `PurchaseModal.jsx` built (two credit packs, optional `bookId`/`skus`
+props for s13 reuse), wired to the `onGetCredits` seam in `App.jsx`. Verified live: modal opened from a ✨
+field at 0 credits and a pack click redirected to the Stripe hosted page (Michael confirmed).
 **Est:** ~1.5–2 hours (shrunk after re-scope) · **Depends on:** P2 (P5 only nominally — see note) · **Blocks:** P7, P9
 **Launch prompt:** `session-prompts.md` → P6
 **Read first:** `stripe-full-plan.md` Session 2 → purchase modal
@@ -65,11 +67,12 @@ while in flight**. (The US-only decline surfaces on Stripe's hosted page, not he
 
 ## Done when
 
-- [ ] The modal opens from the `onGetCredits` seam and shows exactly the two credit packs.
-- [ ] Clicking a SKU hits `/billing/checkout` and redirects to Stripe with a loading state in between.
-- [ ] No subscription/tier UI anywhere.
-- [ ] The modal accepts an **optional `bookId` + extended SKU list** (unused this session) so sv2-s13 can add
-      the share/bundle cards without a rewrite.
+- [x] The modal opens from the `onGetCredits` seam and shows exactly the two credit packs. — verified live.
+- [x] Clicking a SKU hits `/billing/checkout` and redirects to Stripe with a loading state in between. —
+      `loadingSku` state + "Redirecting to secure checkout…"; confirmed reaching the hosted page.
+- [x] No subscription/tier UI anywhere.
+- [x] The modal accepts an **optional `bookId` + extended SKU list** (unused this session) so sv2-s13 can add
+      the share/bundle cards without a rewrite. — `PurchaseModal({ skus, bookId })`; `bookId` forwarded to checkout.
 
 ## Not this session
 

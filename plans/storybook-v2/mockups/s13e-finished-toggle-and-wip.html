@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>s13e — "Mark as finished" (Option A) + WIP link · mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Georgia&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#faf7f0; --card:#fff; --ink:#2d2013; --muted:#8a7f6d; --line:#e7ddca;
+    --navy:#2d3154; --navy-deep:#1e2040; --coral:#e0663f; --coral-soft:#fbeae3;
+    --ok:#3f9d6b; --line-soft:#efe7d6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Poppins',system-ui,sans-serif;padding:38px 20px 90px;}
+  .wrap{max-width:1120px;margin:0 auto;}
+  h1{font-size:27px;margin:2px 0 4px;font-weight:700;}
+  .lead{color:var(--muted);margin:0 0 6px;font-size:14.5px;max-width:820px;line-height:1.55;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+        color:var(--coral);background:var(--coral-soft);padding:3px 10px;border-radius:100px;margin-bottom:10px;}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:26px;align-items:start;}
+  @media(max-width:880px){.cols{grid-template-columns:1fr;}}
+  .col-h{display:flex;align-items:center;gap:10px;margin:0 0 4px;}
+  .col-h .tag{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#fff;
+        background:var(--navy);padding:4px 9px;border-radius:6px;}
+  .col-h h2{font-size:16px;margin:0;font-weight:700;}
+  .col-sub{color:var(--muted);font-size:12.5px;margin:0 0 14px;line-height:1.5;}
+
+  /* ---- Owner: the in-app share section (as it looks in StorybookTab) ---- */
+  .app-frame{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 26px;
+        box-shadow:0 12px 34px rgba(45,32,19,.08);}
+  .share-sec{border-top:1px solid var(--line);padding-top:20px;text-align:center;}
+  .share-sec h3{font-family:Georgia,serif;font-size:19px;margin:0;font-weight:600;}
+  .share-sec .desc{color:var(--muted);font-size:13px;margin:6px auto 14px;max-width:340px;line-height:1.5;}
+  .btn-row{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;}
+  .btn{font-size:13px;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);
+        background:#fff;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+  .btn:hover{border-color:#d8caae;background:#fdfaf3;}
+  .btn.primary{background:var(--coral);border-color:var(--coral);color:#fff;}
+  .btn.primary:hover{background:#cf5730;}
+  .link-quiet{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);
+        font-size:12px;cursor:pointer;margin-top:12px;font-family:inherit;}
+  .link-quiet:hover{color:#b4442a;}
+  svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+
+  /* the NEW bit — finished toggle */
+  .finish-card{margin-top:20px;border:1px dashed #d8caae;background:#fdfaf3;border-radius:12px;
+        padding:14px 16px;text-align:left;display:flex;align-items:center;gap:14px;}
+  .finish-card .txt{flex:1;}
+  .finish-card .t1{font-size:13.5px;font-weight:600;}
+  .finish-card .t2{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.45;}
+  .switch{--w:46px;flex:0 0 auto;width:var(--w);height:26px;border-radius:100px;background:#d9ceb6;position:relative;
+        cursor:pointer;transition:.18s;border:none;}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+        background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.18s;}
+  .switch.on{background:var(--ok);}
+  .switch.on::after{left:23px;}
+  .newtag{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--coral);
+        background:var(--coral-soft);padding:2px 7px;border-radius:100px;vertical-align:middle;margin-left:7px;}
+  .added-line{font-size:11.5px;color:var(--muted);margin-top:12px;}
+
+  /* ---- Visitor: the public book page ---- */
+  .device{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:18px;position:relative;
+        box-shadow:0 12px 34px rgba(45,32,19,.08);min-height:520px;overflow:hidden;}
+  .pubhead{text-align:center;margin-bottom:14px;}
+  .logo{width:30px;height:30px;margin:0 auto;display:block;}
+  .pubhead .story{font-family:Georgia,serif;font-weight:700;font-size:17px;margin-top:4px;}
+  .sheet{border-radius:12px;overflow:hidden;box-shadow:0 2px 18px rgba(45,32,19,.16);margin:0 auto;max-width:280px;
+        border:1px solid rgba(0,0,0,.05);background:var(--navy-deep);}
+  .sheet .photo{height:150px;background:linear-gradient(150deg,#3a3f63,#2a2e4d);}
+  .sheet .cap{padding:14px 18px 18px;text-align:center;color:#e8eaf6;}
+  .sheet .cap .divi{display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:9px;opacity:.5;}
+  .sheet .cap .divi .l{height:1px;flex:1;background:#a0a8c8;} .sheet .cap .divi span{font-size:10px;}
+  .sheet .cap .bk{font-family:Georgia,serif;font-size:18px;font-weight:600;}
+  .sheet .cap .sub{font-size:11px;opacity:.6;margin-top:5px;}
+  .page-sheet{max-width:280px;margin:16px auto 0;border-radius:12px;height:150px;background:#fff;border:1px solid rgba(0,0,0,.05);
+        box-shadow:0 2px 18px rgba(45,32,19,.16);display:flex;align-items:center;justify-content:center;color:var(--muted);
+        font-size:12px;font-style:italic;}
+
+  /* WIP badge (persistent, top-right of the visitor page) */
+  .wip-badge{position:absolute;top:16px;right:16px;display:none;align-items:center;gap:6px;z-index:4;
+        background:#fff;border:1px solid var(--line);border-radius:100px;padding:5px 11px 5px 9px;font-size:11px;
+        font-weight:600;color:#b4761f;box-shadow:0 3px 10px rgba(45,32,19,.12);}
+  .wip-badge .dot{width:7px;height:7px;border-radius:50%;background:#e0a83f;}
+  .help-btn{width:19px;height:19px;border-radius:50%;border:1px solid #e2d6ba;background:#fff;color:var(--muted);
+        font-size:11px;font-weight:700;cursor:pointer;line-height:1;}
+  .help-btn:hover{color:var(--coral);border-color:var(--coral);}
+  .show .wip-badge{display:inline-flex;}
+
+  /* help popover */
+  .help-pop{position:absolute;top:46px;right:16px;width:230px;background:#fff;border:1px solid var(--line);
+        border-radius:12px;padding:13px 14px;box-shadow:0 14px 34px rgba(45,32,19,.18);font-size:12px;color:var(--ink);
+        line-height:1.5;display:none;z-index:6;}
+  .help-pop.open{display:block;}
+  .help-pop b{display:block;margin-bottom:4px;font-size:12.5px;}
+
+  /* the acknowledgment gate (interstitial) */
+  .gate{position:absolute;inset:0;background:rgba(250,247,240,.86);backdrop-filter:blur(3px);z-index:5;
+        display:none;align-items:center;justify-content:center;padding:26px;text-align:center;}
+  .gate.show{display:flex;}
+  .gate-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 24px;max-width:320px;
+        box-shadow:0 20px 50px rgba(45,32,19,.2);}
+  .gate-card .g-ico{width:34px;height:34px;border-radius:50%;background:#fdf3e0;color:#c98a1e;display:flex;
+        align-items:center;justify-content:center;margin:0 auto 10px;}
+  .gate-card h4{margin:0 0 6px;font-size:16px;font-weight:700;}
+  .gate-card p{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.55;}
+
+  .state-note{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;font-style:italic;}
+  .foot{margin-top:34px;border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--muted);line-height:1.6;}
+  .foot b{color:var(--ink);}
+  .kbd{font-family:ui-monospace,monospace;background:#f0e9da;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="pill">s13e · mockup</span>
+  <h1>Option A — one “Mark as finished” toggle</h1>
+  <p class="lead">
+    The owner flips a single <b>Mark as finished</b> switch (same control for guided <em>and</em> freeform books).
+    While it’s off, the shared link still works but visitors get a clear <b>work-in-progress</b> treatment: a one-time
+    gate they acknowledge, a persistent badge, and a <span class="kbd">?</span> that explains what they’re seeing.
+    Flip the switch below — the visitor side reacts.
+  </p>
+
+  <div class="cols">
+    <!-- ============ OWNER ============ -->
+    <div>
+      <div class="col-h"><span class="tag">Owner</span><h2>Storybook tab · share section</h2></div>
+      <p class="col-sub">What the parent sees at the bottom of their book. The link controls are today’s s13c;
+        the dashed card is the new bit.</p>
+
+      <div class="app-frame">
+        <div class="share-sec">
+          <h3>Share your baby’s story</h3>
+          <p class="desc">Anyone with this link can read the book. They don’t need an account.</p>
+          <div class="btn-row">
+            <button class="btn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy link</button>
+            <button class="btn"><svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>Generate new link</button>
+          </div>
+
+          <!-- NEW: finished toggle (Option A) -->
+          <div class="finish-card">
+            <div class="txt">
+              <div class="t1">Mark as finished <span class="newtag">new</span></div>
+              <div class="t2" id="ownerHint">Your book is still <b>in progress</b> — visitors see a “work in progress” note until you switch this on.</div>
+            </div>
+            <button class="switch" id="switch" onclick="toggle()" aria-label="Mark as finished"></button>
+          </div>
+          <div class="added-line" id="addedLine">📖 8 pages added so far</div>
+
+          <button class="link-quiet"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Revoke access</button>
+        </div>
+      </div>
+
+      <p class="state-note" id="ownerState">State: <b>In progress</b> — the switch is off.</p>
+    </div>
+
+    <!-- ============ VISITOR ============ -->
+    <div>
+      <div class="col-h"><span class="tag">Visitor</span><h2>The shared link (incognito)</h2></div>
+      <p class="col-sub">A logged-out grandparent opening the link. Reacts to the owner’s switch. Click the
+        <span class="kbd">?</span> or “View the book”.</p>
+
+      <div class="device" id="device">
+        <!-- persistent WIP badge -->
+        <div class="wip-badge">
+          <span class="dot"></span> Work in progress
+          <button class="help-btn" onclick="toggleHelp(event)">?</button>
+        </div>
+        <div class="help-pop" id="helpPop">
+          <b>Why some pages may be missing</b>
+          This family is still adding to their book — you’re seeing the pages they’ve finished so far. Check back later for more.
+        </div>
+
+        <!-- acknowledgment gate -->
+        <div class="gate" id="gate">
+          <div class="gate-card">
+            <div class="g-ico"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></div>
+            <h4>This book is a work in progress</h4>
+            <p>Noah’s family is still adding pages. You’ll see what they’ve finished so far.</p>
+            <button class="btn primary" style="width:100%;justify-content:center" onclick="enter()">View the book</button>
+          </div>
+        </div>
+
+        <div class="pubhead">
+          <svg class="logo" viewBox="0 0 24 24" style="stroke:var(--navy);"><path d="M12 3c2 2 3 4 3 6a3 3 0 0 1-6 0c0-2 1-4 3-6z"/><path d="M6 13c3 0 5 2 6 5 1-3 3-5 6-5"/></svg>
+          <div class="story">Noah’s Story</div>
+        </div>
+
+        <div class="sheet">
+          <div class="photo"></div>
+          <div class="cap">
+            <div class="divi"><span class="l"></span><span>·</span><span class="l"></span></div>
+            <div class="bk">Noah’s Memory Book</div>
+            <div class="sub">A memory book · Born January 16, 2026</div>
+          </div>
+        </div>
+        <div class="page-sheet">page 1 · A Letter to You</div>
+        <div class="page-sheet" id="pageCaption">…8 of 35 pages shown (the finished ones)</div>
+      </div>
+
+      <p class="state-note" id="visitorState">Visitor sees: <b>gate → then the book with a WIP badge</b>.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>How content is chosen (both states):</b> the link shows <b>filled-out</b> pages, not “published” ones —
+    a <b>freeform</b> scrapbook shows every page it has; a <b>guided</b> book shows the pages that have content and
+    skips empty template slots. “Mark as finished” only controls the <b>work-in-progress treatment</b> (gate + badge),
+    not which pages appear.<br><br>
+    <b>Empty book</b> (nothing filled yet) keeps today’s “This story is still being written” message — there’s nothing to gate into.
+    &nbsp;·&nbsp; <b>Ack shows once per session.</b>
+  </div>
+</div>
+
+<script>
+  let finished = false;
+  let entered = false;
+
+  const device = document.getElementById('device');
+  const gate = document.getElementById('gate');
+
+  function render(){
+    document.getElementById('switch').classList.toggle('on', finished);
+    // owner copy
+    document.getElementById('ownerHint').innerHTML = finished
+      ? 'Your book shows as <b>finished</b> — visitors see it as a complete book, no work-in-progress note.'
+      : 'Your book is still <b>in progress</b> — visitors see a “work in progress” note until you switch this on.';
+    document.getElementById('ownerState').innerHTML = 'State: <b>' + (finished ? 'Finished' : 'In progress') + '</b> — the switch is ' + (finished ? 'on.' : 'off.');
+    document.getElementById('addedLine').textContent = finished ? '📖 35 pages · book complete' : '📖 8 pages added so far';
+    document.getElementById('pageCaption').textContent = finished ? 'page 2 · The First Days' : '…8 of 35 pages shown (the finished ones)';
+
+    // visitor
+    if(finished){
+      device.classList.remove('show');
+      gate.classList.remove('show');
+      document.getElementById('helpPop').classList.remove('open');
+      document.getElementById('visitorState').innerHTML = 'Visitor sees: <b>a clean, complete book</b> — no gate, no badge.';
+    } else {
+      // show the gate until the visitor acknowledges (once per session)
+      if(!entered){ gate.classList.add('show'); }
+      device.classList.add('show'); // badge appears once past the gate
+      document.getElementById('visitorState').innerHTML = entered
+        ? 'Visitor sees: <b>the book with a WIP badge + ? help</b>.'
+        : 'Visitor sees: <b>gate → then the book with a WIP badge</b>.';
+    }
+  }
+  function toggle(){ finished = !finished; if(finished){ entered=false; } render(); }
+  function enter(){ entered = true; gate.classList.remove('show'); render(); }
+  function toggleHelp(e){ e.stopPropagation(); document.getElementById('helpPop').classList.toggle('open'); }
+  document.addEventListener('click', ()=>document.getElementById('helpPop').classList.remove('open'));
+
+  render();
+</script>
+</body>
+</html>

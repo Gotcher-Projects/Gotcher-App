@@ -1,6 +1,19 @@
 # Payments P11 — Admin credit adjustment
 
-**Status:** Not started
+**Status:** Deferred (Michael, 2026-07-12) — not needed for launch. Michael is the sole operator, is comfortable
+adjusting `users.ai_credits_remaining` directly via `psql`, and doesn't run enough manual requests to justify
+the endpoint yet. Good feature to add once user volume grows (support-ticket "I paid but got no credits",
+goodwill grants, corrections) — revisit then. Nothing else depends on it; it does **not** block P12.
+
+> **Design already worked out (2026-07-12), ready to build when revisited:**
+> - `POST /admin/users/{id}/credits { "amount": 5 }` (positive grants, negative corrects). One-line write:
+>   `UPDATE users SET ai_credits_remaining = GREATEST(0, ai_credits_remaining + ?) WHERE id = ?` (floor at 0).
+> - Mirror the existing `AdminController` pattern: `X-Admin-Secret` header vs `app.admin.secret`, `JdbcTemplate`.
+> - Open decisions to settle at build time: (1) auth posture — lean *inherit `X-Admin-Secret` + add an audit
+>   log line* (it already guards the more-destructive delete-account); (2) look up by **email** (matches
+>   delete-account + what a support ticket carries) vs numeric `{id}`; (3) cap `|amount|` (~±1000) to blunt
+>   fat-fingered mints. No reset/cron job ever — credits are purchased, not allotted; `credits_reset_at` unused.
+
 **Est:** ~1.5 hours · **Depends on:** P1 (the columns exist) · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → P11
 

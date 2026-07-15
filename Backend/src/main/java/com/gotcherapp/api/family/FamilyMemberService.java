@@ -27,10 +27,18 @@ public class FamilyMemberService {
     public List<FamilyMember> findAll(Long userId) {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return List.of();
+        return findByProfileId(profileId.get());
+    }
+
+    /**
+     * Profile-scoped read (no user context). Used by the public shared-book path (Share s13b), which
+     * resolves the profile from a share token rather than an authenticated user.
+     */
+    public List<FamilyMember> findByProfileId(Long profileId) {
         return jdbc.queryForList(
             "SELECT " + COLS + " FROM family_members WHERE baby_profile_id = ? " +
             "ORDER BY sort_order NULLS LAST, id",
-            profileId.get()
+            profileId
         ).stream().map(this::mapRow).toList();
     }
 

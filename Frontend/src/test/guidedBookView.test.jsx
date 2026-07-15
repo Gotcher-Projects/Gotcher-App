@@ -15,8 +15,6 @@ function renderView(overrides = {}) {
     firsts: [{ id: 1, label: 'First smile', occurredDate: '2026-04-01', imageUrl: null, notes: '' }],
     onOpenBuilder: vi.fn(),
     onPick: vi.fn(),
-    onDownloadPdf: vi.fn(),
-    exportingPdf: false,
     ...overrides,
   };
   render(<GuidedBookView {...props} />);
@@ -66,11 +64,5 @@ describe('GuidedBookView', () => {
     const { onOpenBuilder } = renderView();
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(onOpenBuilder.mock.calls[0][0].anchorKey).toBe('letter-to-you');
-  });
-
-  it('Download PDF calls the handler', () => {
-    const { onDownloadPdf } = renderView();
-    fireEvent.click(screen.getByRole('button', { name: /Download PDF/ }));
-    expect(onDownloadPdf).toHaveBeenCalled();
   });
 });

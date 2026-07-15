@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, BookOpen, Download, PenLine } from "lucide-react";
-import { generateStorybookPdf, downloadPdf } from "@/lib/storybookPdf";
+import { Loader2, BookOpen, PenLine } from "lucide-react";
 import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
 import LayoutRenderer from "@/components/storybook/LayoutRenderer";
 import { BOOK_THEMES, getTheme } from "@/lib/bookThemes";
@@ -16,6 +15,7 @@ import { arcFor, expandArcToChapterSeeds, arcEntryById } from "@/lib/guidedBookA
 import { seedMomentHeroFromFirst, featuredFirstTimeIds, chapterHasContent, guidedProgress, collectUsedKeys } from "@/lib/guidedBook";
 import BookSwitcher from "@/components/storybook/BookSwitcher";
 import YourBooksShelf from "@/components/storybook/YourBooksShelf";
+import ShareSection from "@/components/storybook/ShareSection";
 
 // Remembers the last-opened book across sessions (single profile per session, so one key is enough).
 const ACTIVE_BOOK_KEY = 'cradlehq-active-book';
@@ -38,7 +38,6 @@ export default function StorybookTab({
 
   const [builderChapter, setBuilderChapter] = useState(null);
   const [pickerChapter, setPickerChapter] = useState(null); // guided pick page awaiting a First
-  const [exportingPdf, setExportingPdf] = useState(false);
   const [bookProgress, setBookProgress] = useState({}); // { [bookId]: { done, total, autoFilled } } for the shelf
 
   // Live data for the data-driven book pages (birth_day, people, milestones). Fetched here so the
@@ -89,6 +88,16 @@ export default function StorybookTab({
       .catch(() => {});
   }, []);
   useEffect(() => { loadPageData(); }, [loadPageData]);
+
+  // Share s13c: after a share/bundle purchase, the webhook sets share_unlocked_at server-side. The
+  // Stripe return is a full reload (so books reload on mount in the common case); this focus refetch
+  // additionally flips activeBook.shareUnlocked when the webhook lands while the tab is backgrounded —
+  // without the landing logic in the mount-only loader above.
+  useEffect(() => {
+    const onFocus = () => { apiRequest('/books').then(list => { if (list) setBooks(list); }).catch(() => {}); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   // Shelf progress: when the shelf opens, fetch each guided book's chapters and compute its X/Y so the
   // cards show fill progress. Freeform books have no guided progress. Bounded to guided books only.
@@ -220,23 +229,6 @@ export default function StorybookTab({
   async function deleteChapter(id) {
     await apiRequest(`/storybook/${id}`, { method: 'DELETE' });
     setChapters(c => c.filter(ch => ch.id !== id));
-  }
-
-  async function handleDownloadPdf() {
-    // sv2-s8.5: both modes export the whole book — guided = all arc pages; freeform = its single
-    // flat-page chapter. There's no per-period publish gate anymore.
-    const chaptersForPdf = sorted;
-    if (chaptersForPdf.length === 0) { onError?.('Nothing to export yet'); return; }
-    setExportingPdf(true);
-    try {
-      const doc = await generateStorybookPdf(chaptersForPdf, activeTheme, { babyName, birthdate, coverPhotoUrl, coverSubtitle, pageData });
-      downloadPdf(doc, activeBook?.title || babyName || 'storybook');
-    } catch (e) {
-      onError?.('PDF export failed — please try again');
-      console.error('PDF export:', e);
-    } finally {
-      setExportingPdf(false);
-    }
   }
 
   // ── Chapter ordering ──────────────────────────────────────────────────────────
@@ -386,19 +378,6 @@ export default function StorybookTab({
             );
           })}
         </div>
-        {/* Guided books download from their own view; freeform shows it here once something's published. */}
-        {activeBook?.type !== 'guided' && sorted.length > 0 && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="ml-auto shrink-0 gap-1.5"
-            onClick={handleDownloadPdf}
-            disabled={exportingPdf}
-          >
-            {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            {exportingPdf ? 'Exporting…' : 'Download PDF'}
-          </Button>
-        )}
       </div>
 
       {activeBook?.type === 'guided' ? (
@@ -408,8 +387,6 @@ export default function StorybookTab({
           firsts={firsts ?? []}
           onOpenBuilder={(ch) => setBuilderChapter(ch)}
           onPick={(ch) => setPickerChapter(ch)}
-          onDownloadPdf={handleDownloadPdf}
-          exportingPdf={exportingPdf}
         />
       ) : (
         // sv2-s8.5: a freeform book is one continuous page sequence (one chapter). No chapter cards,
@@ -430,6 +407,12 @@ export default function StorybookTab({
           </Button>
         </div>
       )}
+
+      <ShareSection
+        bookId={activeBookId}
+        shareUnlocked={!!activeBook?.shareUnlocked}
+        onError={onError}
+      />
 
       {pickerChapter && (
         <FirstPicker

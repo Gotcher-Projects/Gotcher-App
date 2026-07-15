@@ -28,9 +28,17 @@ public class BirthDetailsService {
     public BirthDetails getOrEmpty(Long userId) {
         Optional<Long> profileId = babyProfileRepository.findProfileIdByUserId(userId);
         if (profileId.isEmpty()) return BirthDetails.empty();
+        return getByProfileId(profileId.get());
+    }
+
+    /**
+     * Profile-scoped read (no user context). Used by the public shared-book path (Share s13b), which
+     * resolves the profile from a share token rather than an authenticated user.
+     */
+    public BirthDetails getByProfileId(Long profileId) {
         List<Map<String, Object>> rows = jdbc.queryForList(
             "SELECT " + COLS + " FROM birth_details WHERE baby_profile_id = ?",
-            profileId.get()
+            profileId
         );
         return rows.isEmpty() ? BirthDetails.empty() : mapRow(rows.get(0));
     }

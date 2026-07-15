@@ -17,6 +17,10 @@ public record ApiError(String error) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(msg));
     }
 
+    public static ResponseEntity<ApiError> paymentRequired(String msg) {
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(new ApiError(msg));
+    }
+
     public static ResponseEntity<ApiError> notFound(String msg) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(msg));
     }

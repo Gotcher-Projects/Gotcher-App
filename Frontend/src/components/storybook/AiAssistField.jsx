@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useAiCredits } from "@/contexts/AiCreditsContext";
+import { usePurchase } from "@/contexts/PurchaseContext";
 
 // Reshape chips (idea B): re-run a draft biased shorter / warmer / more detailed. The keys are
 // server-whitelisted in AiAssistService — the client can't inject a free-form instruction.
@@ -43,7 +44,8 @@ const MIN_SEED_CHARS = 12;
  *   label      – empty-state button text (default "Write this for me"; inline only)
  */
 export default function AiAssistField({ promptType, context = {}, onResult, label = "Write this for me", variant = "inline", requireSeed = false, className = "" }) {
-  const { credits, setCredits, onGetCredits } = useAiCredits();
+  const { credits, setCredits } = useAiCredits();
+  const { openPurchase } = usePurchase();  // no args → the modal defaults to the credit packs
   const [status, setStatus] = useState("idle"); // 'idle' | 'loading' | 'review'
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ export default function AiAssistField({ promptType, context = {}, onResult, labe
   async function generate(reshape) {
     if (loading) return;
     if (!seedOk) return; // guarded UI-side too; nothing to draft from
-    if (!hasCredits) { onGetCredits?.(); return; }
+    if (!hasCredits) { openPurchase?.(); return; }
     setError(null);
     setStatus("loading");
     try {
@@ -70,7 +72,7 @@ export default function AiAssistField({ promptType, context = {}, onResult, labe
       // 402 = a concurrent spend drained the balance → route to the buy-credits flow.
       // 422 = the model returned nothing usable (empty / refusal); the credit was refunded server-side
       //       and the message is user-facing, so show it (nothing to accept).
-      if (e?.status === 402) onGetCredits?.();
+      if (e?.status === 402) openPurchase?.();
       else if (e?.status === 422) setError(e.message || "Couldn't draft that — try adding a note first.");
       else setError("Couldn't write that — please try again.");
       setStatus("idle");
@@ -149,13 +151,27 @@ export default function AiAssistField({ promptType, context = {}, onResult, labe
     return <div className={`mt-2 ${className}`}>{reviewBox}</div>;
   }
 
-  // Out of credits (informational until Payments ships).
+  // Out of credits. On web (openPurchase defined) this is a buy CTA. On native it's undefined (Payments P9
+  // gate in App.jsx) → render a plain, non-clickable indicator with NO button and NO "get more"/buy-on-web
+  // steering, so the native app carries no purchase call-to-action (App Store 3.1.3(f) exemption).
   if (!hasCredits) {
+    if (!openPurchase) {
+      return (
+        <div className={`mt-2 flex flex-wrap items-center gap-2 ${className}`}>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+            title="You're out of AI credits"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Out of AI credits
+          </span>
+        </div>
+      );
+    }
     return (
       <div className={`mt-2 flex flex-wrap items-center gap-2 ${className}`}>
         <button
           type="button"
-          onClick={() => onGetCredits?.()}
+          onClick={() => openPurchase()}
           className="inline-flex items-center gap-1.5 rounded-full border border-pink-300 bg-pink-50 px-3 py-1 text-xs font-medium text-pink-700"
           title="You're out of AI credits"
         >
