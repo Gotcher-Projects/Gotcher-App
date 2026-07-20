@@ -10,11 +10,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Print pr5 — orchestrates the Lulu submit: render interior + cover (pr3/pr4), cross-check the cover geometry
- * against Lulu's authoritative calc, then hand a built payload to {@link LuluClient#createPrintJob} (which owns
- * the kill switch). Stops at the client — no {@code print_orders}, address capture, Stripe, or webhook; those
- * are pr7. The {@link #submitTestJob} path is a THROWAWAY dev harness (canned sandbox address); pr7 deletes it
- * and moves the submit into the fulfil-on-paid Stripe webhook.
+ * Print pr5/pr7 — the Lulu-domain layer: builds the create-print-job payload and submits it (via
+ * {@link LuluClient#createPrintJob}, which owns the kill switch), plus the cover-dimension cross-check. It does
+ * NOT touch {@code print_orders}, Stripe, or the webhook — the fulfilment orchestration (idempotency, status
+ * transitions, reading the address off the Stripe session) lives in {@link PrintOrderFulfilmentService}, which
+ * calls {@link #submitOrder} once a checkout is paid. The PDFs are rendered pre-checkout (pr7 commit a), so this
+ * only hands Lulu the already-persisted {@code source_url}s.
  */
 @Service
 public class LuluPrintService {
@@ -31,39 +32,42 @@ public class LuluPrintService {
     private static final double SPINE_PAD_IN = 0.06; // Lulu's published softcover perfect-bound spine pad
     private static final double DIM_TOLERANCE_IN = 0.02; // Lulu rounds to 3dp — allow a hair of drift
 
-    // Canned sandbox order for the throwaway dev trigger (US-only). pr7 replaces this with the real customer +
-    // captured address, and pr6/pr7 pick the customer-facing shipping level.
-    private static final String TEST_CONTACT_EMAIL = "print@cradlehq.app";
+    // Where Lulu sends print-job notifications: OUR company address (we're the Lulu account holder), not the buyer.
+    private static final String CONTACT_EMAIL = "print@cradlehq.app";
 
-    // ⚠ pr0.5 assumed a fixed "GROUND" level, but shipping-options / cost-calc for THIS SKU→US do NOT offer plain
-    // GROUND (only GROUND_HD / MAIL / PRIORITY_MAIL / EXPEDITED / EXPRESS) — a GROUND print job is REJECTED (verified
-    // 2026-07-18, sandbox job 314931). We default the throwaway harness to MAIL: the cheapest valid US option
-    // ($5.69), closest to the "cheap ground" intent. The real level is a pr6/pr7 (cost-estimate/checkout) decision.
-    private static final String TEST_SHIPPING_LEVEL = "MAIL";
+    // ⚠ Shipping level is a fixed single level, LOCKED to MAIL (pr6). pr0.5 assumed "GROUND", but shipping-options /
+    // cost-calc for THIS SKU→US do NOT offer plain GROUND (only GROUND_HD / MAIL / PRIORITY_MAIL / EXPEDITED /
+    // EXPRESS) — a GROUND print job is REJECTED (verified 2026-07-18, sandbox job 314931). MAIL is the cheapest
+    // valid US option ($5.69), already baked into the pr6 flat retail price. There is no per-order level selector.
+    private static final String SHIPPING_LEVEL = "MAIL";
 
     private final LuluClient lulu;
-    private final PrintRenderService renderService;
-    private final PrintInteriorService printInteriorService;
     private final String podPackageId;
 
-    public LuluPrintService(
-            LuluClient lulu,
-            PrintRenderService renderService,
-            PrintInteriorService printInteriorService,
-            @Value("${lulu.pod-package-id:}") String podPackageId) {
+    public LuluPrintService(LuluClient lulu, @Value("${lulu.pod-package-id:}") String podPackageId) {
         this.lulu = lulu;
-        this.renderService = renderService;
-        this.printInteriorService = printInteriorService;
         this.podPackageId = podPackageId;
     }
+
+    /** A US shipping address for a print job (Lulu's field names). Collected by Stripe Checkout, read in the webhook. */
+    public record Address(String name, String street1, String street2, String city,
+                          String stateCode, String postcode, String countryCode, String phone) {}
 
     /** Cover-dimension cross-check: our computed wrap dims vs Lulu's calc for the SKU + page count. */
     public record CoverCheck(int pageCount, double luluWidth, double luluHeight,
                              double computedWidth, double computedHeight, boolean matches) {}
 
-    /** Result of the throwaway dev submit — the job + the URLs Lulu will fetch + the cover cross-check. */
-    public record LuluTestResult(long jobId, String status, String interiorUrl, String coverUrl,
-                                 CoverCheck coverCheck, List<LuluClient.LineItemStatus> lineItems) {}
+    /**
+     * Submit a PAID Lulu print job for an order: the already-rendered interior/cover {@code source_url}s + copies
+     * + the buyer's shipping address. {@code externalId} = the {@code print_orders.id} (Lulu-side dedup: a
+     * double-submit would be two physical books). The kill switch in {@link LuluClient#createPrintJob} refuses
+     * (throws {@link LuluClient.PrintDisabledException}) when print is off — nothing reaches Lulu.
+     */
+    public LuluClient.PrintJob submitOrder(String externalId, String interiorUrl, String coverUrl,
+                                           int quantity, Address addr) {
+        Map<String, Object> body = buildJobBody(externalId, interiorUrl, coverUrl, quantity, addr);
+        return lulu.createPrintJob(body);
+    }
 
     /**
      * Cross-check our computed cover wrap against Lulu's authoritative cover-dimensions calc for the given
@@ -90,59 +94,13 @@ public class LuluPrintService {
     }
 
     /**
-     * THROWAWAY dev flow (pr7 deletes this): render interior + cover behind signed token URLs, cross-check the
-     * cover, then submit a PAID sandbox print job with a canned US address + qty 1. The client kill switch
-     * refuses the submit when print is off — so with the flag off this still renders + cross-checks, then throws
-     * {@link LuluClient.PrintDisabledException} at the submit (nothing reaches Lulu).
-     */
-    public LuluTestResult submitTestJob(Long userId, Long bookId) {
-        // 1. Render both PDFs pre-submit (pr0.5 "pre-checkout render") — persisted behind unguessable token URLs.
-        PrintRenderService.RenderResult interior = renderService.renderInterior(userId, bookId);
-        PrintRenderService.RenderResult cover = renderService.renderCover(userId, bookId);
-
-        // 2. GATE (pr5.5, D2): a book must be orderable — ≥ 32 filled interior pages, within the type ceiling —
-        //    before we ever submit. Same single source of truth pr6/pr8 use, so the harness enforces the real
-        //    rule. The count = Σ filtered chapter pages (== what the interior PDF just rendered) and also drives
-        //    the cover cross-check.
-        PrintInteriorService.Orderability gate = printInteriorService.orderability(userId, bookId);
-        if (!gate.orderable()) {
-            throw new NotOrderableException(gate);
-        }
-        int pageCount = gate.pageCount();
-        CoverCheck check = crossCheckCover(pageCount);
-
-        // 3. Build + submit the paid job. external_id = the dedup seam pr7 ties to print_orders.id (double-submit
-        //    = two physical books); here it's just a unique generated id.
-        String externalId = "pr5-test-" + bookId + "-" + System.currentTimeMillis();
-        Map<String, Object> body = buildJobBody(externalId, interior.pdfUrl(), cover.pdfUrl(), 1);
-        LuluClient.PrintJob job = lulu.createPrintJob(body);
-
-        return new LuluTestResult(job.id(), job.status(), interior.pdfUrl(), cover.pdfUrl(), check, job.lineItems());
-    }
-
-    /** Poll a job's async status (throwaway dev harness — pr7 owns real status handling). */
-    public LuluClient.PrintJob getJobStatus(long jobId) {
-        return lulu.getPrintJob(jobId);
-    }
-
-    /** A book that fails the print gate (too few / too many interior pages) — never reaches Lulu. Mapped to 409. */
-    public static class NotOrderableException extends RuntimeException {
-        private final transient PrintInteriorService.Orderability gate;
-        public NotOrderableException(PrintInteriorService.Orderability gate) {
-            super("Book is not orderable: " + gate.pageCount() + " filled pages (need "
-                + gate.min() + "–" + gate.max() + "); reason=" + gate.reason());
-            this.gate = gate;
-        }
-        public PrintInteriorService.Orderability gate() { return gate; }
-    }
-
-    /**
      * Build the Lulu create-print-job payload. Lulu fetches {@code interior}/{@code cover} from the public
      * {@code source_url}s server-side (no binary upload). Shape verified against the sandbox: line item carries
      * {@code interior}/{@code cover} directly (each {@code {source_url}}), qty, and the SKU; top-level carries
      * contact email, external id, shipping level, and the address.
      */
-    private Map<String, Object> buildJobBody(String externalId, String interiorUrl, String coverUrl, int quantity) {
+    private Map<String, Object> buildJobBody(String externalId, String interiorUrl, String coverUrl,
+                                             int quantity, Address addr) {
         Map<String, Object> lineItem = new LinkedHashMap<>();
         lineItem.put("title", "CradleHQ Memory Book");
         lineItem.put("quantity", quantity);
@@ -151,18 +109,21 @@ public class LuluPrintService {
         lineItem.put("cover", Map.of("source_url", coverUrl));
 
         Map<String, Object> address = new LinkedHashMap<>();
-        address.put("name", "CradleHQ Sandbox Test");
-        address.put("street1", "123 Test Street");
-        address.put("city", "Los Angeles");
-        address.put("state_code", "CA");
-        address.put("postcode", "90001");
-        address.put("country_code", "US");
-        address.put("phone_number", "5551234567");
+        address.put("name", addr.name());
+        address.put("street1", addr.street1());
+        if (addr.street2() != null && !addr.street2().isBlank()) {
+            address.put("street2", addr.street2());
+        }
+        address.put("city", addr.city());
+        address.put("state_code", addr.stateCode());
+        address.put("postcode", addr.postcode());
+        address.put("country_code", addr.countryCode());
+        address.put("phone_number", addr.phone());
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("contact_email", TEST_CONTACT_EMAIL);
+        body.put("contact_email", CONTACT_EMAIL);
         body.put("external_id", externalId);
-        body.put("shipping_level", TEST_SHIPPING_LEVEL);
+        body.put("shipping_level", SHIPPING_LEVEL);
         body.put("line_items", List.of(lineItem));
         body.put("shipping_address", address);
         return body;

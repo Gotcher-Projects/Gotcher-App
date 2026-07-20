@@ -24,16 +24,14 @@ import java.util.Map;
 public class PrintController {
 
     private final PrintRenderService renderService;
-    private final LuluPrintService luluPrintService;
     private final PrintInteriorService printInteriorService;
     private final PrintPricingService pricingService;
     private final PrintOrderService printOrderService;
 
-    public PrintController(PrintRenderService renderService, LuluPrintService luluPrintService,
+    public PrintController(PrintRenderService renderService,
                            PrintInteriorService printInteriorService, PrintPricingService pricingService,
                            PrintOrderService printOrderService) {
         this.renderService = renderService;
-        this.luluPrintService = luluPrintService;
         this.printInteriorService = printInteriorService;
         this.pricingService = pricingService;
         this.printOrderService = printOrderService;
@@ -153,60 +151,6 @@ public class PrintController {
             return ApiError.notFound(e.getMessage());
         } catch (Exception e) {
             // Catch Exception: an uncaught RuntimeException re-dispatches to /error and surfaces as 401 (CLAUDE.md).
-            return ApiError.serverError(e.getMessage());
-        }
-    }
-
-    // ── THROWAWAY dev triggers (pr5) — pr7 DELETES both and moves the submit into the Stripe webhook ──────────
-    // These exercise the Lulu client against the sandbox: render interior+cover, cross-check the cover, submit a
-    // PAID job with a canned US address + qty 1. Owner-guarded (book IDOR check in the render service) + behind
-    // the app.print.enabled kill switch (submit hard-refuses when off). NOT a real order — no print_orders,
-    // customer, address form, or checkout (that's pr7). Requires Lulu to reach the persisted PDF URLs: in dev set
-    // BACKEND_URL=<tunnel> so /print/pdf/{token} is publicly fetchable.
-
-    /** Render + cross-check + submit a paid SANDBOX Lulu job → { jobId, status, urls, coverCheck, lineItems }. */
-    @PostMapping("/lulu-test")
-    public ResponseEntity<?> luluTest(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable Long bookId
-    ) {
-        try {
-            LuluPrintService.LuluTestResult r = luluPrintService.submitTestJob(principal.userId(), bookId);
-            return ResponseEntity.ok(Map.of(
-                "jobId", r.jobId(),
-                "status", r.status() == null ? "" : r.status(),
-                "interiorUrl", r.interiorUrl(),
-                "coverUrl", r.coverUrl(),
-                "coverCheck", r.coverCheck(),
-                "lineItems", r.lineItems()));
-        } catch (PrintRenderService.BookNotAccessibleException e) {
-            return ApiError.notFound(e.getMessage());
-        } catch (LuluPrintService.NotOrderableException e) {
-            // Gate failed (too few / too many filled pages) — 409, never reaches Lulu.
-            return ApiError.conflict(e.getMessage());
-        } catch (LuluClient.PrintDisabledException e) {
-            // Kill switch tripped — handled 409 (feature intentionally off), never a 500.
-            return ApiError.conflict(e.getMessage());
-        } catch (Exception e) {
-            return ApiError.serverError(e.getMessage());
-        }
-    }
-
-    /** Poll a submitted job's async status (Lulu fetches the PDFs after the POST) → { jobId, status, lineItems }. */
-    @GetMapping("/lulu-test/{jobId}")
-    public ResponseEntity<?> luluTestStatus(
-        @AuthenticationPrincipal AuthPrincipal principal,
-        @PathVariable Long bookId,
-        @PathVariable long jobId
-    ) {
-        try {
-            LuluClient.PrintJob job = luluPrintService.getJobStatus(jobId);
-            return ResponseEntity.ok(Map.of(
-                "jobId", job.id(),
-                "status", job.status() == null ? "" : job.status(),
-                "externalId", job.externalId() == null ? "" : job.externalId(),
-                "lineItems", job.lineItems()));
-        } catch (Exception e) {
             return ApiError.serverError(e.getMessage());
         }
     }

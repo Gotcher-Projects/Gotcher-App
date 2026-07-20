@@ -8,6 +8,7 @@ import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionRetrieveParams;
+import com.gotcherapp.api.print.PrintOrderFulfilmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,13 +27,16 @@ public class BillingWebhookService {
     private static final Logger log = LoggerFactory.getLogger(BillingWebhookService.class);
 
     private final GrantService grantService;
+    private final PrintOrderFulfilmentService printOrderFulfilmentService;
     private final String webhookSecret;
 
     public BillingWebhookService(
         GrantService grantService,
+        PrintOrderFulfilmentService printOrderFulfilmentService,
         @Value("${stripe.webhook.secret}") String webhookSecret
     ) {
         this.grantService = grantService;
+        this.printOrderFulfilmentService = printOrderFulfilmentService;
         this.webhookSecret = webhookSecret;
     }
 
@@ -74,6 +78,13 @@ public class BillingWebhookService {
             sessionId,
             SessionRetrieveParams.builder().addExpand("line_items.data.price").build(),
             null);
+
+        // Route by metadata.type. Print orders (pr7) are fulfilled by submitting a Lulu job, not a credit grant;
+        // everything without this marker is a digital SKU and falls through to the original grant path below.
+        if ("print_order".equals(session.getMetadata().get("type"))) {
+            printOrderFulfilmentService.fulfil(eventId, session);
+            return;
+        }
 
         long userId = Long.parseLong(session.getClientReferenceId());
         String sku = session.getMetadata().get("sku");

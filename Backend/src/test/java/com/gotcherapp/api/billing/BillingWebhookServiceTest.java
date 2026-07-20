@@ -37,6 +37,7 @@ import static org.mockito.Mockito.*;
 class BillingWebhookServiceTest {
 
     @Mock GrantService grantService;
+    @Mock com.gotcherapp.api.print.PrintOrderFulfilmentService printOrderFulfilmentService;
 
     private BillingWebhookService service;
 
@@ -47,7 +48,7 @@ class BillingWebhookServiceTest {
     @BeforeEach
     void setUp() {
         // The secret is a @Value String, not a bean — construct by hand rather than @InjectMocks.
-        service = new BillingWebhookService(grantService, SECRET);
+        service = new BillingWebhookService(grantService, printOrderFulfilmentService, SECRET);
     }
 
     @Test
@@ -131,6 +132,36 @@ class BillingWebhookServiceTest {
             service.handle(PAYLOAD, SIG);
 
             verify(grantService).apply("evt_2", 99L, "bundle_share_150", 150, 7L);
+        }
+    }
+
+    @Test
+    void printOrder_routesToPrintFulfilment_notGrant() throws Exception {
+        Session stubFromEvent = mock(Session.class);
+        when(stubFromEvent.getId()).thenReturn("cs_print");
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.getObject()).thenReturn(Optional.of(stubFromEvent));
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("checkout.session.completed");
+        when(event.getId()).thenReturn("evt_print");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        // A print session is recognised by metadata.type — it must NOT touch the credit ledger.
+        Session full = mock(Session.class);
+        when(full.getMetadata()).thenReturn(Map.of("type", "print_order", "printOrderId", "5"));
+
+        try (MockedStatic<Webhook> webhook = mockStatic(Webhook.class);
+             MockedStatic<Session> session = mockStatic(Session.class)) {
+            webhook.when(() -> Webhook.constructEvent(PAYLOAD, SIG, SECRET)).thenReturn(event);
+            session.when(() -> Session.retrieve(eq("cs_print"), any(SessionRetrieveParams.class), isNull()))
+                .thenReturn(full);
+
+            service.handle(PAYLOAD, SIG);
+
+            verify(printOrderFulfilmentService).fulfil("evt_print", full);
+            verifyNoInteractions(grantService);
         }
     }
 

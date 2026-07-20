@@ -19,11 +19,9 @@ class LuluPrintServiceTest {
     private static final String POD = "0850X1100FCPREPB080CW444GXX";
 
     @Mock LuluClient lulu;
-    @Mock PrintRenderService renderService;
-    @Mock PrintInteriorService printInteriorService;
 
     private LuluPrintService service() {
-        return new LuluPrintService(lulu, renderService, printInteriorService, POD);
+        return new LuluPrintService(lulu, POD);
     }
 
     @Test
