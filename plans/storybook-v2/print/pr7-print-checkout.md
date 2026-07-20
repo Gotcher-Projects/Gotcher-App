@@ -1,6 +1,32 @@
 # Print pr7 — Variable-amount Stripe checkout + shipping address
 
-**Status:** Not started — **scope locked with Michael 2026-07-19** (see "Decisions locked" below).
+**Status:** Needs Verification (both commits implemented 2026-07-20). Backend build + full test suite green
+(unit tests for both commits). **Still needs the manual e2e** (4242 test card + local Stripe webhook + Lulu
+sandbox via the cloudflared tunnel, `PRINT_ENABLED=true`): confirm the order row + Stripe hosted page +
+US address/phone form (commit a), then the paid webhook flips the order `paid → submitted` and Lulu fetches
+the PDFs (commit b). Verify redelivery is a no-op (Stripe "Resend").
+
+**What shipped:**
+- **Commit (a)** `9579816` — `V51__add_print_orders.sql` (order backbone table), `PrintOrderService.createCheckout`
+  (kill-switch gate → orderability + server-side amount recompute → render+persist interior/cover → insert
+  `pending` order → open variable-amount Stripe session: inline `price_data` unit×qty, US
+  `shipping_address_collection` + `phone_number_collection`, metadata `type=print_order`/`printOrderId`),
+  `POST /books/{id}/print/checkout`, `PrintOrderServiceTest` (guard paths). ⚠ Added a v1 guardrail
+  `MAX_QUANTITY=10` on the variable-amount charge (surfaced for the owner to change).
+- **Commit (b)** `adec176` — `PrintOrderFulfilmentService` (atomic `pending→paid` claim = idempotency; reads
+  Stripe address off `session.collected_information` + phone off `customer_details`; submits the paid Lulu job,
+  stores `lulu_job_id`, flips to `submitted`; a refused/failed submit parks the order at `paid` for s14a),
+  `BillingWebhookService` `type=print_order` branch (credit/share path untouched), `LuluPrintService.submitOrder`
+  (real captured address, MAIL level), **deleted** the throwaway `/lulu-test` triggers + `submitTestJob`/canned
+  address, tests (routing, idempotency, parking).
+
+**Follow-ups noted for later (not this session):** pr6's deferred Lulu delivery estimate still folds into pr8;
+the pr8 UI wraps this checkout endpoint (consuming `orderability` + `price` first); s14a owns the
+`paid`-but-not-`submitted` refund/retry recovery.
+
+---
+
+**Status (original):** Not started — **scope locked with Michael 2026-07-19** (see "Decisions locked" below).
 **Est:** ~2–3 hours (spill-prone — **split into two commits, below**) · **Depends on:** Payments P1–P3, pr5, pr6 (both DONE + Lulu-verified) · **Blocks:** pr8, pr9
 **Launch prompt:** `session-prompts.md` → pr7
 **Read first:** `../payments/p2-checkout-endpoint.md`, `../payments/p3-webhook-idempotency.md`, `com.gotcherapp.api.billing.BillingService` (the reuse model)
