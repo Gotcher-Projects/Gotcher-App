@@ -27,5 +27,6 @@ Close the loop after a successful print order: confirm it, and (optionally) tell
 - [ ] (If in scope) a Lulu shipped event notifies the user.
 
 ## Not this session
-Refunds / order-cancellation / print-job-rejection recovery → **`../sv2-s14`** (hardening). Just the happy-path
-confirmation (+ optional shipped ping).
+Refunds / order-cancellation / print-job-rejection recovery **and the persistent "my orders" history list** →
+**`../sv2-s14-print-hardening.md`** (order-history is s14c). pr9 is only the single post-checkout confirmation
+(+ optional shipped ping); it reads the `print_orders` row (table from pr7) but doesn't build a list view.

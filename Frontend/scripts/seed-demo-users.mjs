@@ -43,8 +43,25 @@ async function register(email, displayName) {
     body: JSON.stringify({ email, password: PASSWORD, display_name: displayName }),
   });
   if (res.ok) return (await res.json()).accessToken;
-  if (res.status >= 400 && res.status < 500) { console.log(`  • ${email} already exists — skipping.`); return null; }
+  if (res.status >= 400 && res.status < 500) { console.log(`  • ${email} already exists.`); return null; }
   throw new Error(`register ${email} → ${res.status} ${await res.text().catch(() => '')}`);
+}
+
+// Log in to an existing account → token (the --reset path). Null if login fails.
+async function login(email) {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: PASSWORD }),
+  });
+  if (!res.ok) return null;
+  return (await res.json()).accessToken;
+}
+
+// Delete every book the account owns (the --reset path), so its books can be rebuilt on the current arc.
+async function deleteAllBooks(token) {
+  const books = (await req('GET', '/books', token)) || [];
+  for (const b of books) await req('DELETE', `/books/${b.id}`, token).catch(() => {});
+  return books.length;
 }
 
 // Upload a bundled asset once per account (cached), returning its Cloudinary URL.
@@ -88,20 +105,20 @@ async function publishChapters(token, bookId) {
   for (const c of chs) await req('PATCH', `/storybook/${c.id}`, token, { status: 'published' });
 }
 
-// Generic order-based page filler: text blocks get `texts` in order, photo blocks get `photos` (urls) in
-// order. Same clean shape as momentHeroPage (app's emptyBlocksForTemplate + Tiptap text). Works for every
-// template — role-based (letter/gallery/prompts/bump/moment-hero) and positional (spotlight/growth/etc.).
-function fillPage(templateId, texts = [], photos = []) {
-  const tpl = TEMPLATES.find(t => t.id === templateId);
-  if (!tpl) throw new Error(`template ${templateId} not found`);
+// Fill a guided page's blanks IN PLACE: text blocks get `texts` in order, photo blocks get `photos` (urls)
+// in order, and every OTHER block is preserved — crucially the injected `*-config` blocks that carry a page's
+// custom labels/header (e.g. the pr5.5 "The Day You Were Born" time-capsule's `prompts-config`). Operating on
+// the arc-seeded page rather than rebuilding from the bare template is what keeps that config; for pages
+// without config it's identical to a template rebuild (the seeded blocks came from emptyBlocksForTemplate).
+function fillPageBlocks(page, texts = [], photos = []) {
   let ti = 0, pi = 0;
-  const blocks = emptyBlocksForTemplate(tpl).map(b => {
+  const blocks = (page.blocks || []).map(b => {
     const nb = { ...b };
     if (b.type === 'text') nb.content = toTiptapDoc(texts[ti++] ?? '');
     if (b.type === 'photo') nb.url = photos[pi++] ?? null;
     return nb;
   });
-  return { id: makePageId(), sourceKeys: [], templateId, backgroundColor: null, blocks };
+  return { ...page, blocks };
 }
 
 // Content for the guided-book fill/pick pages, keyed by arc anchorKey. `texts` fill the page's text blocks
@@ -109,6 +126,8 @@ function fillPage(templateId, texts = [], photos = []) {
 // live data; dividers are pre-filled from the arc — neither is listed here.)
 const LETTER_BEFORE = "My darling Noah — as I write this you're a flutter of kicks and hiccups, and we already love you more than we knew was possible. We've painted your room the softest green, folded impossibly tiny socks, and imagined your face a thousand ways. Whoever you turn out to be, know this: you were wanted, you were waited for, and you were loved long before your first breath.";
 const LETTER_ONE = "Noah, my love — a whole year. You arrived and rearranged our entire world, and we'd do it all again in a heartbeat. This year you learned to smile, to laugh, to sit, to reach for us. You taught us a tiredness we never knew and a love we never imagined. Happy first birthday, little one — here's to all the years still to come.";
+// Name-neutral (used by the "Your First Year" arc's opening letter, which "Bump to One" drops).
+const LETTER_TO_YOU = "My darling — the day you arrived, the whole world went quiet and then began again, brand new. We had imagined you a thousand ways, and somehow you were more than all of them. Whoever you grow up to be, know this: you were wanted, you were waited for, and you were loved from your very first breath.";
 
 const GUIDED_FILL = {
   // ▸ Before You Arrived (pregnancy)
@@ -118,6 +137,11 @@ const GUIDED_FILL = {
   'bump-early':    { texts: ['The Bump — Early Days', '16 weeks', '20 weeks', "The first little curve — we couldn't stop looking."], photos: ['bump-01-hands.jpg', 'bump-02-shoe-bw.jpg'] },
   'bump-bloom':    { texts: ['The Bump — Full Bloom', '28 weeks', '34 weeks', 'Nearly there — every kick a hello.'], photos: ['bump-02-shoe-bw.jpg', 'bump-01-hands.jpg'] },
   // ▸ The Beginning
+  // First-Year-only opening letter (dropped by "Bump to One"). Needed so a First Year book reaches the floor.
+  'letter-to-you': { texts: ['A Letter to You', LETTER_TO_YOU, '— With all our love'], photos: [] },
+  // pr5.5 time-capsule (prompts): 5 answers in the same order as the arc's `labels` (#1 song · headline ·
+  // weather · coffee · president). Values are illustrative demo filler, not real-world facts.
+  'day-you-born': { texts: ['The song everyone had on repeat', 'The local team won the big game', 'Cold and clear — the first frost', '$4.75', 'The one everyone argued about'], photos: [] },
   'welcome':     { texts: ['Welcome to the World', 'Your very first hours', 'Hello, you', 'So new', 'Tiny fingers', 'First cuddle'], photos: ['newborn-01-red.jpg', 'newborn-03-pink.jpg', 'newborn-02-green.jpg', 'baby-01-bath.jpg'] },
   'coming-home': { texts: ['The day we brought you home. You slept the whole drive and woke the moment we stopped — already keeping us on our toes.'], photos: ['newborn-03-pink.jpg'] },
   'tiny-new':    { texts: ['How small you were. Tiny hands, sleepy faces, those first newborn days that went by in a blur of love and no sleep.'], photos: ['newborn-02-green.jpg'] },
@@ -153,10 +177,11 @@ async function fillGuidedBook(token, bookId, up, { onlyPregnancy = false } = {})
     if (onlyPregnancy && !PREGNANCY_KEYS.has(key)) continue;
     const ch = byKey.get(key);
     if (!ch) continue;
+    const seededPage = ch.layoutData?.pages?.[0];
+    if (!seededPage) continue;
     const urls = [];
     for (const f of spec.photos) urls.push(await up(f, 'storybook'));
-    const templateId = ch.layoutData?.pages?.[0]?.templateId;
-    const page = fillPage(templateId, spec.texts, urls);
+    const page = fillPageBlocks(seededPage, spec.texts, urls);
     await req('PATCH', `/storybook/${ch.id}`, token, { layoutData: { version: 2, pages: [page] }, status: 'published' });
   }
 }
@@ -186,6 +211,12 @@ async function seedPregnancy(token) {
   const dad = await req('POST', '/family-members', token, { name: 'Daniel', role: 'Dad-to-be', roleCategory: 'parent', photoUrl: await up('person-dad.jpg', 'family'), bio: 'Already reading bedtime stories to the bump.' });
   await req('POST', '/family-members', token, { name: 'Rosa', role: 'Abuela', roleCategory: 'grandparent', photoUrl: await up('person-grandma.jpg', 'family'), linkedMemberId: mum.id, bio: "Maya's mum — can't wait." });
 
+  await pregnancyBooks(token, up, dueDate);
+}
+
+// Book(s) for the pregnancy account — extracted so `--reset` can rebuild them on the CURRENT arc without
+// re-seeding the profile/photos. Defaults recreate `up`/`dueDate` when called standalone (the reset path).
+async function pregnancyBooks(token, up = uploader(token), dueDate = iso(addDays(NOW, 126))) {
   console.log('  guided book (Before You Arrived)…');
   const chapters = expandArcToChapterSeeds(arcFor({ phase: 'pregnancy', dueDate }));
   const gbook = await req('POST', '/books', token, { type: 'guided', title: 'Before You Arrived', chapters });
@@ -258,6 +289,12 @@ async function seedBumpToBaby(token) {
   // One grandparent left photoless on purpose → exercises the initials-in-a-circle render.
   await req('POST', '/family-members', token, { name: 'Margaret', role: 'Grandma', roleCategory: 'grandparent', linkedMemberId: dad.id, bio: "Ben's mum." });
 
+  await bumpToBabyBooks(token, up, dueDate);
+}
+
+// Book(s) for the bump-to-baby account — extracted so `--reset` can rebuild them on the CURRENT arc without
+// re-seeding the profile/photos. Defaults recreate `up`/`dueDate` when called standalone (the reset path).
+async function bumpToBabyBooks(token, up = uploader(token), dueDate = iso(addDays(NOW, -173))) {
   console.log('  guided book (Bump to One)…');
   const chapters = expandArcToChapterSeeds(arcFor({ phase: 'baby', dueDate }));
   const gbook = await req('POST', '/books', token, { type: 'guided', title: 'Bump to One', chapters });
@@ -279,22 +316,87 @@ async function seedBumpToBaby(token) {
   }
 }
 
+// ── Account 3 — demo@gotcherapp.com (Sarah / Lily) — books only ──────────────
+// The original bash seed (seed-demo-user.sh) gives Lily a rich baby dataset but NO birth details and NO
+// family, and no guided book. This rebuilds ONLY her guided book on the current First-Year arc (leaving any
+// freeform book alone) and adds the birth details + family the data-driven pages need — so About Us (parents),
+// the birth-day page, the family tree, and milestones all render, making it a complete, print-ready demo.
+// Login-only (the account already exists); runs only under --reset.
+async function rebuildDemoAt(token) {
+  const up = uploader(token);
+
+  console.log('  birth details…');
+  await req('PUT', '/birth-details', token, {
+    hospital: "St. Mary's", weightLbs: 7.2, heightIn: 20.0, headIn: 13.5, birthType: 'natural',
+    birthStory: 'Lily arrived on a bright autumn afternoon — tiny, loud, and perfect. Our whole world shifted in a heartbeat.',
+    birthPhotoUrl: await up('newborn-02-green.jpg', 'birth_details'),
+  });
+
+  const fam = (await req('GET', '/family-members', token)) || [];
+  if (fam.length === 0) {
+    console.log('  people (parents + grandparents)…');
+    const mum = await req('POST', '/family-members', token, { name: 'Sarah', role: 'Mummy', roleCategory: 'parent', photoUrl: await up('person-mum.jpg', 'family'), bio: "Lily's mum." });
+    const dad = await req('POST', '/family-members', token, { name: 'Tom', role: 'Daddy', roleCategory: 'parent', photoUrl: await up('person-dad.jpg', 'family'), bio: "Lily's dad." });
+    await req('POST', '/family-members', token, { name: 'Grandma Jean', role: 'Grandma', roleCategory: 'grandparent', photoUrl: await up('person-grandma.jpg', 'family'), linkedMemberId: mum.id, bio: "Sarah's mum." });
+    await req('POST', '/family-members', token, { name: 'Grandad Bill', role: 'Grandad', roleCategory: 'grandparent', linkedMemberId: dad.id, bio: "Tom's dad." }); // photoless → initials render
+  }
+
+  // Rebuild ONLY the guided book(s); leave any freeform book untouched.
+  const books = (await req('GET', '/books', token)) || [];
+  let removed = 0;
+  for (const b of books) if (b.type === 'guided') { await req('DELETE', `/books/${b.id}`, token).catch(() => {}); removed++; }
+  console.log(`  ↻ removed ${removed} guided book(s); building "Your First Year" on the current arc…`);
+  const chapters = expandArcToChapterSeeds(arcFor({ phase: 'baby' })); // no dueDate → First Year arc
+  const gbook = await req('POST', '/books', token, { type: 'guided', title: 'Your First Year', chapters });
+  await publishChapters(token, gbook.id);
+  await fillGuidedBook(token, gbook.id, up);
+}
+
 // ── run ──────────────────────────────────────────────────────────────────────
+// `--reset` (or RESET=1): for an account that ALREADY exists, delete its books and rebuild them on the
+// CURRENT guided arc (pr5.5 added "About Us" + "The Day You Were Born"), reusing the existing profile/photos.
+// Without it, existing accounts are skipped (the original behaviour). Brand-new accounts are fully seeded.
+const RESET = process.env.RESET === '1' || process.argv.includes('--reset');
+
 const ACCOUNTS = [
-  { email: 'demo-pregnancy@demoapp.com', name: 'Maya Alvarez', seed: seedPregnancy },
-  { email: 'demo-bumptobaby@demoapp.com', name: 'Chloe Bennett', seed: seedBumpToBaby },
+  { email: 'demo-pregnancy@demoapp.com', name: 'Maya Alvarez', seed: seedPregnancy, rebuildBooks: pregnancyBooks },
+  { email: 'demo-bumptobaby@demoapp.com', name: 'Chloe Bennett', seed: seedBumpToBaby, rebuildBooks: bumpToBabyBooks },
 ];
 
-console.log(`Seeding demo users against ${API}\n`);
+console.log(`Seeding demo users against ${API}${RESET ? '  (--reset: rebuild books on existing accounts)' : ''}\n`);
 for (const acct of ACCOUNTS) {
   console.log(`▶ ${acct.email}`);
   try {
     const token = await register(acct.email, acct.name);
-    if (!token) continue;
-    await acct.seed(token);
-    console.log(`  ✓ done (password ${PASSWORD})\n`);
+    if (token) {
+      await acct.seed(token);
+      console.log(`  ✓ done (password ${PASSWORD})\n`);
+      continue;
+    }
+    // Account already exists — skip unless resetting.
+    if (!RESET) { console.log('  • skipping (use --reset to rebuild its books).\n'); continue; }
+    const t = await login(acct.email);
+    if (!t) { console.error('  ✗ reset: could not log in — check the password.\n'); continue; }
+    const n = await deleteAllBooks(t);
+    console.log(`  ↻ reset: deleted ${n} existing book(s); rebuilding on the current arc…`);
+    await acct.rebuildBooks(t);
+    console.log('  ✓ books rebuilt\n');
   } catch (e) {
     console.error(`  ✗ ${acct.email} failed: ${e.message}\n`);
   }
 }
-console.log('Finished. (demo@gotcherapp.com was left untouched.)');
+
+// demo@gotcherapp.com (Sarah/Lily) — only under --reset, and only its guided book (login-only; never created
+// here). Enriches with birth details + family so the new arc's data-driven pages render.
+if (RESET) {
+  console.log('▶ demo@gotcherapp.com');
+  try {
+    const t = await login('demo@gotcherapp.com');
+    if (!t) console.error('  ✗ could not log in — run seed-demo-user.sh first to create it.\n');
+    else { await rebuildDemoAt(t); console.log('  ✓ First Year book rebuilt\n'); }
+  } catch (e) {
+    console.error(`  ✗ demo@gotcherapp.com failed: ${e.message}\n`);
+  }
+}
+
+console.log(`Finished.${RESET ? '' : ' (demo@gotcherapp.com was left untouched.)'}`);

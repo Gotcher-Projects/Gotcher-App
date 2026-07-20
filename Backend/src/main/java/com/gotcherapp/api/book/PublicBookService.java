@@ -92,8 +92,109 @@ public class PublicBookService {
 
         boolean isFreeform = "freeform".equals(type);
 
-        // Content-based selection (s13e-2): freeform → all pages; guided → filled pages only, with a divider
-        // shown only when a filled page follows it in its section. v2-only; ordered.
+        // Content-based selection (s13e-2) — shared with the print payload (pr5.5) so what prints == what shares.
+        FilterResult filtered = filterChapters(bookId, profileId, isFreeform, birthFilled, familyFilled, milestonesFilled);
+        List<PublicBookResponse.Chapter> chapters = filtered.chapters();
+        Set<String> shown = filtered.shown();
+
+        // pageData scoped to what the SHOWN pages render (scope, don't censor).
+        boolean showBirth = shown.contains("birth_day");
+        boolean showFamily = shown.contains("people") || shown.contains("family_tree");
+        boolean showMilestones = shown.contains("milestones");
+
+        PublicBookResponse.PageData pageData = new PublicBookResponse.PageData(
+            firstName,
+            coverPhotoUrl,
+            showBirth ? birthdate : null,   // birth_day canvas formats the date itself; cover never needs it
+            showBirth ? birthDetails : null,
+            showFamily ? familyMembers : null,
+            showMilestones ? milestonesAchieved : null
+        );
+
+        PublicBookResponse.Cover cover = new PublicBookResponse.Cover(
+            (firstName != null ? firstName : "Baby") + "'s Memory Book",
+            resolveSubtitle(coverSubtitle, birthdate),
+            coverPhotoUrl
+        );
+
+        return new PublicBookResponse(firstName, type, finished, theme, cover, chapters, pageData);
+    }
+
+    /**
+     * Print pr5.5 — the CONTENT-FILTERED print payload, keyed by book id (owner's own book; no share token).
+     *
+     * <p>Uses the SAME content selection as {@link #getByToken} (via {@link #filterChapters}) so "what prints"
+     * is exactly "what the share view shows": guided books drop empty template pages, freeform books keep the
+     * pages the user built. This REPLACES pr2's unfiltered payload (D1): guided books no longer print blank
+     * prompt pages, and Σ (filtered chapter pages) is the single source of truth for the print interior count
+     * — the gate (32 floor), the cover spine, and the pr6 price all read this same number.
+     *
+     * <p>pageData is FULL (the owner's whole book, not the PII-scoped public projection), so every data-driven
+     * canvas on a shown page has what it needs to render.
+     *
+     * @throws NotFoundException no such book. Mapped to 404.
+     */
+    public PublicBookResponse getByBookIdFiltered(Long bookId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT b.id AS book_id, b.baby_profile_id, b.type, b.theme, b.cover_photo_url, b.cover_subtitle, " +
+            "       (b.finished_at IS NOT NULL) AS finished, bp.baby_name, bp.birthdate::text AS birthdate " +
+            "FROM books b " +
+            "JOIN baby_profiles bp ON b.baby_profile_id = bp.id " +
+            "WHERE b.id = ?",
+            bookId
+        );
+        if (rows.isEmpty()) {
+            throw new NotFoundException("Book not found");
+        }
+        Map<String, Object> book = rows.get(0);
+
+        Long profileId = ((Number) book.get("baby_profile_id")).longValue();
+        String type = (String) book.get("type");
+        String theme = (String) book.get("theme");
+        String coverPhotoUrl = (String) book.get("cover_photo_url");
+        String coverSubtitle = (String) book.get("cover_subtitle");
+        String birthdate = (String) book.get("birthdate");
+        boolean finished = Boolean.TRUE.equals(book.get("finished"));
+        String firstName = firstName((String) book.get("baby_name"));
+
+        BirthDetails birthDetails = birthDetailsService.getByProfileId(profileId);
+        List<FamilyMember> familyMembers = familyMemberService.findByProfileId(profileId);
+        List<Map<String, Object>> milestonesAchieved = milestoneService.getAchievedByProfileId(profileId);
+        boolean birthFilled = birthDetailsHasData(birthDetails);
+        boolean familyFilled = familyMembers != null && !familyMembers.isEmpty();
+        boolean milestonesFilled = milestonesAchieved != null && !milestonesAchieved.isEmpty();
+
+        boolean isFreeform = "freeform".equals(type);
+        FilterResult filtered = filterChapters(bookId, profileId, isFreeform, birthFilled, familyFilled, milestonesFilled);
+
+        // FULL pageData — print always carries birth/family/milestones (the public payload scopes these to
+        // whichever pages survive its filter; print keeps everything the data-driven pages may render).
+        PublicBookResponse.PageData pageData = new PublicBookResponse.PageData(
+            firstName, coverPhotoUrl, birthdate, birthDetails, familyMembers, milestonesAchieved
+        );
+
+        PublicBookResponse.Cover cover = new PublicBookResponse.Cover(
+            (firstName != null ? firstName : "Baby") + "'s Memory Book",
+            resolveSubtitle(coverSubtitle, birthdate),
+            coverPhotoUrl
+        );
+
+        return new PublicBookResponse(firstName, type, finished, theme, cover, filtered.chapters(), pageData);
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────────
+
+    /** Content selection holder: the shown chapters, the template ids they use, and whether any content exists. */
+    private record FilterResult(List<PublicBookResponse.Chapter> chapters, Set<String> shown, boolean anyContent) {}
+
+    /**
+     * The shared content filter (s13e-2, generalized for print in pr5.5): freeform → every page of a book that
+     * has any content; guided → filled pages only, with a divider shown only when its section has a filled page.
+     * Used by BOTH the public share payload ({@link #getByToken}) and the print payload
+     * ({@link #getByBookIdFiltered}), so the two never diverge. v2-only; ordered by sort_order then created_at.
+     */
+    private FilterResult filterChapters(Long bookId, Long profileId, boolean isFreeform,
+            boolean birthFilled, boolean familyFilled, boolean milestonesFilled) {
         List<PublicBookResponse.Chapter> chapters = new ArrayList<>();
         Set<String> shown = new HashSet<>();
         PublicBookResponse.Chapter pendingDivider = null;   // guided: held until its section proves non-empty
@@ -147,31 +248,8 @@ public class PublicBookService {
             chapters.clear();
             shown.clear();
         }
-
-        // pageData scoped to what the SHOWN pages render (scope, don't censor).
-        boolean showBirth = shown.contains("birth_day");
-        boolean showFamily = shown.contains("people") || shown.contains("family_tree");
-        boolean showMilestones = shown.contains("milestones");
-
-        PublicBookResponse.PageData pageData = new PublicBookResponse.PageData(
-            firstName,
-            coverPhotoUrl,
-            showBirth ? birthdate : null,   // birth_day canvas formats the date itself; cover never needs it
-            showBirth ? birthDetails : null,
-            showFamily ? familyMembers : null,
-            showMilestones ? milestonesAchieved : null
-        );
-
-        PublicBookResponse.Cover cover = new PublicBookResponse.Cover(
-            (firstName != null ? firstName : "Baby") + "'s Memory Book",
-            resolveSubtitle(coverSubtitle, birthdate),
-            coverPhotoUrl
-        );
-
-        return new PublicBookResponse(firstName, type, finished, theme, cover, chapters, pageData);
+        return new FilterResult(chapters, shown, anyContent);
     }
-
-    // ── helpers ──────────────────────────────────────────────────────────────────
 
     /** Mirror BookCover.jsx: a saved subtitle wins; else "Born {date}" when known; else a generic line. */
     private String resolveSubtitle(String coverSubtitle, String birthdate) {

@@ -4,6 +4,16 @@
 render and are editable, guided book is fully populated. Decisions locked in the "Finalized" block below;
 earlier dated sections are working notes (Finalized block wins on conflict).
 
+**pr5.5 update (2026-07-19): `--reset` mode + new arc pages.** The guided arc grew 30→32 (First Year) / 35→37
+(Bump) — see `print/pr5.5-pdf-acceptance.md`. Because the seed is skip-if-exists, existing demo accounts won't
+pick up the new arc on a plain re-run. Added **`RESET=1 npm run seed:demo`** (or `-- --reset`): for an
+account that already exists, it logs in, **deletes its books, and rebuilds them on the CURRENT arc** (reusing
+the existing profile/family/photos). Also: `day-you-born` added to `GUIDED_FILL` (the new time-capsule seeds
+filled so it counts toward the 32-page print floor), and `fillGuidedBook` now fills pages **in place**
+(`fillPageBlocks`) so injected `*-config` blocks (the time-capsule's custom labels) survive. **Windows:**
+`$env:RESET='1'; npm run seed:demo`. Note `demo@gotcherapp.com` stays untouched (not in the seed's ACCOUNTS) —
+its in-app book 5, if it exists, needs a manual recreate to get the new pages.
+
 **Render gotchas found + fixed during verification (keep for reference):**
 - Freeform/guided pages must be built with the app's OWN `emptyBlocksForTemplate` + text as **Tiptap docs**
   (not plain strings) and keep `contentSource`/`sourceKey` — else the read-only PDF renders but the

@@ -1,8 +1,8 @@
 # Storybook V2 — Planning
 
-**Status: Living reference — core v2 + AI assist SHIPPED; payments BUILD-complete; print / share / hardening remain.**
+**Status: Living reference — core v2 + AI assist + share SHIPPED; payments BUILD-complete; print + hardening remain.**
 The status map directly below is the **source of truth for what's current and where the live plan lives** (last
-reconciled **2026-07-12**). The deeper sections (§0–§8) retain full history/rationale and may lag — where they
+reconciled **2026-07-17**). The deeper sections (§0–§8) retain full history/rationale and may lag — where they
 conflict with the map or with `payments/stripe-full-plan.md`, those win.
 
 **Key model shift (§8), still in force:** core book is **AI-free by default** (built from your data + your own
@@ -26,13 +26,14 @@ session number, **this map wins.**
 | **AI per-field assist** — `AiAssistField` + single-field endpoint; old batched page-gen deleted | `sv2-s10` / `s10b` / `s11` | `sv2-s10b-assist-wiring-and-refactor.md` |
 | **Free signup credits** (5 credits to first N accounts) | `sv2-grant` | `sv2-grant-free-credits.md` *(Needs Verification)* |
 | **Payments — BUILD complete** (checkout, webhook+ledger, modal, redirect, Radar, native gate, balance pill) | `P0–P10` | **`payments/session-prompts.md`** + `payments/stripe-full-plan.md` |
+| **Public share link** (`/book/{token}`) — token backend, public page, share section, WIP gate | `s13a–s13e-3` | **`share/session-prompts.md`**; all slices Complete (verified 2026-07-14) |
 
 ### ⬜ Remaining (in build order)
 | # | Track | Status | Canonical plan |
 |---|---|---|---|
-| **1** | **Public share link** (`/book/{token}`) | Not started — **UNBLOCKED, next** (P2/P3 built the unlock; P5 built the route shell). **Sliced `s13a–s13c`** 2026-07-12 | **`share/session-prompts.md`** (+ spec `sv2-s13-share-link.md`) |
-| **2** | **Print-on-demand (Lulu)** | Not started — **sliced `pr0–pr9`** (headless Chrome); `pr1–pr3` buildable now, `pr4+` blocked on owner-side `pr0` | **`print/session-prompts.md`** + `print/print-full-plan.md` + `print/lulu-spec-handoff.md` |
-| **3** | **Paid-bundle hardening** (refunds, share IDOR, `email_verified`, webhook retries) | Not started — **plan file NOT YET WRITTEN** | *(to write)* `sv2-s14-*.md` |
+| **1** | **Print-on-demand (Lulu)** | In progress — **sliced `pr0–pr10`** (headless Chrome). `pr0–pr3` + `pr0.5` done; **`pr4` unblocked, next**; `pr5+` need Lulu sandbox creds (owner) | **`print/session-prompts.md`** + `print/print-full-plan.md` + `print/lulu-spec-handoff.md` |
+| **2** | **Print failure-path hardening** (rejection/refund, cancel, order history, reconciliation) | In progress — **`s14a` (rejection+refund) written**, required before pr10 real money; `s14b/c/d` deferred post-launch | **`sv2-s14-print-hardening.md`** (overview) + **`sv2-s14a-rejection-refund.md`** |
+| **—** | **Paid-bundle hardening (digital)** (share IDOR, `email_verified`, webhook retries) | Not started — folded into sv2-s14 track scope; slice if/when needed | *(to slice)* under `sv2-s14-*` |
 | **—** | **Payments P12 live cutover** | Blocked on **LLC Stripe activation** (owner) + first prod deploy; run near launch | `payments/p12-live-cutover.md` |
 | **—** | **Payments P11 admin credit lever** | **Deferred** (Michael 2026-07-12) — revisit at higher volume | `payments/p11-admin-credits.md` |
 

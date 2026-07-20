@@ -55,6 +55,8 @@ export default function BookCover({ bookId, babyName, birthdate, coverPhotoUrl, 
 
   async function cropAndUpload(file) {
     setUploadingPhoto(true);
+    // Lock the crop to 4:3 — the cover photo slot is 4:3 both on-screen (the hero below) and in print
+    // (PrintCoverPage's front-cover photo area), so any other ratio would just get re-cropped. (pr4 follow-up)
     openCropModal(
       file,
       async ({ blob }) => {
@@ -67,7 +69,8 @@ export default function BookCover({ bookId, babyName, birthdate, coverPhotoUrl, 
           setUploadingPhoto(false);
         }
       },
-      () => { setUploadingPhoto(false); }
+      () => { setUploadingPhoto(false); },
+      { aspect: 4 / 3 }
     );
   }
 

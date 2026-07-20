@@ -24,7 +24,7 @@ function renderView(overrides = {}) {
 describe('GuidedBookView', () => {
   it('shows progress (dividers excluded) and section headers', () => {
     renderView();
-    expect(screen.getByText(/pages ready/).textContent).toContain('of 25 pages ready');
+    expect(screen.getByText(/pages ready/).textContent).toContain('of 27 pages ready');
     expect(screen.getByText('The Beginning')).toBeInTheDocument();
     expect(screen.getByText('Your Firsts')).toBeInTheDocument();
   });

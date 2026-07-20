@@ -3,6 +3,8 @@ import { Capacitor } from "@capacitor/core";
 import CradleHq from "./components/CradleHq";
 import LoginPage from "./components/LoginPage";
 import PublicBookPage from "./components/PublicBookPage";
+import PrintBookPage from "./components/PrintBookPage";
+import PrintCoverPage from "./components/PrintCoverPage";
 import PurchaseModal from "./components/PurchaseModal";
 import UpgradeConfirm from "./components/UpgradeConfirm";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
@@ -31,6 +33,15 @@ export default function App() {
   // a pathname branch, no router. On native the pathname is "/", so this is a no-op there.
   const bookTokenMatch = window.location.pathname.match(/^\/book\/([^/]+)/);
   const publicBookToken = bookTokenMatch ? decodeURIComponent(bookTokenMatch[1]) : null;
+
+  // Print pr2 — the print-view route for the sidecar (headless Chrome), served OUTSIDE the auth gate like the
+  // public book branch above. `/print/book/{token}` renders the full interior at trim+bleed with no app chrome.
+  const printTokenMatch = window.location.pathname.match(/^\/print\/book\/([^/]+)/);
+  const printBookToken = printTokenMatch ? decodeURIComponent(printTokenMatch[1]) : null;
+
+  // Print pr4 — the COVER print-view route (separate wrap PDF). `/print/cover/{token}` renders back|spine|front.
+  const printCoverMatch = window.location.pathname.match(/^\/print\/cover\/([^/]+)/);
+  const printCoverToken = printCoverMatch ? decodeURIComponent(printCoverMatch[1]) : null;
 
   useEffect(() => {
     async function boot() {
@@ -152,6 +163,25 @@ export default function App() {
   async function handleLogout() {
     await logoutUser();
     setUser(null);
+  }
+
+  // Print-view route — rendered before (and independent of) the session check, so headless Chrome doesn't
+  // wait on session boot. Interior only; the cover is a separate PDF (pr4).
+  if (printBookToken) {
+    return (
+      <ThemeProvider>
+        <PrintBookPage token={printBookToken} />
+      </ThemeProvider>
+    );
+  }
+
+  // Cover print-view route (pr4) — a separate wrap PDF, same headless-Chrome discipline as the interior.
+  if (printCoverToken) {
+    return (
+      <ThemeProvider>
+        <PrintCoverPage token={printCoverToken} />
+      </ThemeProvider>
+    );
   }
 
   // Public book link opens for anyone — render it before (and independent of) the session check.

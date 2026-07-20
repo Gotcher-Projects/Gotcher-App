@@ -66,16 +66,18 @@ describe('guidedBookArc — entry shape', () => {
 });
 
 describe('guidedBookArc — locked page counts', () => {
-  it('First Year = 25 content + 5 dividers = 30 interior', () => {
-    expect(content(FIRST_YEAR_ARC).length).toBe(25);
+  // pr5.5: raised 30 → 32 (the SKU's hard print floor) by adding "About Us" + "The Day You Were Born".
+  it('First Year = 27 content + 5 dividers = 32 interior', () => {
+    expect(content(FIRST_YEAR_ARC).length).toBe(27);
     expect(dividers(FIRST_YEAR_ARC).length).toBe(5);
-    expect(FIRST_YEAR_ARC.length).toBe(30);
+    expect(FIRST_YEAR_ARC.length).toBe(32);
   });
 
-  it('Bump to One = 29 content + 6 dividers = 35 interior', () => {
-    expect(content(BUMP_TO_ONE_ARC).length).toBe(29);
+  // The two new First-Year pages flow through Bump too: 6 + (32 − 1) = 37.
+  it('Bump to One = 31 content + 6 dividers = 37 interior', () => {
+    expect(content(BUMP_TO_ONE_ARC).length).toBe(31);
     expect(dividers(BUMP_TO_ONE_ARC).length).toBe(6);
-    expect(BUMP_TO_ONE_ARC.length).toBe(35);
+    expect(BUMP_TO_ONE_ARC.length).toBe(37);
   });
 
   it('First Year has exactly 4 pick pages; Bump keeps them', () => {

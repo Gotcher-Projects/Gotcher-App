@@ -23,7 +23,7 @@ Four **one-time** digital purchases through Stripe on `cradlehq.app`. No subscri
 | Share unlock (one book) | $10 | digital |
 
 Later, a **printed book** (pay-per-order, ~$30–45). That one is a **physical good** — different tax
-treatment, and it's not live yet.
+treatment, and it's not live yet. **See the physical-goods section below** (added 2026-07-16, print pr0.5).
 
 The LLC is the **merchant of record**: customers pay us, Stripe deposits to the LLC's bank account.
 
@@ -75,6 +75,33 @@ starting posture for a business at this scale.
 
 We are not asking anyone to solve this before we ship. We're asking that it be **in the owner's hands
 before the first live charge**, so nobody is surprised later.
+
+---
+
+## Physical printed book — a SEPARATE tax question (added 2026-07-16, print pr0.5)
+
+The digital items above and the printed book are **taxed differently**, and the Radar US-cards-only rule
+does **not** resolve the book the way it defers EU/UK VAT for digital.
+
+- **Physical goods trigger destination-based US sales tax.** For a shipped physical product, sales tax is
+  generally owed based on **where it ships to** (the customer's address), and economic-nexus thresholds for
+  physical goods differ from digital. Print will ship **US-only** (decided pr0.5), so this is a **US
+  state-by-state** question, not an international one — but it is a real, separate obligation from the
+  digital-goods question above.
+- **Stripe Tax can calculate it**, same ~0.5%/transaction caveat: **calculating ≠ registering ≠ remitting.**
+- **Merchant-of-record + Lulu's liability cap (ToS §13).** We charge the customer the full retail price and
+  are merchant of record; Lulu's liability to us is capped at what *we* pay Lulu (≈ print cost). A defective
+  or lost book means **we refund the customer and absorb the gap** — this is a refund/reserve policy question,
+  separate from tax, but it lives in the same "physical good, real money" bucket.
+
+**What we need back (physical book, when there's time — does NOT block the build):**
+- [ ] Whether the LLC has a **physical-goods** sales-tax registration obligation in any US state at this scale.
+- [ ] Whether to enable **Stripe Tax** for the print checkout specifically.
+- [ ] A **physical-order refund/reserve** posture (we're on the hook for the full retail price; Lulu only
+      refunds print cost).
+
+**Timing:** same as digital — must be in the owner's hands **before the first live print charge** (print
+pr10), not before build. Everything until pr10 runs against Lulu **sandbox** and Stripe **sandbox**.
 
 ---
 

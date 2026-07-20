@@ -39,9 +39,11 @@ import {
 
 const TYPE_LABELS = { period: 'Time Period', milestone: 'Milestone', first_time: 'First Time' };
 
-// sv2-s8.5: soft cap on pages in a freeform book (future-changeable). Guided chapters are single-page
-// so they never approach it; the cap effectively governs the freeform "Add page" affordance.
-const MAX_PAGES = 30;
+// Cap on pages in a freeform ("scrapbook") book. pr5.5: raised 30 → 50 to match the print pricing/gate —
+// the SKU floor is 32, so the old 30 cap made a scrapbook impossible to print; 50 is the scrapbook ceiling
+// the pr6 price table tops out at (must stay in sync with PrintInteriorService.MAX_PAGES_FREEFORM).
+// Guided chapters are single-page so they never approach it; the cap governs the freeform "Add page" affordance.
+const MAX_PAGES = 50;
 
 // ── Main component ────────────────────────────────────────────────────────────
 

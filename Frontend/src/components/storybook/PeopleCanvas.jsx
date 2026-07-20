@@ -7,8 +7,14 @@ import { CircleInitial } from '@/lib/bookCanvas';
 // (sv2-s3). The roster + per-page selection are edited in the FamilyRosterPopup (builder).
 //
 // Block config: a single block { type:'people-config', selectedMemberIds:[...], variant:'two-up'|'spotlight' }.
+// The config block may also carry optional `sectionLabel` + `title` copy overrides (pr5.5), so a second
+// `people` page (e.g. "About Us" seeded with the parents) reuses this exact renderer with different copy —
+// no new component. Absent those fields, the header falls back to the original "Your People" defaults.
 
 const GOLD = '#C2A36B';
+
+const DEFAULT_SECTION_LABEL = 'Your People';
+const DEFAULT_TITLE = 'The people who love you';
 
 function Person({ m, ink, big }) {
   const size = big ? 220 : 156;
@@ -49,13 +55,23 @@ export default function PeopleCanvas({ blocks = [], familyMembers = [], theme })
   const config = blocks.find(b => b.type === 'people-config') || blocks[0] || {};
   const variant = config.variant === 'spotlight' ? 'spotlight' : 'two-up';
   const selectedIds = Array.isArray(config.selectedMemberIds) ? config.selectedMemberIds : [];
+  const sectionLabel = config.sectionLabel || DEFAULT_SECTION_LABEL;
+  const title = config.title || DEFAULT_TITLE;
 
   const roster = familyMembers || [];
+  const take = variant === 'spotlight' ? 1 : 2;
   // Resolve selected ids → members (preserving selection order); fall back to the roster start.
   let members = selectedIds
     .map(id => roster.find(m => m.id === id))
     .filter(Boolean);
-  if (members.length === 0) members = roster.slice(0, variant === 'spotlight' ? 1 : 2);
+  if (members.length === 0) {
+    // No explicit selection yet: prefer members of the config's defaultCategory (pr5.5 "About Us" → parents),
+    // then fall back to the roster start so the page is never empty when family exists.
+    const preferred = config.defaultCategory
+      ? roster.filter(m => m.roleCategory === config.defaultCategory)
+      : [];
+    members = (preferred.length ? preferred : roster).slice(0, take);
+  }
 
   const shown = variant === 'spotlight' ? members.slice(0, 1) : members.slice(0, 2);
 
@@ -72,12 +88,12 @@ export default function PeopleCanvas({ blocks = [], familyMembers = [], theme })
     }}>
       {/* Section label */}
       <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: GOLD, flexShrink: 0 }}>
-        Your People
+        {sectionLabel}
       </div>
 
       {/* Title */}
       <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 30, fontWeight: 700, color: ink, marginTop: 10, textAlign: 'center', flexShrink: 0 }}>
-        The people who love you
+        {title}
       </div>
 
       {/* Divider */}

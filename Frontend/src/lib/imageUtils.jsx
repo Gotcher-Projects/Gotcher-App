@@ -11,10 +11,14 @@ function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
   )
 }
 
-function CropModal({ file, onComplete, onCancel, shape }) {
+function CropModal({ file, onComplete, onCancel, shape, fixedAspect }) {
   // Opt-in circular mode (sv2-s3.5): locks a 1:1 square crop with a round preview overlay. Used only
   // by callers that pass { shape: 'circle' } (Your People photos + baby avatar). Default is unchanged.
   const isCircle = shape === 'circle'
+  // Opt-in fixed aspect (pr4 follow-up): a caller passes { aspect } to LOCK the crop to one ratio and hide
+  // the landscape/portrait toggle — e.g. the book cover, whose photo slot is exactly 4:3 on-screen and in
+  // print, so a portrait crop would only get re-cropped by object-fit. Omitted → unchanged toggle behaviour.
+  const locked = !isCircle && typeof fixedAspect === 'number'
   const [imgSrc, setImgSrc] = useState('')
   const [orientation, setOrientation] = useState('landscape')
   const [crop, setCrop] = useState()
@@ -22,7 +26,7 @@ function CropModal({ file, onComplete, onCancel, shape }) {
   const [loadError, setLoadError] = useState(false)
   const imgRef = useRef(null)
 
-  const aspect = isCircle ? 1 : (orientation === 'landscape' ? 4 / 3 : 3 / 4)
+  const aspect = isCircle ? 1 : (locked ? fixedAspect : (orientation === 'landscape' ? 4 / 3 : 3 / 4))
 
   useEffect(() => {
     const reader = new FileReader()
@@ -89,7 +93,7 @@ function CropModal({ file, onComplete, onCancel, shape }) {
       >
         <h2 className="font-bold text-lg text-slate-800">{isCircle ? 'Position Photo' : 'Crop Photo'}</h2>
 
-        {!isCircle && (
+        {!isCircle && !locked && (
           <div className="flex gap-2">
             <button
               onClick={() => handleOrientationChange('landscape')}
@@ -271,8 +275,9 @@ export async function uploadCroppedPhoto(onUpload, blob) {
   return res.url;
 }
 
-// `options.shape: 'circle'` opts into a 1:1 circular crop (sv2-s3.5). Omitted → unchanged
-// portrait/landscape behaviour. Only the People photos + baby avatar pass it.
+// `options.shape: 'circle'` opts into a 1:1 circular crop (sv2-s3.5). `options.aspect: <number>` locks the
+// crop to one ratio and hides the landscape/portrait toggle (pr4 follow-up; the book cover passes 4/3).
+// Both omitted → unchanged portrait/landscape behaviour.
 export function openCropModal(file, onComplete, onCancel, options = {}) {
   // Defense-in-depth: the picker's accept="image/*" is only a UX hint and is bypassable
   // (drag-drop, "All files" in the OS dialog, non-browser clients). A non-image file can't be
@@ -288,6 +293,7 @@ export function openCropModal(file, onComplete, onCancel, options = {}) {
     <CropModal
       file={file}
       shape={options.shape}
+      fixedAspect={options.aspect}
       onComplete={result => { close(); onComplete(result) }}
       onCancel={() => { close(); onCancel?.() }}
     />

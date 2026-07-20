@@ -116,6 +116,9 @@ fi
 # ── Services ───────────────────────────────────────────────────────────────
 start_service "api"      "$ROOT_DIR/Backend"   "set -a && [ -f .env ] && source .env; set +a && ./gradlew bootRun"  "http://localhost:3001"
 start_service "frontend" "$ROOT_DIR/Frontend"  "npm run dev"        "http://localhost:3000"
+# Print PDF sidecar (pr1) — runs natively in dev so localhost resolves for the sidecar→frontend→API chain.
+# Installs deps on first run; needs Chromium, which Puppeteer downloads during npm install. Containerized in prod.
+start_service "pdf-sidecar" "$ROOT_DIR/pdf-sidecar" "[ -d node_modules ] || npm install; npm start" "http://localhost:4000"
 # Future services — uncomment as they are built:
 # start_service "worker"   "$ROOT_DIR/Worker"    "npm run dev"  ""
 # ──────────────────────────────────────────────────────────────────────────

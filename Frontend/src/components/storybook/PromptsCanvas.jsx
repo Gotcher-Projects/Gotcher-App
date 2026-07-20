@@ -2,16 +2,22 @@ import React from 'react';
 import { contentToPlainText } from '@/lib/tiptap';
 import RichTextEditor from '@/components/storybook/RichTextEditor';
 
-// "All About You" prompt page (sv2-s6) — fixed preset labels (locked 2026-06-27) with editable
-// value lines the parent fills in. Same contract as LetterCanvas: drawn at the 600×800 virtual
-// canvas, IGNORES block x/y, pulls each answer by role id via blk('val0'..'val4').
+// "All About You" prompt page (sv2-s6) — preset labels with editable value lines the parent fills in.
+// Same contract as LetterCanvas: drawn at the 600×800 virtual canvas, IGNORES block x/y, pulls each
+// answer by role id via blk('val0'..'valN').
 //
-// CONTRACT: the `prompts` template must define value blocks with ids `val0`..`val4` (one per label
-// below) — keep PROMPT_LABELS and the template block ids the same length & order.
+// CONFIG-DRIVEN (pr5.5): the section label, title, and the row labels can be overridden by an optional
+// `{ type:'prompts-config', sectionLabel, title, labels:[...] }` block, so a second `prompts` page (e.g.
+// the "The Day You Were Born" time-capsule) reuses this exact renderer with different copy — no new
+// component. Absent the config block, everything falls back to the original "All About You" defaults.
+//
+// CONTRACT: the `prompts` template defines value blocks with ids `val0`..`val4` — keep the resolved
+// labels the same length & order as the value blocks (default: 5).
 
 const GOLD = '#C2A36B';
 
-// Fixed preset labels — the "guided" part. Order maps to block ids val0..valN.
+// Default preset labels — the "guided" part. Order maps to block ids val0..valN. A `prompts-config`
+// block's `labels` array overrides these (must stay the same length as the template's value blocks).
 export const PROMPT_LABELS = [
   'Your nickname',
   'Favourite food',
@@ -19,6 +25,9 @@ export const PROMPT_LABELS = [
   'What makes you laugh',
   'Your best friend',
 ];
+
+const DEFAULT_SECTION_LABEL = 'At One Year Old';
+const DEFAULT_TITLE = 'All About You';
 
 function ValueZone({ block, isEditing, isBuilder, onActivate, onStopEdit, onEditorReady, ink }) {
   const text = contentToPlainText(block?.content || '').trim();
@@ -61,6 +70,12 @@ export default function PromptsCanvas({
   function blk(id) { return blocks.find(b => b.id === id); }
   const editing = (id) => id !== undefined && editingBlockId === id;
 
+  // Optional copy overrides (pr5.5). Absent → the original "All About You" defaults.
+  const cfg = blocks.find(b => b.type === 'prompts-config') || {};
+  const sectionLabel = cfg.sectionLabel || DEFAULT_SECTION_LABEL;
+  const title = cfg.title || DEFAULT_TITLE;
+  const labels = Array.isArray(cfg.labels) && cfg.labels.length ? cfg.labels : PROMPT_LABELS;
+
   const bg  = theme?.bg ?? '#FBF7EF';
   const ink = theme?.isDark ? (theme.textColor ?? '#e8eaf6') : '#2C1810';
 
@@ -74,12 +89,12 @@ export default function PromptsCanvas({
     }}>
       {/* Section label */}
       <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: GOLD, flexShrink: 0 }}>
-        At One Year Old
+        {sectionLabel}
       </div>
 
       {/* Title */}
       <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 32, fontWeight: 700, color: ink, marginTop: 10, textAlign: 'center', flexShrink: 0 }}>
-        All About You
+        {title}
       </div>
 
       {/* Divider */}
@@ -91,7 +106,7 @@ export default function PromptsCanvas({
 
       {/* Prompt rows */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
-        {PROMPT_LABELS.map((labelText, i) => (
+        {labels.map((labelText, i) => (
           <div key={i}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: sub(theme), marginBottom: 5 }}>
               {labelText}

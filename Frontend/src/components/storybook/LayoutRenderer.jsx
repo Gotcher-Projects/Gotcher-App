@@ -12,12 +12,20 @@ import PromptsCanvas from "@/components/storybook/PromptsCanvas";
 import BumpCanvas from "@/components/storybook/BumpCanvas";
 import MilestonesCanvas from "@/components/storybook/MilestonesCanvas";
 
-export default function LayoutRenderer({ layout, theme, pageData, letterEyebrow }) {
+export default function LayoutRenderer({ layout, theme, pageData, letterEyebrow, scaleMode }) {
   const containerRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(0);
   const touchStartX = useRef(null);
 
   const { containerSize, scale } = useCanvasScale(containerRef);
+
+  // pr5.5 Part B: the print route passes scaleMode="zoom". `transform: scale()` makes Chrome emit a
+  // per-page /Transparency group (which forces Lulu's flatten to rasterize the whole page); CSS `zoom`
+  // scales identically with NO group, keeping the PDF vector. On screen (scaleMode undefined) we keep
+  // transform — `zoom` isn't in every browser and this path is print-only.
+  const scaleStyle = scaleMode === 'zoom'
+    ? { zoom: scale }
+    : { transform: `scale(${scale})`, transformOrigin: 'top left' };
 
   if (layout?.version === 2) {
     const pages = layout.pages || [];
@@ -45,7 +53,7 @@ export default function LayoutRenderer({ layout, theme, pageData, letterEyebrow 
             <div style={{
               position: 'absolute', top: 0, left: 0,
               width: CANVAS_W, height: CANVAS_H,
-              transform: `scale(${scale})`, transformOrigin: 'top left',
+              ...scaleStyle,
               backgroundColor: pageBg,
             }}>
               {page.templateId?.startsWith('moment-hero') ? (

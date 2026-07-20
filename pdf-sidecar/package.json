@@ -1,0 +1,19 @@
+{
+  "name": "cradlehq-pdf-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless-Chrome PDF sidecar for CradleHQ print (pr1). Renders a print-view URL to a print-spec PDF via Puppeteer. Chosen over in-process Playwright-Java because the API image is Alpine/musl — see plans/storybook-v2/print/pr1-headless-chrome-spike.md.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "gen-sample": "node lib/generate-sample-png.js public/sample.png",
+    "smoke": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^24.15.0"
+  }
+}

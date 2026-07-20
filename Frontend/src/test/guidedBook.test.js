@@ -109,21 +109,21 @@ describe('guidedBook — chapterStatus', () => {
 describe('guidedBook — guidedProgress', () => {
   it('excludes dividers, counts only fully-done pages, and reports partial + auto-filled', () => {
     const p = guidedProgress(seeds());
-    // First Year: 25 non-divider pages; auto(2) + prefill(3) = 5 done-by-default at creation.
-    expect(p.total).toBe(25);
-    expect(p.done).toBe(5);
+    // First Year (pr5.5): 27 non-divider pages; auto(2) + prefill(4, incl. "About Us") = 6 done-by-default.
+    expect(p.total).toBe(27);
+    expect(p.done).toBe(6);
     expect(p.partial).toBe(0);
-    expect(p.autoFilled).toBe(5);
+    expect(p.autoFilled).toBe(6);
   });
   it('counts a partially-filled page as partial, not done', () => {
     const all = seeds().map((c) => (c.anchorKey === 'welcome' ? withText(c, 'cap1', 'x') : c));
     const p = guidedProgress(all);
-    expect(p.done).toBe(5);
+    expect(p.done).toBe(6);
     expect(p.partial).toBe(1);
   });
   it('counts a fully-filled fill page toward done', () => {
     const all = seeds().map((c) => (c.anchorKey === 'letter-to-you' ? withText(c, 'body', 'Dear Lily') : c));
-    expect(guidedProgress(all).done).toBe(6);
+    expect(guidedProgress(all).done).toBe(7);
   });
 });
 
@@ -134,7 +134,7 @@ describe('guidedBook — groupGuidedSections', () => {
     expect(sections[0].section).toBe('The Beginning');
     expect(sections[0].subtitle).toBe('How your story started');
     expect(sections[0].rows.map((r) => r.anchorKey)).toEqual([
-      'letter-to-you', 'day-we-met', 'welcome', 'coming-home', 'tiny-new',
+      'letter-to-you', 'day-we-met', 'day-you-born', 'welcome', 'coming-home', 'tiny-new',
     ]);
     // no divider ever appears as a row
     const rowKeys = sections.flatMap((s) => s.rows.map((r) => r.anchorKey));

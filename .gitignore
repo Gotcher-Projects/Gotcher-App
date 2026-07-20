@@ -21,3 +21,6 @@ ScreenshotsForClaude/
 
 # Owner hand-off bundle — generated copies for zipping/sending, not source
 plans/storybook-v2/handoffs/CradleHQ-Owner-Setup/
+
+# pr5.5 Part B print-quality comparison PDFs (throwaway/regenerable)
+print-preview/

@@ -44,11 +44,12 @@ const divider = (id, section, subtitle) => ({
   defaultBucket: null,
 });
 
-const page = (id, section, templateId, kind, label, prompt, defaultBucket = null) => ({
-  id, section, templateId, kind, label, prompt, defaultBucket,
+const page = (id, section, templateId, kind, label, prompt, defaultBucket = null, config = null) => ({
+  id, section, templateId, kind, label, prompt, defaultBucket, config,
 });
 
-// ── "Your First Year" — 25 content + 5 dividers = 30 interior pages ──────────────────
+// ── "Your First Year" — 27 content + 5 dividers = 32 interior pages ──────────────────
+// (pr5.5 added "About Us" + "The Day You Were Born" to lift the arc 30 → 32, the SKU's hard print floor.)
 export const FIRST_YEAR_ARC = [
   // ▸ The Beginning
   divider('div-beginning', 'The Beginning', 'How your story started'),
@@ -59,6 +60,15 @@ export const FIRST_YEAR_ARC = [
   page('day-we-met',     'The Beginning', 'birth_day', 'auto',
     'The Day We Met You',
     'Fills from your saved birth details — date, weight, length, hospital.'),
+  // pr5.5: "The Day You Were Born" — a time-capsule of the day, reusing the `prompts` renderer (labels +
+  // header supplied via config). `fill` kind: counts toward the print floor only once the parent fills it.
+  page('day-you-born',   'The Beginning', 'prompts',   'fill',
+    'The Day You Were Born',
+    'A little time capsule of the day you arrived — fill in what the world was like.',
+    null,
+    { sectionLabel: 'The Beginning', title: 'The Day You Were Born',
+      labels: ['The #1 song', 'A headline that day', 'The weather',
+               'What a coffee cost', 'Who was president'] }),
   page('welcome',        'The Beginning', 'gallery',   'fill',
     'Welcome to the World',
     'Your first photos together — the very first hours.',
@@ -74,6 +84,14 @@ export const FIRST_YEAR_ARC = [
 
   // ▸ Your People
   divider('div-people', 'Your People', 'The ones who love you'),
+  // pr5.5: "About Us" — the parents, reusing the `people` renderer (header via config). `prefill`: counts
+  // toward the print floor whenever the book has family members. `defaultCategory:'parent'` picks the
+  // parents from the roster by default (ids aren't known at arc-definition time); editable in the roster popup.
+  page('about-us',      'Your People', 'people',      'prefill',
+    'About Us',
+    'Your parents. Edit or rearrange.',
+    null,
+    { sectionLabel: 'About Us', title: 'Your parents', defaultCategory: 'parent' }),
   page('your-people',   'Your People', 'people',      'prefill',
     'Your People',
     'Seeded from Your People. Edit or rearrange.'),
@@ -158,7 +176,8 @@ export const FIRST_YEAR_ARC = [
 
 // ── "Bump to One" — the pregnancy chapter, then the First-Year arc minus the standalone letter ──
 // Front-inserts 5 pregnancy pages + their divider and drops "A Letter to You" (replaced by
-// "A Letter Before You Arrived"). 5 + 1 divider + (30 − 1) = 35 interior pages.
+// "A Letter Before You Arrived"). 5 + 1 divider + (32 − 1) = 37 interior pages (pr5.5: was 35; the two
+// new First-Year pages flow through here too, giving Bump parity and a little headroom over the 32 floor).
 const PREGNANCY_BLOCK = [
   divider('div-before', 'Before You Arrived', 'While we waited for you'),
   page('letter-before', 'Before You Arrived', 'letter',    'fill',
@@ -220,13 +239,30 @@ export function arcEntryById(id) {
 // subtitle are pre-seeded (section name + tagline) — every other kind starts blank and is filled in
 // the builder (fill/pick) or rendered from data (auto/prefill).
 function seedBlocks(entry, tpl) {
-  const blocks = emptyBlocksForTemplate(tpl);
+  let blocks = emptyBlocksForTemplate(tpl);
+  if (entry.config) blocks = applyEntryConfig(entry, blocks);
   if (entry.kind !== 'divider') return blocks;
   return blocks.map(b => {
     if (b.id === 'title')    return { ...b, content: toTiptapDoc(entry.label) };
     if (b.id === 'subtitle') return { ...b, content: toTiptapDoc(entry.prompt) };
     return b;
   });
+}
+
+/**
+ * Merge a guided arc entry's `config` (copy overrides + seed hints) into the page's persisted blocks, so a
+ * second `people`/`prompts` page reuses the same renderer with different copy — no new component (pr5.5).
+ *  - people : merge the overrides into the existing `people-config` block (sectionLabel/title/defaultCategory).
+ *  - prompts: inject a `prompts-config` block ahead of the value blocks (sectionLabel/title/labels).
+ */
+function applyEntryConfig(entry, blocks) {
+  if (entry.templateId === 'people') {
+    return blocks.map(b => (b.type === 'people-config' ? { ...b, ...entry.config } : b));
+  }
+  if (entry.templateId === 'prompts') {
+    return [{ id: 'prompts-config', type: 'prompts-config', ...entry.config }, ...blocks];
+  }
+  return blocks;
 }
 
 /**
