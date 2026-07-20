@@ -1,0 +1,210 @@
+package com.gotcherapp.api.print;
+
+import com.stripe.Stripe;
+import com.stripe.model.Customer;
+import com.stripe.model.checkout.Session;
+import com.stripe.net.RequestOptions;
+import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.checkout.SessionCreateParams;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Service;
+
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Map;
+
+/**
+ * Print pr7 (commit a) — the print checkout. A SELF-CONTAINED, variable-amount Stripe Checkout Session for a
+ * printed book: it runs the whole pre-checkout flow itself (gate → recompute price server-side → render + persist
+ * the interior/cover PDFs → insert a {@code pending} print_orders row → open the Stripe session) and returns the
+ * hosted URL. It NEVER submits anything to Lulu and never fulfils — the signed webhook (commit b) advances the
+ * order to {@code paid → submitted}, exactly as the digital SKUs grant only in {@link com.gotcherapp.api.billing}.
+ *
+ * <p>The distinct shape vs the fixed-price digital SKUs (credit packs / share unlock) is the <b>variable amount</b>:
+ * inline {@code price_data} with {@code unit_amount} = the pr6 per-copy price and {@code quantity} = copies, so
+ * {@code unit × qty} is the pr6 total and the receipt reads "N × $X". The amount is recomputed here from the
+ * book's own page count — a client-sent amount is never trusted (the variable-amount analogue of the billing
+ * IDOR check).
+ */
+@Service
+public class PrintOrderService {
+
+    /** v1 guardrail on a variable-amount charge — a sane upper bound on copies per order (grandparents buy a few). */
+    static final int MAX_QUANTITY = 10;
+
+    private final JdbcTemplate jdbc;
+    private final PrintInteriorService printInteriorService;
+    private final PrintPricingService pricingService;
+    private final PrintRenderService renderService;
+    private final String secretKey;
+    private final String frontendUrl;
+    private final boolean printEnabled;
+
+    public PrintOrderService(
+            JdbcTemplate jdbc,
+            PrintInteriorService printInteriorService,
+            PrintPricingService pricingService,
+            PrintRenderService renderService,
+            @Value("${stripe.secret.key}") String secretKey,
+            @Value("${app.frontend-url}") String frontendUrl,
+            @Value("${app.print.enabled:false}") boolean printEnabled) {
+        this.jdbc = jdbc;
+        this.printInteriorService = printInteriorService;
+        this.pricingService = pricingService;
+        this.renderService = renderService;
+        this.secretKey = secretKey;
+        this.frontendUrl = frontendUrl;
+        this.printEnabled = printEnabled;
+    }
+
+    @PostConstruct
+    void init() {
+        // Same global process-wide key as BillingService (one Stripe account); setting it again is a harmless
+        // no-op that removes any dependence on bean init order. Blank when billing isn't configured locally.
+        Stripe.apiKey = secretKey;
+    }
+
+    /**
+     * Open a print Checkout Session for {@code quantity} copies of {@code bookId}. Runs the full pre-checkout
+     * flow and returns the Stripe-hosted URL.
+     *
+     * @throws LuluClient.PrintDisabledException           print is off (kill switch) — refused before any charge (→ 409)
+     * @throws IllegalArgumentException                    quantity out of range (→ 400)
+     * @throws PrintRenderService.BookNotAccessibleException the book isn't owned by the caller (→ 404)
+     * @throws NotOrderableException                       the book fails the print gate (too few / too many pages) (→ 409)
+     */
+    public String createCheckout(Long userId, Long bookId, int quantity) throws Exception {
+        // 0. Kill switch — refuse FIRST when print is off, so no customer is ever charged for a dormant feature.
+        if (!printEnabled) {
+            throw new LuluClient.PrintDisabledException(
+                "Print is disabled (app.print.enabled=false) — refusing to open a print checkout.");
+        }
+        if (quantity < 1 || quantity > MAX_QUANTITY) {
+            throw new IllegalArgumentException("quantity must be between 1 and " + MAX_QUANTITY);
+        }
+
+        // 1. Gate + recompute the amount SERVER-SIDE (never trust a client amount). orderability() also does the
+        //    IDOR check (throws → 404 if the book isn't owned) and gives the filled page count that prices it.
+        PrintInteriorService.Orderability gate = printInteriorService.orderability(userId, bookId);
+        if (!gate.orderable()) {
+            throw new NotOrderableException(gate);
+        }
+        PrintPricingService.Price price = pricingService.price(gate.pageCount(), quantity);
+
+        // 2. Render + persist the interior + cover PDFs now (pr0.5 "pre-checkout render") behind their signed
+        //    token URLs. The webhook (commit b) never renders — it just hands these URLs to Lulu.
+        PrintRenderService.RenderResult interior = renderService.renderInterior(userId, bookId);
+        PrintRenderService.RenderResult cover = renderService.renderCover(userId, bookId);
+        Instant pdfExpiresAt = interior.expiresAt().isBefore(cover.expiresAt())
+            ? interior.expiresAt() : cover.expiresAt();
+
+        // 3. Ensure a Stripe customer for the buyer (created lazily, stored on the user).
+        String customerId = ensureCustomer(userId);
+
+        // 4. Insert the pending order → its id is what the webhook routes on (metadata.printOrderId).
+        long orderId = insertPendingOrder(userId, bookId, quantity, gate.pageCount(),
+            price, interior.pdfUrl(), cover.pdfUrl(), pdfExpiresAt);
+
+        // 5. Open the variable-amount Checkout Session. Stripe collects a US shipping address + a phone (Lulu
+        //    requires a phone); the webhook reads both from session.shipping_details / customer_details.
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setCustomer(customerId)
+            .setClientReferenceId(String.valueOf(userId))
+            .addLineItem(SessionCreateParams.LineItem.builder()
+                .setQuantity((long) price.quantity())
+                .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+                    .setCurrency("usd")
+                    .setUnitAmount((long) price.unitPriceCents())   // per-copy; × quantity = pr6 total
+                    .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                        .setName("CradleHQ Printed Memory Book")
+                        .build())
+                    .build())
+                .build())
+            .setShippingAddressCollection(SessionCreateParams.ShippingAddressCollection.builder()
+                .addAllowedCountry(SessionCreateParams.ShippingAddressCollection.AllowedCountry.US)
+                .build())
+            .setPhoneNumberCollection(SessionCreateParams.PhoneNumberCollection.builder()
+                .setEnabled(true)
+                .build())
+            .putMetadata("type", "print_order")                     // the webhook branch key (commit b)
+            .putMetadata("printOrderId", String.valueOf(orderId))
+            .setSuccessUrl(frontendUrl + "/?print=success&session_id={CHECKOUT_SESSION_ID}")
+            .setCancelUrl(frontendUrl + "/?print=cancelled")
+            .build();
+
+        // One Session.create per orderId — key on it so a transport-level retry of THIS call can't double-create.
+        RequestOptions options = RequestOptions.builder()
+            .setIdempotencyKey("print_order_" + orderId)
+            .build();
+
+        Session session = Session.create(params, options);
+        jdbc.update("UPDATE print_orders SET stripe_session_id = ?, updated_at = NOW() WHERE id = ?",
+            session.getId(), orderId);
+        return session.getUrl();
+    }
+
+    /** Return the user's Stripe customer id, creating + storing one on first purchase (mirrors BillingService). */
+    private String ensureCustomer(Long userId) throws Exception {
+        Map<String, Object> row = jdbc.queryForMap(
+            "SELECT stripe_customer_id, email FROM users WHERE id = ?", userId);
+        String customerId = (String) row.get("stripe_customer_id");
+        if (customerId != null && !customerId.isBlank()) {
+            return customerId;
+        }
+        Customer customer = Customer.create(CustomerCreateParams.builder()
+            .setEmail((String) row.get("email"))
+            .putMetadata("userId", String.valueOf(userId))
+            .build());
+        jdbc.update("UPDATE users SET stripe_customer_id = ? WHERE id = ?", customer.getId(), userId);
+        return customer.getId();
+    }
+
+    /** Insert the {@code pending} order and return its generated id. */
+    private long insertPendingOrder(Long userId, Long bookId, int quantity, int pageCount,
+                                    PrintPricingService.Price price, String interiorUrl, String coverUrl,
+                                    Instant pdfExpiresAt) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(con -> {
+            // Ask Postgres for ONLY the id back — otherwise it returns every column and getKey() ambiguates.
+            PreparedStatement ps = con.prepareStatement(
+                "INSERT INTO print_orders " +
+                "(user_id, book_id, quantity, page_count, unit_price_cents, amount_cents, currency, status, " +
+                " interior_pdf_url, cover_pdf_url, pdf_expires_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)",
+                new String[]{"id"});
+            ps.setLong(1, userId);
+            ps.setLong(2, bookId);
+            ps.setInt(3, quantity);
+            ps.setInt(4, pageCount);
+            ps.setInt(5, price.unitPriceCents());
+            ps.setInt(6, price.totalCents());
+            ps.setString(7, price.currency());
+            ps.setString(8, interiorUrl);
+            ps.setString(9, coverUrl);
+            ps.setTimestamp(10, Timestamp.from(pdfExpiresAt));
+            return ps;
+        }, keyHolder);
+        Number id = keyHolder.getKey();   // single "id" column requested above, so getKey() is unambiguous
+        if (id == null) {
+            throw new IllegalStateException("print_orders insert returned no generated id");
+        }
+        return id.longValue();
+    }
+
+    /** A book that fails the print gate (too few / too many filled pages) — never opens a checkout. Mapped to 409. */
+    public static class NotOrderableException extends RuntimeException {
+        private final transient PrintInteriorService.Orderability gate;
+        public NotOrderableException(PrintInteriorService.Orderability gate) {
+            super("Book is not orderable: " + gate.pageCount() + " filled pages (need "
+                + gate.min() + "–" + gate.max() + "); reason=" + gate.reason());
+            this.gate = gate;
+        }
+        public PrintInteriorService.Orderability gate() { return gate; }
+    }
+}

@@ -1,5 +1,6 @@
 package com.gotcherapp.api.print;
 
+import com.gotcherapp.api.billing.dto.CheckoutResponse;
 import com.gotcherapp.api.common.ApiError;
 import com.gotcherapp.api.security.AuthPrincipal;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +27,16 @@ public class PrintController {
     private final LuluPrintService luluPrintService;
     private final PrintInteriorService printInteriorService;
     private final PrintPricingService pricingService;
+    private final PrintOrderService printOrderService;
 
     public PrintController(PrintRenderService renderService, LuluPrintService luluPrintService,
-                           PrintInteriorService printInteriorService, PrintPricingService pricingService) {
+                           PrintInteriorService printInteriorService, PrintPricingService pricingService,
+                           PrintOrderService printOrderService) {
         this.renderService = renderService;
         this.luluPrintService = luluPrintService;
         this.printInteriorService = printInteriorService;
         this.pricingService = pricingService;
+        this.printOrderService = printOrderService;
     }
 
     /**
@@ -83,6 +87,38 @@ public class PrintController {
         } catch (PrintRenderService.BookNotAccessibleException e) {
             return ApiError.notFound(e.getMessage());
         } catch (Exception e) {
+            return ApiError.serverError(e.getMessage());
+        }
+    }
+
+    /**
+     * Print pr7 (commit a) — open a variable-amount Stripe Checkout Session for {@code quantity} copies of this
+     * book. Self-contained: gates on the kill switch, re-checks orderability + recomputes the amount server-side
+     * (never trusts a client), renders + persists the PDFs, inserts a {@code pending} print_orders row, and opens
+     * the session. Returns the hosted URL. The webhook (commit b) fulfils on payment. 404 if not owned; 409 if
+     * print is off or the book isn't orderable; 400 on a bad quantity. Owner-scoped (JWT under /books/**).
+     */
+    @PostMapping("/checkout")
+    public ResponseEntity<?> checkout(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable Long bookId,
+        @RequestParam(name = "quantity", defaultValue = "1") int quantity
+    ) {
+        try {
+            String url = printOrderService.createCheckout(principal.userId(), bookId, quantity);
+            return ResponseEntity.ok(new CheckoutResponse(url));
+        } catch (PrintRenderService.BookNotAccessibleException e) {
+            return ApiError.notFound(e.getMessage());
+        } catch (LuluClient.PrintDisabledException e) {
+            // Kill switch — feature intentionally off. 409, never a charge.
+            return ApiError.conflict(e.getMessage());
+        } catch (PrintOrderService.NotOrderableException e) {
+            // Gate failed (too few / too many filled pages) — 409, no session opened.
+            return ApiError.conflict(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ApiError.badRequest(e.getMessage());
+        } catch (Exception e) {
+            // Catch Exception: an uncaught RuntimeException re-dispatches to /error and surfaces as 401 (CLAUDE.md).
             return ApiError.serverError(e.getMessage());
         }
     }
