@@ -12,6 +12,7 @@ import { apiRequest } from "./lib/api";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AiCreditsProvider } from "./contexts/AiCreditsContext";
 import { PurchaseProvider } from "./contexts/PurchaseContext";
+import { PrintProvider } from "./contexts/PrintContext";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -218,6 +219,7 @@ export default function App() {
     <ThemeProvider>
       <AiCreditsProvider user={user} onUserUpdate={handleUserUpdate}>
         <PurchaseProvider openPurchase={openPurchase}>
+         <PrintProvider printEnabled={user?.print_enabled}>
           <CradleHq
             user={user}
             onLogout={handleLogout}
@@ -240,6 +242,7 @@ export default function App() {
             credits={user?.ai_credits_remaining}
             onDismiss={() => setUpgradeStatus(null)}
           />
+         </PrintProvider>
         </PurchaseProvider>
       </AiCreditsProvider>
     </ThemeProvider>

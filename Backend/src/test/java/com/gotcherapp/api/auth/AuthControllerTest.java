@@ -34,7 +34,7 @@ class AuthControllerTest {
 
     private final AuthResponse AUTH_RESPONSE = new AuthResponse(
             "access.token", REFRESH_TOKEN,
-            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0)
+            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0, false)
     );
 
     @org.junit.jupiter.api.BeforeEach
@@ -226,7 +226,7 @@ class AuthControllerTest {
     @Test
     void me_returns200_withUserInfo() {
         when(authService.getUser(USER_ID)).thenReturn(
-            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0));
+            new UserDto(USER_ID, EMAIL, "Test User", false, "free", 0, true));
 
         var result = authController.me(PRINCIPAL);
 
@@ -234,7 +234,10 @@ class AuthControllerTest {
         @SuppressWarnings("unchecked")
         var body = (java.util.Map<String, Object>) result.getBody();
         assertNotNull(body);
-        assertNotNull(body.get("user"));
+        var user = body.get("user");
+        assertNotNull(user);
+        // Print pr8 — the print kill switch rides UserDto so the frontend can gate the order entry point.
+        assertTrue(((UserDto) user).printEnabled());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

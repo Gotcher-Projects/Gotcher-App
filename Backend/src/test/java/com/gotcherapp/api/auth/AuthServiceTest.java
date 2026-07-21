@@ -49,7 +49,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(jdbc, jwtUtil, passwordEncoder, emailVerificationService,
-                GRANT_LIMIT, GRANT_SIZE);
+                GRANT_LIMIT, GRANT_SIZE, false);
     }
 
     /** Stub the sv2-grant conditional UPDATE. Empty list = cap reached or already granted. */
@@ -136,7 +136,7 @@ class AuthServiceTest {
     /** FREE_GRANT_LIMIT=0 switches grants off entirely — no statement is issued at all. */
     @Test
     void register_skipsGrantEntirely_whenLimitIsZero() {
-        authService = new AuthService(jdbc, jwtUtil, passwordEncoder, emailVerificationService, 0, GRANT_SIZE);
+        authService = new AuthService(jdbc, jwtUtil, passwordEncoder, emailVerificationService, 0, GRANT_SIZE, false);
         stubRegisterHappyPath();
 
         AuthResponse result = authService.register(new RegisterRequest(EMAIL, PASSWORD, null));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, BookOpen, PenLine } from "lucide-react";
+import { Loader2, BookOpen, PenLine, Printer } from "lucide-react";
 import ScrapbookBuilder from "@/components/storybook/ScrapbookBuilder";
 import LayoutRenderer from "@/components/storybook/LayoutRenderer";
 import { BOOK_THEMES, getTheme } from "@/lib/bookThemes";
@@ -16,6 +16,8 @@ import { seedMomentHeroFromFirst, featuredFirstTimeIds, chapterHasContent, guide
 import BookSwitcher from "@/components/storybook/BookSwitcher";
 import YourBooksShelf from "@/components/storybook/YourBooksShelf";
 import ShareSection from "@/components/storybook/ShareSection";
+import PrintOrderModal from "@/components/storybook/PrintOrderModal";
+import { usePrintEnabled } from "@/contexts/PrintContext";
 
 // Remembers the last-opened book across sessions (single profile per session, so one key is enough).
 const ACTIVE_BOOK_KEY = 'cradlehq-active-book';
@@ -32,6 +34,11 @@ export default function StorybookTab({
   const [activeBookId, setActiveBookId] = useState(null);
   const [showChooser, setShowChooser] = useState(false);
   const [showShelf, setShowShelf] = useState(false);
+
+  // Print pr8 — the "Order a printed book" entry point. Gated on the global print kill switch (rides
+  // user.print_enabled → PrintContext); shows on native too (a printed book is a physical good).
+  const printEnabled = usePrintEnabled();
+  const [showPrintOrder, setShowPrintOrder] = useState(false);
 
   // Chapters belong to the active book.
   const [chapters, setChapters] = useState([]);
@@ -408,6 +415,22 @@ export default function StorybookTab({
         </div>
       )}
 
+      {printEnabled && activeBookId != null && (
+        <div className="border-t border-border pt-6 mt-2 text-center">
+          <h3 className="font-display font-semibold text-lg text-foreground">Keep it forever</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1">
+            Order a printed keepsake copy of this book, mailed to your door.
+          </p>
+          <Button
+            className="mt-3 bg-color-highlight hover:bg-color-highlight/90 gap-2"
+            onClick={() => setShowPrintOrder(true)}
+          >
+            <Printer className="w-4 h-4" />
+            Order a printed book
+          </Button>
+        </div>
+      )}
+
       <ShareSection
         bookId={activeBookId}
         shareUnlocked={!!activeBook?.shareUnlocked}
@@ -429,6 +452,12 @@ export default function StorybookTab({
       {showChooser && (
         <NewBookChooser onCreate={handleCreateBook} onClose={() => setShowChooser(false)} dismissable />
       )}
+
+      <PrintOrderModal
+        open={showPrintOrder}
+        onClose={() => setShowPrintOrder(false)}
+        bookId={activeBookId}
+      />
     </div>
   );
 }

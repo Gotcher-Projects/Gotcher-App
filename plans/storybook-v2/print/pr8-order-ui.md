@@ -1,6 +1,27 @@
 # Print pr8 — "Order a Book" UI + min-page gate
 
-**Status:** Not started
+**Status:** Complete (verified end-to-end with Michael 2026-07-20). Backend + frontend build green; full
+backend suite + all 336 frontend tests pass. Manual in-app check done (`PRINT_ENABLED=true`): entry button
+appears in the Storybook tab, hides on a stale session until `/auth/me` refreshes the user (existing users get
+it on next app boot); orderable book → qty/price ($35 flat, ×qty to 10); a 3-page freeform book → ADD_MORE
+blocking state. **Full Lulu loop re-run through the pr8 UI** via cloudflared tunnel + `stripe listen` + 4242:
+order #5 (book 27) → checkout.session.completed (200) → paid → submitted → Lulu **sandbox job 315724**
+(`external_id=print-order-5`, MAIL, ACCEPTED/UNPAID — UNPAID is normal sandbox behavior, no real charge).
+Stripe-collected US address flowed into the order + Lulu. (FILL_MORE guided-under-32 and OVER_MAX freeform-
+over-50 states not exercised live — no such demo book — but are the same reason-switch; natural pr9 candidates.)
+
+**What shipped:**
+- **Backend** — `UserDto` gains `@JsonProperty("print_enabled")`; `AuthService` injects
+  `@Value("${app.print.enabled:false}")` and stamps it on every path (register/login/refresh/getUser), so
+  `/auth/me` carries it. `AuthControllerTest.me` now asserts the flag serializes; `AuthServiceTest` constructor
+  calls updated.
+- **Frontend** — new `contexts/PrintContext.jsx` (`PrintProvider`/`usePrintEnabled`), mounted in `App` around
+  `CradleHq` seeded with `user.print_enabled`. New `storybook/PrintOrderModal.jsx`: `GET /orderability` on open
+  → four-reason gate (OK / FILL_MORE / ADD_MORE / OVER_MAX) → quantity picker (1–10) + `GET /price` total →
+  `POST /checkout` with a "preparing your book…" state → Stripe redirect. `StorybookTab` renders the entry
+  button above `ShareSection`, gated on `usePrintEnabled()` (shows on native — physical good).
+
+**Status (original):** Not started
 **Est:** ~2 hours · **Depends on:** pr6, pr7 · **Blocks:** pr9
 **Launch prompt:** `session-prompts.md` → pr8
 
@@ -27,6 +48,32 @@ contract). But these below are now WRONG and must not be built as written:
 - The **quantity picker** + the **kill-switch-hidden entry point** (via `/auth/me`) below still stand.
 
 ---
+
+## ✅ Locked 2026-07-20 (contract verified against the built backend + decisions with Michael)
+
+**Verified contract** (all live, owner-scoped under `/books/{bookId}/print`, JWT):
+- `GET …/orderability` → `{ pageCount, min:32, max, orderable, shortBy, overBy, bookType, reason }`.
+  `reason` ∈ **`OK / FILL_MORE / ADD_MORE / OVER_MAX`** — **four** values (the header above missed `OVER_MAX`,
+  freeform > 50). Also carries `overBy` alongside `shortBy`. This is the gate; consume it, don't invent one.
+- `GET …/price?quantity=N` → `{ pageCount, bookType, unitPriceCents, quantity, totalCents, currency }`.
+  **Hard-gates on orderability itself → 409 when un-orderable.** So call `/orderability` first; only fetch
+  `/price` when `orderable`.
+- `POST …/checkout?quantity=N` → `{ url }` (Stripe hosted page). 409 = print off / not orderable; 400 = bad qty;
+  404 = not owned. pr7 capped **`MAX_QUANTITY=10`** — the quantity picker must cap at 10.
+
+**Decisions:**
+- **① Entry point = a button → `PrintOrderModal`** (new component), placed in `StorybookTab` just above
+  `ShareSection` (line ~411), styled like the existing `bg-color-highlight` buttons. The modal holds the whole
+  flow: `/orderability` on open → gate state (3 messages: FILL_MORE / ADD_MORE / OVER_MAX) **or** quantity
+  picker + live `/price` total → "Continue to payment" → **"Preparing your book…"** loading → `POST /checkout`
+  → `window.location.href = url`. Structurally mirrors `PurchaseModal` (shadcn Dialog, US-only footnote). It
+  does **NOT** reuse `usePurchase()`/`openPurchase` — that's the digital native gate; print must show on native.
+- **② Flag delivery = a small `PrintContext`** (mirrors `AiCreditsContext`/`PurchaseContext`): mount a provider
+  at `App` seeded with `user.print_enabled`; the button reads `usePrintEnabled()`. No prop-drilling through
+  `MemoriesTab`/the shell (neither receives `user` today). pr9 + a future "my orders" link reuse the same hook.
+- **③ Flag onto `UserDto`** = inject `@Value("${app.print.enabled}")` into **`AuthService.getUser`** and stamp
+  a new `@JsonProperty("print_enabled")` field, so every auth path (login, `/auth/me`, refresh) carries it — no
+  second fetch, no login-vs-me gap.
 
 ## What you're building
 

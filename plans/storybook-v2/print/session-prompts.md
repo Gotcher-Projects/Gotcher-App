@@ -151,8 +151,12 @@ Show the "Order a Printed Book" entry point only when app.print.enabled is true 
 ## pr9 — Order confirmation + status (1.5h)
 
 ```
-Print pr9 — confirmation screen after a successful order; optional Lulu shipped-webhook -> notify user.
-Plan: pr9-order-confirmation.md.
+Print pr9 — order confirmation screen after a paid print order. Scope is LOCKED + build-ready: see
+pr9-order-confirmation.md "✅ Locked 2026-07-21 — build spec" (follow it exactly, no re-deciding).
+In short: add book_id to PrintOrderService success_url; new owner-scoped GET
+/books/{bookId}/print/order?session_id= (NOT under /print/** — that's permitAll); App.jsx handles
+?print=success; new PrintOrderConfirm.jsx (model on UpgradeConfirm) shows order #/copies/total/ship-to +
+static "~2–3 weeks" delivery copy, soft never-fail status line. Shipped-webhook = OUT of scope.
 ```
 
 ## pr10 — Lulu live cutover (1.5–2h)

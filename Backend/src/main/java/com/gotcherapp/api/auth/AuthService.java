@@ -27,17 +27,22 @@ public class AuthService {
     private final EmailVerificationService emailVerificationService;
     private final int freeGrantLimit;
     private final int freeGrantSize;
+    // Print pr8 — global print kill switch (app.print.enabled), surfaced on every UserDto so the frontend
+    // shows the "Order a printed book" entry point only when print is on. Config-driven, not per-user.
+    private final boolean printEnabled;
 
     public AuthService(JdbcTemplate jdbc, JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
                        EmailVerificationService emailVerificationService,
                        @Value("${app.free-grant.limit:500}") int freeGrantLimit,
-                       @Value("${app.free-grant.size:5}") int freeGrantSize) {
+                       @Value("${app.free-grant.size:5}") int freeGrantSize,
+                       @Value("${app.print.enabled:false}") boolean printEnabled) {
         this.jdbc = jdbc;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationService = emailVerificationService;
         this.freeGrantLimit = freeGrantLimit;
         this.freeGrantSize = freeGrantSize;
+        this.printEnabled = printEnabled;
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -75,7 +80,7 @@ public class AuthService {
             log.warn("Failed to send verification email to {}: {}", email, e.getMessage());
         }
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", credits));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", credits, printEnabled));
     }
 
     // Grant the launch promotion to the first `freeGrantLimit` signups (sv2-grant). Returns the user's
@@ -143,7 +148,7 @@ public class AuthService {
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, refreshToken, req.rememberMe() ? 30 : 7);
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits, printEnabled));
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -189,7 +194,7 @@ public class AuthService {
         String newRefreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, newRefreshToken, 7);
 
-        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits));
+        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits, printEnabled));
     }
 
     public void logout(String refreshToken) {
@@ -211,7 +216,8 @@ public class AuthService {
             (String) u.get("display_name"),
             Boolean.TRUE.equals(u.get("email_verified")),
             (String) u.get("tier"),
-            credits
+            credits,
+            printEnabled
         );
     }
 

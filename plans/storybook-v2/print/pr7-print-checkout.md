@@ -1,10 +1,10 @@
 # Print pr7 — Variable-amount Stripe checkout + shipping address
 
-**Status:** Needs Verification (both commits implemented 2026-07-20). Backend build + full test suite green
-(unit tests for both commits). **Still needs the manual e2e** (4242 test card + local Stripe webhook + Lulu
-sandbox via the cloudflared tunnel, `PRINT_ENABLED=true`): confirm the order row + Stripe hosted page +
-US address/phone form (commit a), then the paid webhook flips the order `paid → submitted` and Lulu fetches
-the PDFs (commit b). Verify redelivery is a no-op (Stripe "Resend").
+**Status:** Complete (both commits implemented + manual e2e verified 2026-07-20). Backend build + full test
+suite green (unit tests for both commits). Manual e2e confirmed (4242 test card + local Stripe webhook + Lulu
+sandbox via the cloudflared tunnel, `PRINT_ENABLED=true`): order row + Stripe hosted page + US address/phone
+form (commit a), then the paid webhook flips the order `paid → submitted` and Lulu fetches the PDFs (commit b);
+redelivery is a no-op (Stripe "Resend").
 
 **What shipped:**
 - **Commit (a)** `9579816` — `V51__add_print_orders.sql` (order backbone table), `PrintOrderService.createCheckout`
