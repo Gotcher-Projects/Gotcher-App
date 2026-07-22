@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -166,16 +167,35 @@ public class PrintOrderService {
             return null;
         }
         var rows = jdbc.queryForList(
-            "SELECT po.id, po.status, po.quantity, po.page_count, po.amount_cents, po.currency, " +
-            "       po.ship_name, po.ship_city, po.ship_state_code, po.created_at, b.title AS book_title " +
-            "FROM print_orders po LEFT JOIN books b ON b.id = po.book_id " +
-            "WHERE po.stripe_session_id = ? AND po.user_id = ? AND po.book_id = ?",
+            ORDER_SELECT + "WHERE po.stripe_session_id = ? AND po.user_id = ? AND po.book_id = ?",
             sessionId, userId, bookId);
-        if (rows.isEmpty()) {
-            return null;
-        }
-        Map<String, Object> r = rows.get(0);
-        Object createdAt = r.get("created_at");
+        return rows.isEmpty() ? null : mapOrder(rows.get(0));
+    }
+
+    /**
+     * Print s14c — every order this user has placed, newest first. The {@code user_id} scope is the IDOR
+     * boundary, exactly as above.
+     *
+     * <p><b>{@code pending} orders are excluded on purpose.</b> A row is created {@code pending} when the
+     * Checkout Session opens, so an abandoned checkout leaves one behind forever. The customer never paid and
+     * has no order — showing it would be alarming and wrong.
+     */
+    public List<OrderSummary> listOrders(Long userId) {
+        return jdbc.queryForList(
+                ORDER_SELECT + "WHERE po.user_id = ? AND po.status <> 'pending' ORDER BY po.id DESC", userId)
+            .stream().map(PrintOrderService::mapOrder).toList();
+    }
+
+    // One projection for both reads, so the confirmation and the list can never disagree about an order.
+    // Note what is NOT here: no street address, no PDF token urls, no Stripe/Lulu ids, and deliberately no
+    // lulu_status or failure_reason — see the record's doc.
+    private static final String ORDER_SELECT =
+        "SELECT po.id, po.status, po.quantity, po.page_count, po.amount_cents, po.currency, " +
+        "       po.ship_name, po.ship_city, po.ship_state_code, po.created_at, b.title AS book_title, " +
+        "       po.tracking_urls, po.carrier_name, po.shipped_at, (po.refunded_at IS NOT NULL) AS refunded " +
+        "FROM print_orders po LEFT JOIN books b ON b.id = po.book_id ";
+
+    private static OrderSummary mapOrder(Map<String, Object> r) {
         return new OrderSummary(
             ((Number) r.get("id")).longValue(),
             (String) r.get("status"),
@@ -187,18 +207,42 @@ public class PrintOrderService {
             (String) r.get("ship_city"),
             (String) r.get("ship_state_code"),
             (String) r.get("book_title"),
-            createdAt instanceof java.sql.Timestamp ts ? ts.toInstant().toString() : null);
+            timestamp(r.get("created_at")),
+            firstTrackingUrl((String) r.get("tracking_urls")),
+            (String) r.get("carrier_name"),
+            timestamp(r.get("shipped_at")),
+            Boolean.TRUE.equals(r.get("refunded")));
+    }
+
+    private static String timestamp(Object value) {
+        return value instanceof java.sql.Timestamp ts ? ts.toInstant().toString() : null;
+    }
+
+    /** {@code tracking_urls} is stored newline-separated; the UI only ever offers one "Track package" link. */
+    private static String firstTrackingUrl(String trackingUrls) {
+        if (trackingUrls == null || trackingUrls.isBlank()) {
+            return null;
+        }
+        return trackingUrls.split("\\R", 2)[0].trim();
     }
 
     /**
-     * What the confirmation screen shows. Deliberately NARROW — the street address, PDF token URLs, Stripe/Lulu
-     * ids and the event id all stay server-side; city/state is enough to prove "we're shipping to the right
-     * place". {@code shipName}/{@code shipCity}/{@code shipStateCode} are null until the webhook has read them
-     * off the session, and {@code bookTitle} is nullable in {@code books} — the UI degrades on both.
+     * What the customer is allowed to see about an order — used by both the pr9 confirmation and the s14c list.
+     * Deliberately NARROW: the street address, PDF token URLs, Stripe/Lulu ids and the event id all stay
+     * server-side; city/state is enough to prove "we're shipping to the right place".
+     *
+     * <p><b>Two fields s14c's plan listed are deliberately absent.</b> {@code luluStatus} is our vendor's
+     * vocabulary ({@code IN_PRODUCTION}) and {@code failureReason} is raw operator text ("Upload Error: We
+     * detected an error in your PDF…") — the plan says never to render either at a parent, and the surest way
+     * to never render something is to never send it. Support reads both from the DB and from the alert email.
+     *
+     * <p>{@code refunded} is derived from {@code refunded_at}, which s14a-2 <b>clears</b> when a refund later
+     * fails — so a failed refund correctly stops reading as refunded.
      */
     public record OrderSummary(
         long orderId, String status, int quantity, int pageCount, int amountCents, String currency,
-        String shipName, String shipCity, String shipStateCode, String bookTitle, String createdAt) {}
+        String shipName, String shipCity, String shipStateCode, String bookTitle, String createdAt,
+        String trackingUrl, String carrierName, String shippedAt, boolean refunded) {}
 
     /** Return the user's Stripe customer id, creating + storing one on first purchase (mirrors BillingService). */
     private String ensureCustomer(Long userId) throws Exception {

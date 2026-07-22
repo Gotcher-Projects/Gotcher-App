@@ -38,6 +38,7 @@ class BillingWebhookServiceTest {
 
     @Mock GrantService grantService;
     @Mock com.gotcherapp.api.print.PrintOrderFulfilmentService printOrderFulfilmentService;
+    @Mock com.gotcherapp.api.print.PrintRefundService printRefundService;
 
     private BillingWebhookService service;
 
@@ -48,7 +49,8 @@ class BillingWebhookServiceTest {
     @BeforeEach
     void setUp() {
         // The secret is a @Value String, not a bean — construct by hand rather than @InjectMocks.
-        service = new BillingWebhookService(grantService, printOrderFulfilmentService, SECRET);
+        service = new BillingWebhookService(
+            grantService, printOrderFulfilmentService, printRefundService, SECRET);
     }
 
     @Test

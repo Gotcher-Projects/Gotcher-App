@@ -1,6 +1,6 @@
 # Payments P2 — `POST /billing/checkout`
 
-**Status:** Needs Verification — implemented 2026-07-10. Compiles, `./gradlew test` green, and verified
+**Status:** ✅ **Complete** — implemented 2026-07-10. Compiles, `./gradlew test` green, and verified
 live against the demo account (real `cs_test_` sessions created). Awaiting Michael's sign-off.
 **Est:** ~2–3 hours (most likely to spill — split rather than rush) · **Depends on:** P1 · **Blocks:** P3, P6
 **Launch prompt:** `session-prompts.md` → P2

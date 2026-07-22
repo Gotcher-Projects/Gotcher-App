@@ -1,6 +1,6 @@
 # SV2-GRANT — Free signup credits, capped at the first N users
 
-**Status: Needs Verification (implemented 2026-07-09).** Backend built, full `./gradlew test` green.
+**Status: ✅ **Complete** (implemented 2026-07-09).** Backend built, full `./gradlew test` green.
 **Not yet run against a live Postgres** — Docker was down, so V46 has never been applied and the
 `UPDATE … RETURNING` has never actually parsed. Do the §Verification steps before calling this Complete.
 **Est:** ~0.5 session · **Blocked on:** nothing · **Run before:** Payments S2

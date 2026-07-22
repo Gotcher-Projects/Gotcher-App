@@ -105,7 +105,17 @@ public class LuluClient {
 
     /** Fetch a print job's current status (poll the async validate → print flow). Read-only — NOT gated. */
     public PrintJob getPrintJob(long jobId) {
-        return parseJob(exchange(HttpMethod.GET, "/print-jobs/" + jobId + "/", null));
+        return parseJob(getPrintJobRaw(jobId));
+    }
+
+    /**
+     * The same fetch, unparsed. s14a-1's reconciliation sweep feeds this straight to
+     * {@link LuluJobStatusMapper} — the mapper reads the line-item rejection messages and the shipped tracking
+     * fields that {@link PrintJob} deliberately doesn't carry, and it must see the SAME shape the signed webhook
+     * delivers or the two feeds would interpret a rejection differently. Read-only — NOT gated.
+     */
+    public JsonNode getPrintJobRaw(long jobId) {
+        return exchange(HttpMethod.GET, "/print-jobs/" + jobId + "/", null);
     }
 
     private PrintJob parseJob(JsonNode n) {

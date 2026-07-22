@@ -1,6 +1,6 @@
 # Payments P4 — Webhook hardening (LOCAL ONLY)
 
-**Status:** Needs Verification — Bucket A (11 automated tests, green) + Bucket B (all real-card flows run
+**Status:** ✅ **Complete** — Bucket A (11 automated tests, green) + Bucket B (all real-card flows run
 & observed live, 2026-07-11) both done. Awaiting Michael's sign-off to mark Complete.
 **Est:** ~1.5 hours · **Depends on:** P3 · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → P4

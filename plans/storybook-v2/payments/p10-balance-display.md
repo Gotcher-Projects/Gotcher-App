@@ -1,6 +1,6 @@
 # Payments P10 — Balance display
 
-**Status:** Needs Verification — implemented 2026-07-12. `CreditsPill.jsx` built + wired into the CradleHq
+**Status:** ✅ **Complete** — implemented 2026-07-12. `CreditsPill.jsx` built + wired into the CradleHq
 header; `npm run build` green. Awaiting Michael's in-app look (web pill clickable → PurchaseModal; native
 informational). Notes below.
 

@@ -1,6 +1,6 @@
 # Payments P3 — Webhook + idempotency ledger ⚠️ THE ONE THAT MATTERS
 
-**Status:** Needs Verification — implemented 2026-07-11. Signature verify, real-metadata grant, replay
+**Status:** ✅ **Complete** — implemented 2026-07-11. Signature verify, real-metadata grant, replay
 no-op, book unlock, and unknown-type ignore all verified live. Awaiting Michael's sign-off.
 **Est:** ~2–4 hours · **Depends on:** P2 · **Blocks:** P4, P7
 **Launch prompt:** `session-prompts.md` → P3

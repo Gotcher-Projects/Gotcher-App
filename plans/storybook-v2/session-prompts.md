@@ -617,3 +617,17 @@ card · book-ownership authz on the share purchase (IDOR).
 ALREADY DONE, don't re-litigate: AiAssistService refunds the credit on a failed Claude call
 (AiAssistService.java:88).
 ```
+
+## DEPLOY-0 — First production deploy, dormant (~1.5-2h) — **run BEFORE P12 and pr10**
+
+```
+sv2 DEPLOY-0 — get payments-v1 onto prod with NOTHING turned on. Plan: sv2-deploy-0-first-prod-deploy.md
+The branch is ~36 commits ahead of main and carries three features that have NEVER been in production
+(payments, share, print). Stripe stays on TEST keys; PRINT_ENABLED=false; Lulu stays sandbox.
+Prove the boring infrastructure, in this order: back up the DB -> deploy -> Flyway reaches v53 and the new
+print beans construct -> SMTP ACTUALLY DELIVERS (the quietest failure mode we have: EmailService silently
+no-ops when unconfigured, and a failed send still burns the one-shot notify guards) -> Caddy passes the raw
+body + Stripe-Signature -> headless Chrome renders a PDF ON THE VPS -> share links work in prod (never yet
+exercised there) -> one 4242 test purchase grants credits -> print is provably dormant (409, no session).
+Do NOT touch: live Stripe keys/products/webhook, Lulu prod creds, PRINT_ENABLED, ToS. Those are P12 and pr10.
+```

@@ -1,14 +1,17 @@
 package com.gotcherapp.api.billing;
 
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.LineItem;
+import com.stripe.model.Refund;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionRetrieveParams;
 import com.gotcherapp.api.print.PrintOrderFulfilmentService;
+import com.gotcherapp.api.print.PrintRefundService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,15 +31,18 @@ public class BillingWebhookService {
 
     private final GrantService grantService;
     private final PrintOrderFulfilmentService printOrderFulfilmentService;
+    private final PrintRefundService printRefundService;
     private final String webhookSecret;
 
     public BillingWebhookService(
         GrantService grantService,
         PrintOrderFulfilmentService printOrderFulfilmentService,
+        PrintRefundService printRefundService,
         @Value("${stripe.webhook.secret}") String webhookSecret
     ) {
         this.grantService = grantService;
         this.printOrderFulfilmentService = printOrderFulfilmentService;
+        this.printRefundService = printRefundService;
         this.webhookSecret = webhookSecret;
     }
 
@@ -51,24 +57,44 @@ public class BillingWebhookService {
     public void handle(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
 
-        // One event fulfils. We never create subscriptions/invoices, so Stripe won't send them — but
-        // acknowledge every other type with a 200 rather than erroring on something we simply don't handle.
-        if (!"checkout.session.completed".equals(event.getType())) {
-            log.debug("Ignoring Stripe event type {} ({})", event.getType(), event.getId());
+        // We never create subscriptions/invoices, so Stripe won't send them — but acknowledge every type we
+        // don't handle with a 200 rather than erroring on something we simply didn't subscribe to.
+        String type = event.getType();
+        if (!"checkout.session.completed".equals(type)
+            && !"charge.refunded".equals(type)
+            && !"refund.created".equals(type)
+            && !"refund.failed".equals(type)) {
+            log.debug("Ignoring Stripe event type {} ({})", type, event.getId());
             return;
         }
 
         try {
-            EventDataObjectDeserializer d = event.getDataObjectDeserializer();
-            // getObject() can be empty when the account's API version differs from the library's; fall
-            // back to deserializeUnsafe so a version skew doesn't drop a paid event.
-            StripeObject obj = d.getObject().isPresent() ? d.getObject().get() : d.deserializeUnsafe();
-            String sessionId = ((Session) obj).getId();
-            fulfil(event.getId(), sessionId);
+            StripeObject obj = readObject(event);
+            switch (type) {
+                case "checkout.session.completed" -> fulfil(event.getId(), ((Session) obj).getId());
+                // s14a-2: a refund Michael issued by hand in the dashboard. We only RECORD it — nothing in the
+                // app ever calls Refund.create (decision D2). Non-print refunds are filtered out downstream.
+                case "charge.refunded" -> printRefundService.recordRefund(event.getId(), (Charge) obj);
+                // The only event that reliably carries the refund id — charge.refunded's `refunds` list is not
+                // expanded on the webhook payload. Records the id and nothing else, so ordering doesn't matter.
+                case "refund.created" -> printRefundService.recordRefundId((Refund) obj);
+                // The money did NOT reach the customer, and we've already promised it. Straight to a human.
+                case "refund.failed" -> printRefundService.refundFailed((Refund) obj);
+                default -> log.debug("Unhandled Stripe event type {} ({})", type, event.getId());
+            }
         } catch (Exception e) {
             log.error("Failed to process Stripe event {}: {}", event.getId(), e.getMessage(), e);
             throw new WebhookProcessingException(e);
         }
+    }
+
+    /**
+     * getObject() can be empty when the account's API version differs from the library's; fall back to
+     * deserializeUnsafe so a version skew doesn't drop a paid event.
+     */
+    private StripeObject readObject(Event event) throws Exception {
+        EventDataObjectDeserializer d = event.getDataObjectDeserializer();
+        return d.getObject().isPresent() ? d.getObject().get() : d.deserializeUnsafe();
     }
 
     private void fulfil(String eventId, String sessionId) throws Exception {

@@ -1,6 +1,9 @@
 # SV2-S14a-1 — Print failure detection (webhook + sweep + truth on the row)
 
-**Status:** Not started
+**Status:** ✅ **COMPLETE** — built + **verified end-to-end with Michael 2026-07-21** (see
+`../sv2-s14-verification.md` for the full run). Both detection paths proven on real Lulu rejections: the
+**sweep** caught order #10 with no webhook registered, a **live webhook** caught order #11 in 9 seconds.
+Kill-switch park + resume confirmed. Tracking capture and the never-rewind guard confirmed. 420 backend tests.
 **Est:** ~2 hours · **Depends on:** print pr5, pr7, pr9 · **Blocks:** `sv2-s14a-2`, `sv2-s14c`, print **pr10**
 **Launch prompt:** `print/session-prompts.md` → s14a-1
 **Read first:** `sv2-s14a-rejection-refund.md` (the a-track overview — **its "Research findings" section has the
@@ -103,3 +106,62 @@ the Stripe dashboard refund (a-2) is a copy-paste away. **No customer email in t
 - [ ] An order parked by the kill switch resumes when `PRINT_ENABLED` is flipped back on, and is never marked
       `failed`.
 - [ ] A `SHIPPED` job records tracking id/urls/carrier (feeds s14c).
+
+---
+
+## As built (2026-07-21)
+
+**Migration** `V52__print_orders_failure_tracking.sql` — as specced, plus `idx_print_orders_lulu_job` (the
+webhook's only lookup key) and a partial `idx_print_orders_open` on `last_checked_at` for the sweep's working set.
+
+**New backend classes** (all in `com.gotcherapp.api.print`):
+- `LuluJobStatusMapper` — pure `JsonNode → JobUpdate`. The single interpretation both feeds share. Flattens the
+  **line-item** messages with their panel label (`interior: …`), falls back to the job-level text only when the
+  line items said nothing, and maps every in-flight status (incl. `DELIVERED`) to "leave our status alone".
+- `LuluWebhookController` + `LuluWebhookService` — `POST /print/lulu-webhook`, raw body, HMAC-SHA256 keyed on
+  `lulu.client-secret`, constant-time compare. Mirrors `BillingWebhookController` exactly: 400 only for a bad
+  signature, explicit 500 otherwise.
+- `PrintOrderStatusService` — `applyJobUpdate` (conditional updates + alert-once) and the `@Scheduled` sweep
+  (30 min, 2 min initial delay, 25-min staleness cursor, 30-day horizon, 100/pass).
+- `PrintOperatorAlert` — the operator email. **Its own bean on purpose:** the status service calls fulfilment to
+  resume parked orders, so putting the alert on either would have been a constructor-injection cycle.
+
+**Changed:** `PrintOrderFulfilmentService` (PaymentIntent in the existing claim; `park()` records
+`parked_reason`+`failure_reason`; `submit()` shared by fulfil and the new `resubmitParked()`), `LuluClient`
+(`getPrintJobRaw` so both feeds see the same shape), `application.properties` (`app.print.operator-email`).
+
+**New script** `Backend/lulu-webhooks.sh` — `list | register <base_url> | test <id> | submissions <id> | delete <id>`.
+Registration is a one-time per-environment setup call, not app code (pr10 step 4 does the prod one).
+
+### Three judgment calls the plan didn't specify
+1. **Signature encoding accepts hex OR base64.** Lulu's docs don't pin which the header carries and our sandbox
+   has never delivered one (sandbox jobs stop at `UNPAID`). Both are the same secret-derived bytes, so accepting
+   either widens nothing; the first real delivery pins it. Locally, `openssl dgst -hmac` **hex** verifies.
+2. **Unrecognised payloads answer 200, not 500.** Lulu deactivates a webhook after 5 consecutive *failures*, so a
+   `POST /webhooks/{id}/test/` dummy or an event about a job with no order behind it must not spend one of the
+   five. Only a genuine processing error returns 500.
+3. **⚠ New gap found: expired PDFs make a parked order unresumable.** pr3 gives a rendered PDF a 24h TTL, but the
+   kill-switch resume path can fire days later — the `source_url`s would 404 and buy a guaranteed Lulu rejection.
+   `resubmitParked` now checks `pdf_expires_at` first and parks as **`pdf_expired`** (a third `parked_reason`)
+   with an operator alert instead of submitting. A re-render path is NOT built — that's a follow-up if it ever
+   happens for real.
+
+### Verified locally 2026-07-21 (not yet with Michael)
+- V52 applied by **Flyway** at boot (`Successfully applied 1 migration … now at version v52`); app started clean
+  in 4.5s — no bean cycle.
+- `POST /print/lulu-webhook`: no header → **400**, bogus signature → **400**, tampered body with a valid
+  signature → **400**, correctly signed → **200**.
+- A signed `REJECTED` payload for a job with **no matching order** → 200 + "matches no print order — ignoring"
+  (the deactivation-footgun behaviour above).
+- A signed `REJECTED` for a real order flipped it to **`failed`** with
+  `failure_reason = "interior: Unexpected Http response for source url. Status code: 404"` and
+  `lulu_status = REJECTED`. **Replaying the identical delivery changed nothing and did not re-alert.**
+- The operator email **threw** (`MailAuthenticationException: Authentication failed` — local SMTP is
+  half-configured) and `PrintOperatorAlert` swallowed it: the webhook still returned 200 and the row still told
+  the truth. That is the designed posture, and it is live evidence for **pr10 step 5** — mail can fail silently.
+
+### Still to verify with Michael
+- The **forced-rejection fixture** end to end through Lulu itself (bad `BACKEND_URL` → real REJECTED job),
+  caught **both** with a registered webhook and with none (the sweep path).
+- The **kill-switch resume**: park an order with `PRINT_ENABLED=false`, flip it on, watch the sweep submit it.
+- A `SHIPPED` payload recording tracking (sandbox never ships, so this stays fixture-tested until prod).

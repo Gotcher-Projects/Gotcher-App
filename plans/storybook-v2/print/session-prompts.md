@@ -191,7 +191,7 @@ Tear down after: revert BACKEND_URL to localhost, kill cloudflared + stripe list
 If it all passes, mark pr9 Complete in the plan + update the print memory file.
 ```
 
-## s14a-1 — Print failure detection (~2h) — **required before pr10**
+## s14a-1 — Print failure detection (~2h) — **required before pr10** — ⏳ BUILT 2026-07-21, needs verification
 
 ```
 sv2-s14a-1 — make print failures impossible to miss. Plan: ../sv2-s14a-1-failure-detection.md
@@ -207,7 +207,29 @@ ONE status mapper shared with a ~30min reconciliation sweep (safety net: Lulu au
 Test fixture: point BACKEND_URL at a host Lulu can't fetch -> real REJECTED job (like sandbox job 314931).
 ```
 
-## s14a-2 — Refund recording + customer notification (~1.5h) — **required before pr10**
+## s14a-1 — verification (live e2e, ~45min, WITH Michael)
+
+```
+sv2-s14a-1 verification. Plan: ../sv2-s14a-1-failure-detection.md — read its "As built" + "Still to verify"
+sections; the signed-webhook path and the sweep are already proven locally, so ONLY these three remain:
+
+1. FORCED REJECTION through Lulu itself. Harness (same as pr9): PRINT_ENABLED=true in Backend/.env,
+   ./start-services.sh at repo ROOT, cloudflared tunnel, stripe listen --forward-to localhost:3001/billing/webhook,
+   card 4242. Place an order with BACKEND_URL pointed at a host Lulu CANNOT fetch -> Lulu accepts the POST then
+   rejects. Verify BOTH detection paths: (a) with NO Lulu webhook registered, the ~30min sweep catches it —
+   temporarily shorten SWEEP_INTERVAL_MS or call reconcile() to avoid waiting; (b) with one registered via
+   ./lulu-webhooks.sh register <tunnel_url>, the webhook catches it in seconds. Row must land on status=failed
+   with the LINE-ITEM reason in failure_reason, and the operator must be emailed exactly once across both.
+2. KILL-SWITCH RESUME. Park a paid order with PRINT_ENABLED=false (row stays 'paid', parked_reason=print_disabled,
+   NOT failed), then flip PRINT_ENABLED=true, restart the API, and confirm the sweep resubmits it.
+3. ./lulu-webhooks.sh test <id> -> our receiver answers 200, not 500 (5 consecutive failures deactivate it).
+
+⚠ Restart the API after changing BACKEND_URL — the running process holds the old value, and a stale tunnel url
+means Lulu fetches a dead PDF link. Tear the tunnel down and restore BACKEND_URL when done.
+⚠ Local SMTP auth FAILS, so operator alerts throw and are swallowed (by design) — check the log line, not an inbox.
+```
+
+## s14a-2 — Refund recording + customer notification (~1.5h) — **required before pr10** — ⏳ BUILT 2026-07-21, needs verification
 
 ```
 sv2-s14a-2 — close the loop with the customer. Plan: ../sv2-s14a-2-refund-and-notify.md (needs a-1 landed).
@@ -218,7 +240,7 @@ alert; two customer emails (order failed / refund on its way), each guarded so a
 Physical refunds are a real cash refund — do NOT reuse the digital "move the share unlock" copy.
 ```
 
-## s14c — "Your print orders" list (~1h)
+## s14c — "Your print orders" list (~1h) — ⏳ BUILT 2026-07-21, needs verification
 
 ```
 sv2-s14c — the minimal order list. Plan: ../sv2-s14c-order-list.md (needs a-1 recording status + tracking).
@@ -226,6 +248,21 @@ GET /print-orders (NEW top-level path — NOT under /print/**, that's permitAll;
 user-scoped, extends pr9's OrderSummary. Read-only section in StorybookTab near ShareSection, gated on
 usePrintEnabled(), hidden when there are no orders. Customer-facing status copy ("Being printed" / "Shipped"
 + tracking link / "There was a problem"), never the raw Lulu enum or raw failure_reason text.
+```
+
+## s14 — combined verification (a-1 + a-2 + c, ~1h, WITH Michael) — **required before pr10**
+
+```
+sv2-s14 combined verification. Plan: ../sv2-s14-verification.md — follow it; it has the full harness recipe,
+the four-order walk, and the teardown. Run it once a-1, a-2 and s14c are all BUILT.
+Shape: ONE harness, five orders — A = forced rejection caught by the SWEEP (no webhook registered);
+B = forced rejection caught by the WEBHOOK, then refunded from the Stripe dashboard (a-2) and viewed in the
+list (s14c); C = kill-switch park + resume (never touches Lulu); D = one clean happy order as a regression
+check; E = pay with card 4000000000005126 so the refund reports SUCCESS then flips to failed, proving
+refund.failed undoes the recording and resets refund_notified_at.
+A and B must be SEPARATE orders — once A is failed, a later delivery about it is a deliberate no-op.
+Two things this canNOT cover, and they go to pr10: SHIPPED/tracking (sandbox never ships) and mail actually
+arriving (local SMTP auth fails, so verify log lines not inboxes).
 ```
 
 ## pr10 — Lulu live cutover (1.5–2h)

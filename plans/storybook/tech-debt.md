@@ -45,3 +45,37 @@ prompt, user prompt, and Claude response to debug batched page generation.
 data) and must not stay in the product.
 **When to revisit:** once batched generation is trusted — tracked as its own plan,
 `plans/storybook/s9-remove-claude-logging.md`.
+
+---
+
+## 5. Print — a failed order has NO recovery path but a refund  (storybook-v2, print track)
+
+**What:** When Lulu rejects a paid print order, s14a-1/a-2 detect it, alert the operator and refund the
+customer — but nothing can *fix* the order and actually deliver the book. Three separate constraints:
+
+1. **A retry reuses the same stored PDFs.** `PrintOrderFulfilmentService.resubmitParked` hands Lulu the
+   `interior_pdf_url`/`cover_pdf_url` already on the row and never re-renders, so it can only recover a
+   *fetch* failure (dead url, Lulu outage, misconfig) — never a *content* rejection like pr5's transparency
+   bug, which would regenerate identically.
+2. **The PDFs are hard-`DELETE`d after 24h** (`app.print.pdf-ttl-hours`, swept hourly by `PrintPdfStore`)
+   and there is **no admin re-render** — `/books/{bookId}/print/interior|cover` are scoped to
+   `principal.userId()`. A 2am rejection is unrecoverable by 8am. ⚠ The short TTL is *deliberate privacy
+   protection* (infant photos living in Postgres), so this is a genuine tradeoff, not an oversight. Likely
+   fix: stop sweeping PDFs attached to `paid`/`failed` orders, keeping the aggressive TTL for everything else.
+3. **The customer is promised a refund the instant the order fails** (`PrintCustomerEmail.orderFailed` fires
+   from the `failed` transition), which forecloses a quiet retry even when one would work.
+
+**Why deferred:** Michael's call, 2026-07-21. Print ships **dormant** (`PRINT_ENABLED=false`) at go-live while
+he's away, so there are no real orders to recover. ⛔ **This is NOT a pr10 blocker but it IS the gate on
+flipping the switch ON.**
+
+**Manual stopgap that works today** (fetch-type failure, inside the 24h TTL) — re-arms the sweep's resume path:
+```sql
+UPDATE print_orders SET status='paid', lulu_job_id=NULL, parked_reason='print_disabled',
+       failure_reason=NULL, submit_attempts=0, last_checked_at=NULL WHERE id = <order>;
+```
+Fix the root cause first; needs `pdf_expires_at` in the future and `PRINT_ENABLED=true`. Then contact the
+customer by hand — they are expecting a refund.
+
+**When to revisit:** before `PRINT_ENABLED` is flipped on in production. Tracked as **s14e** in
+`plans/storybook-v2/sv2-s14-print-hardening.md` → "Deferred candidates".

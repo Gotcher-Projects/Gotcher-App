@@ -7,7 +7,9 @@
 > pay-per-order with no tier gate**, and the **page-type list below is stale**. Header wins where the
 > body disagrees.
 
-**Status:** Not started — blocked on external Lulu setup
+**Status:** In progress — **pr0–pr9 + s14a-1/a-2/s14c all Complete; only pr10 (live cutover) remains.** The
+"blocked on external Lulu setup" note is long stale: sandbox has been in use since pr5 and prod creds were
+verified 2026-07-16. (Reconciled 2026-07-21.)
 **Depends on:** v2 page types stable ✅ · Payments (Stripe merchant-of-record) · Lulu handoff answers
 
 > ## ⚠️ Renderer DECIDED (2026-07-11); slicing in progress

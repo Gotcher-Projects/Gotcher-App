@@ -17,6 +17,7 @@ import BookSwitcher from "@/components/storybook/BookSwitcher";
 import YourBooksShelf from "@/components/storybook/YourBooksShelf";
 import ShareSection from "@/components/storybook/ShareSection";
 import PrintOrderModal from "@/components/storybook/PrintOrderModal";
+import PrintOrdersSection from "@/components/storybook/PrintOrdersSection";
 import { usePrintEnabled } from "@/contexts/PrintContext";
 
 // Remembers the last-opened book across sessions (single profile per session, so one key is enough).
@@ -430,6 +431,11 @@ export default function StorybookTab({
           </Button>
         </div>
       )}
+
+      {/* s14c — deliberately NOT gated on printEnabled: the kill switch means "no new orders", not "hide the
+          ones already in flight". Turning print off is exactly when someone wants to check on their book.
+          The section hides itself when there are no orders, which is the real gate for almost everyone. */}
+      <PrintOrdersSection />
 
       <ShareSection
         bookId={activeBookId}

@@ -1,6 +1,6 @@
 # Print pr0.5 — Plan review / gap audit
 
-**Status:** Needs Verification — audit completed 2026-07-16; all 11 gaps resolved/assigned/deferred (see
+**Status:** ✅ **Complete** — audit completed 2026-07-16; all 11 gaps resolved/assigned/deferred (see
 Resolution log at the bottom). Every HIGH item has an owning file; `sv2-s14` stub created.
 **Est:** ~1–1.5 hours (review + decisions; may spawn small plan files) · **Depends on:** pr0 · **Blocks:** nothing hard,
 but best done before pr1 build starts

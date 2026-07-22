@@ -3,7 +3,10 @@
 **Status:** Split into two sessions 2026-07-21 after the research below — **this file is now the a-track
 overview and the shared research record**; both children read it first.
 - **`sv2-s14a-1-failure-detection.md`** — detection + truth (migration, signed Lulu webhook, reconciliation
-  sweep, mark `failed`, alert the operator). **This is the real pr10 gate.**
+  sweep, mark `failed`, alert the operator). **This is the real pr10 gate.** ⏳ **BUILT 2026-07-21 — Needs
+  Verification** (webhook + sweep proven locally; the forced Lulu rejection and the kill-switch resume still
+  need a live run with Michael — see that file's "As built" section, which also records a new gap it found:
+  **expired PDFs make a parked order unresumable**, now parked as `pdf_expired`).
 - **`sv2-s14a-2-refund-and-notify.md`** — the money (customer notification, refund recording, `refund.failed`).
 
 **Why split:** the research found s14a has to carry a migration the plan never anticipated (we cannot refund at
@@ -55,9 +58,21 @@ line-item messages array as the failure reason** — persisting `status.message`
 - Sandbox jobs stop at `UNPAID` ("Print-job was accepted and needs to be paid") — normal, not a bug.
 
 ### Lulu — webhooks are REAL and signed (this changes the detection design)
-- `POST /webhooks/` `{ topics: ["PRINT_JOB_STATUS_CHANGED"], url }`; also `GET /webhooks/`,
-  `PATCH /webhooks/{id}/`, `POST /webhooks/{id}/test/` (fires dummy data — testable without a real order), and
-  `GET /webhooks/{id}/submissions/` (last 30 days of deliveries = a built-in audit log).
+- `POST /webhooks/` `{ topics: ["PRINT_JOB_STATUS_CHANGED"], url }`; also `GET /webhooks/` and
+  `PATCH /webhooks/{id}/`. **Registration and delivery are confirmed working** (2026-07-21: registered
+  `55a3c162…`, `is_active: true`, and a real rejection was delivered to our receiver in 9 seconds).
+- ⚠ **CORRECTION (verified 2026-07-21, s14 verification).** Two endpoints listed here as available **404 on our
+  sandbox account**:
+  - `POST /webhooks/{id}/test/` ("fires dummy data — testable without a real order") — also `/test-submission/`.
+  - `GET /webhooks/{id}/submissions/` ("last 30 days of deliveries = a built-in audit log").
+
+  Only `GET /webhooks/` had actually been probed when this section was written; both of the above came from the
+  docs, not from our account. **Consequences:** there is no dummy-fire, so the "an unactionable payload must
+  answer 200" property is verified by POSTing a signed payload at our own receiver directly; and there is no
+  vendor-side delivery audit log, so **if the webhook ever silently deactivates we cannot ask Lulu why** — our
+  own logs plus `GET /webhooks/` (`is_active`) are the only signal. That makes the reconciliation sweep more
+  load-bearing than D1 assumed, and makes the pr10 step "check `is_active` after every deploy" a real
+  operational task rather than a nicety.
 - **Signed `Lulu-HMAC-SHA256`**, HMAC-SHA256 over the **raw** body keyed on the API secret — the same discipline
   as our Stripe webhook (`BillingWebhookController` already takes the body as a raw String for exactly this).
 - ⚠ **Footgun: 5 consecutive failed deliveries auto-DEACTIVATES the webhook.** A VPS restart window or a bad

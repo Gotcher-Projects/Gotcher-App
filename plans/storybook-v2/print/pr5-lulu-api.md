@@ -1,6 +1,8 @@
 # Print pr5 — Lulu API: OAuth + upload + print job
 
-**Status:** Client VERIFIED end-to-end (2026-07-19, tunnel e2e with Michael) — pending his "Complete" call.
+**Status:** ✅ **Complete** — client verified end-to-end 2026-07-19 (tunnel e2e with Michael); **Michael's
+"Complete" call given 2026-07-21.** Since exercised repeatedly by pr7–pr9 and the s14 verification run (real
+sandbox jobs 315640/315724/316095/316100–316104, incl. `getPrintJobRaw` feeding the s14a-1 status mapper).
 The Lulu client is proven; a **separate render-pipeline blocker** was discovered (see below), tracked in
 `pr5.5-pdf-acceptance.md`.
 

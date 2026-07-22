@@ -1,7 +1,9 @@
 # SV2-S14c — "Your print orders" (minimal list)
 
-**Status:** Not started — **promoted to pre-launch 2026-07-21** (was a deferred candidate; see
-`sv2-s14a-rejection-refund.md` D4)
+**Status:** ✅ **COMPLETE** — built + **verified with Michael 2026-07-21**. All four states confirmed on one
+screen: Refunded, "There was a problem" + apology, Shipped + a working Track package link, Being printed.
+Michael quoted the failed-order copy back — no `example.com`, no `REJECTED`, nothing Lulu-shaped.
+Earlier: **promoted to pre-launch 2026-07-21** (was a deferred candidate; see `sv2-s14a-rejection-refund.md` D4)
 **Est:** ~1 hour · **Depends on:** `sv2-s14a-1` (nothing to list until status + tracking are being recorded)
 **Blocks:** nothing, but it's the difference between "email us" and "look it up"
 **Launch prompt:** `print/session-prompts.md` → s14c
@@ -52,3 +54,44 @@ It was deferred on the reasoning that pr9's confirmation covers the happy path. 
 - [ ] A failed order is visible and reads like an apology, not a stack trace.
 - [ ] Another user's orders are unreachable (`/print-orders` is user-scoped).
 - [ ] Unpaid/abandoned checkouts never appear.
+
+---
+
+## As built (2026-07-21)
+
+**Backend** — `PrintOrdersController` → `GET /print-orders` (top-level path, so it falls under
+`anyRequest().authenticated()`; there is no path parameter to tamper with at all). `PrintOrderService.listOrders`
+scopes `WHERE po.user_id = ? AND po.status <> 'pending' ORDER BY po.id DESC`. pr9's `findOrderBySession` and this
+now share ONE `ORDER_SELECT` projection and one row mapper, so the confirmation and the list can never disagree
+about an order.
+
+**`OrderSummary` gained** `trackingUrl`, `carrierName`, `shippedAt`, `refunded` — extended rather than
+duplicated, as the plan asked.
+
+**Frontend** — `PrintOrdersSection.jsx`, mounted in `StorybookTab` between the print CTA and `ShareSection`.
+Hidden when there are no orders (and when the fetch fails). Status copy: `paid`/`submitted` → "Being printed",
+`shipped` → "Shipped" + a **Track package** link, `failed` → "There was a problem" + an apology and a contact
+line, `refunded` → "Refunded". Dates via `formatDate`, money via `formatCents`.
+
+### Three deviations from the plan, each deliberate
+1. **`luluStatus` and `failureReason` are NOT in the DTO.** The plan said to add them and then warned never to
+   render them at a parent. The surest way to never render something is to never send it — a future edit to
+   this component can't leak a field the API doesn't return. Support reads both from the DB and the alert email.
+   There's a unit test asserting the SQL selects neither (nor `stripe_*`, `ship_street`, or `pdf_url`).
+2. **The section is NOT gated on `usePrintEnabled()`.** The plan said to gate it like the order button, but the
+   kill switch means "no NEW orders", not "hide the ones already in flight" — and print being off is *exactly*
+   when someone wants to check on a book they already paid for. The empty-list check is the real gate for
+   almost everyone. (The order **button** stays gated, unchanged.)
+3. **`refunded` is a derived boolean, not a date.** It reads `refunded_at IS NOT NULL`, which s14a-2 **clears**
+   when a refund later fails — so a bounced refund correctly stops showing as refunded.
+
+### Verified locally 2026-07-21
+- `GET /print-orders`: **401** with no token, **200** with one, newest-first, and the three `pending` rows from
+  abandoned checkouts absent. Payload confirmed to carry no Lulu/Stripe internals.
+- Frontend: 8 new tests — empty → renders nothing, failed fetch → renders nothing (not an error box),
+  "Being printed" instead of the internal status, `1 copy` vs `2 copies`, tracking link with `rel=noopener`,
+  the failed copy reading as an apology with nothing vendor-shaped in the DOM, and refunded overriding failed.
+
+### Still to verify (→ `../sv2-s14-verification.md`)
+- A human actually looking at the section with real failed / shipped / refunded orders in it.
+- The shipped row + tracking link need a **hand-written DB row** (Lulu sandbox never ships) — note it as such.

@@ -1,7 +1,9 @@
 # Print pr5.5 — PDF acceptance: 32-page minimum + transparency flatten
 
-**Status:** Needs Verification (implemented 2026-07-19). Code + unit tests green; awaits the Lulu-sandbox
-tunnel run (task below) to confirm a real book of each type is ACCEPTED. Decisions locked with Michael
+**Status:** ✅ **Complete** (implemented 2026-07-19; **confirmed 2026-07-21**). Code + unit tests green, and the
+Lulu-sandbox tunnel run it was waiting on has since happened many times over — real 32-page books were
+**ACCEPTED** by Lulu in pr7, pr9 (job 316095) and the s14 verification run (job 316100), so the page-count gate
+is proven against the real vendor. Decisions locked with Michael
 2026-07-19: (D1) print filled pages only; (D2) gate at 32, no padding; time-capsule = **fill-only** (does not
 auto-count); First Year arc kept at **exactly 32** (no extra headroom). Scrapbook bounded **32–50**.
 NOTE the compound consequence Michael accepted: guided chapters have **no add-page affordance**, so a First

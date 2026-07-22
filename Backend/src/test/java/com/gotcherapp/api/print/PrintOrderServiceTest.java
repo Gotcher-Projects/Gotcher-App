@@ -135,4 +135,75 @@ class PrintOrderServiceTest {
         assertNull(service(true).findOrderBySession(USER_ID, BOOK_ID, "  "));
         verifyNoInteractions(jdbc);
     }
+
+    // ── s14c — the order list ───────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The IDOR boundary and the abandoned-checkout filter are BOTH in the SQL, so this pins the SQL: a row is
+     * created 'pending' when Checkout opens, and a user who bailed at the payment page must never see an
+     * "order" they didn't pay for.
+     */
+    @Test
+    void listOrders_isUserScoped_andHidesUnpaidCheckouts() {
+        when(jdbc.queryForList(anyString(), eq(USER_ID))).thenReturn(java.util.List.of(orderRow()));
+
+        var orders = service(true).listOrders(USER_ID);
+
+        assertEquals(1, orders.size());
+        assertEquals(5L, orders.get(0).orderId());
+
+        org.mockito.ArgumentCaptor<String> sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(jdbc).queryForList(sql.capture(), eq(USER_ID));
+        assertTrue(sql.getValue().contains("po.user_id = ?"), sql.getValue());
+        assertTrue(sql.getValue().contains("po.status <> 'pending'"), "abandoned checkouts must not be listed");
+        assertTrue(sql.getValue().contains("ORDER BY po.id DESC"), "newest first");
+    }
+
+    /** Operator-only fields must never reach the customer — the surest way is to not select them at all. */
+    @Test
+    void listOrders_selectsNoOperatorOnlyFields() {
+        when(jdbc.queryForList(anyString(), eq(USER_ID))).thenReturn(java.util.List.of(orderRow()));
+
+        service(true).listOrders(USER_ID);
+
+        org.mockito.ArgumentCaptor<String> sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(jdbc).queryForList(sql.capture(), eq(USER_ID));
+        assertFalse(sql.getValue().contains("failure_reason"), "raw Lulu text is operator-only");
+        assertFalse(sql.getValue().contains("lulu_status"), "Lulu's vocabulary is not customer language");
+        assertFalse(sql.getValue().contains("stripe_"), "no Stripe ids in a customer payload");
+        assertFalse(sql.getValue().contains("ship_street"), "no street address");
+        assertFalse(sql.getValue().contains("pdf_url"), "no PDF token urls");
+    }
+
+    /** tracking_urls is stored newline-separated; the UI offers exactly one link. */
+    @Test
+    void listOrders_exposesTheFirstTrackingUrlOnly() {
+        var row = orderRow();
+        row.put("status", "shipped");
+        row.put("tracking_urls", "https://ups.com/first\nhttps://ups.com/second");
+        row.put("carrier_name", "UPS");
+        when(jdbc.queryForList(anyString(), eq(USER_ID))).thenReturn(java.util.List.of(row));
+
+        var order = service(true).listOrders(USER_ID).get(0);
+
+        assertEquals("https://ups.com/first", order.trackingUrl());
+        assertEquals("UPS", order.carrierName());
+    }
+
+    /**
+     * s14a-2 clears refunded_at when a refund later FAILS (card refunds are asynchronous), so an order whose
+     * refund bounced must stop reading as refunded to the customer.
+     */
+    @Test
+    void listOrders_refundedFlagFollowsRefundedAt() {
+        var row = orderRow();
+        row.put("refunded", Boolean.FALSE);
+        when(jdbc.queryForList(anyString(), eq(USER_ID))).thenReturn(java.util.List.of(row));
+        assertFalse(service(true).listOrders(USER_ID).get(0).refunded());
+
+        var refunded = orderRow();
+        refunded.put("refunded", Boolean.TRUE);
+        when(jdbc.queryForList(anyString(), eq(USER_ID))).thenReturn(java.util.List.of(refunded));
+        assertTrue(service(true).listOrders(USER_ID).get(0).refunded());
+    }
 }

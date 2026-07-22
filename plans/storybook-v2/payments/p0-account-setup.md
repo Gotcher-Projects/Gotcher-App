@@ -1,6 +1,6 @@
 # Payments P0 — Stripe account: first login & setup
 
-**Status:** Needs Verification — done 2026-07-10 (full webhook round-trip verifies in P3)
+**Status:** ✅ **Complete** — done 2026-07-10 (full webhook round-trip verifies in P3)
 **Est:** ~2 hours · **Blocked on:** nothing (the owner has already created the account and invited Michael)
 **Run before:** P1. This is the only thing standing between us and writing code.
 

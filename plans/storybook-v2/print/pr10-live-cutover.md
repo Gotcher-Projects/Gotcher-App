@@ -2,7 +2,7 @@
 
 **Status:** Not started
 **Est:** ~1.5–2 hours · **Depends on:** pr1–pr9 complete **+ Payments P12 (Stripe live)** **+ Lulu prod readiness
-(company card on file, prod creds)** **+ `sv2-s14` a-1 + a-2 (failure detection → refund/notify)** · **Blocks:** the first real printed order
+(company card on file, prod creds)** **+ `sv2-s14` a-1 + a-2 ✅ (failure detection → refund/notify, both verified 2026-07-21)** **+ `../sv2-deploy-0-first-prod-deploy.md` (run it FIRST)** · **Blocks:** the first real printed order
 **Launch prompt:** `session-prompts.md` → pr10
 **Sibling reference:** payments `p12-live-cutover.md` (same shape, for Stripe).
 
@@ -23,7 +23,8 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
   prod are **separate universes** (separate registration, separate keys), same as Stripe test vs live.
 
 ## Steps
-0. **First-deploy infra check — print has never been on prod.** Deploy the branch to the VPS and confirm the
+0. **First-deploy infra check** — ✅ **now owned by `../sv2-deploy-0-first-prod-deploy.md` (steps 3–6), which also proves SMTP. Run that first.** Original text kept for reference:
+   **print has never been on prod.** Deploy the branch to the VPS and confirm the
    **headless-Chrome renderer actually runs in the prod Docker image** (the pr1 mechanism — Puppeteer sidecar
    or Playwright-Java + Chromium layer — must be baked into `docker-compose.prod.yml`/`Dockerfile`). Render one
    real book → PDF on the server and inspect it. **This is the biggest prod-specific risk** (fonts, Chromium
@@ -38,9 +39,12 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
 4. **Register the Lulu PROD webhook** — no longer optional, and no longer pr9's: s14a-1 makes
    `PRINT_JOB_STATUS_CHANGED` our primary failure detector. `POST /webhooks/ {topics:[…], url}` against the
    **prod** base with the prod `cradlehq.app` URL (sandbox and prod registrations are separate, like the keys).
-   Confirm with `GET /webhooks/` and `POST /webhooks/{id}/test/`. ⚠ Lulu **auto-deactivates a webhook after 5
-   consecutive failed deliveries** — check `is_active` after the first deploy, and remember the s14a-1
-   reconciliation sweep is the backstop if it ever flips off.
+   Use `Backend/lulu-webhooks.sh register <base_url>`, then confirm with `GET /webhooks/` (`is_active: true`).
+   ⚠ **`POST /webhooks/{id}/test/` and `GET /webhooks/{id}/submissions/` both 404 on our account** (verified
+   2026-07-21) — there is **no dummy-fire and no vendor-side delivery audit**, so if the webhook ever
+   deactivates you cannot ask Lulu why. ⚠ Lulu **auto-deactivates after 5 consecutive failed deliveries**, so
+   **checking `is_active` after every deploy is a real operational task**, and the s14a-1 reconciliation sweep
+   is the only backstop when it flips off.
 5. **Verify outbound mail actually sends in prod.** `EmailService` wraps an *optional* `JavaMailSender` and
    silently no-ops when SMTP isn't configured — so a misconfigured prod would swallow every failure alert and
    every customer refund email without an error. Send one of each for real.
@@ -61,7 +65,13 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
      is strongly recommended alongside them but is not a hard gate.
 7. **Real end-to-end smoke test:** order one real book to a real address (owner's), smallest that clears the
    32-page min, confirm Lulu prints + ships. Decide what to do with the test copy.
-8. **Leave the kill switch OFF at deploy; flip it ON deliberately.** The `app.print.enabled` flag (defined
+8. **Leave the kill switch OFF at deploy; flip it ON deliberately.** ✅ **DECIDED 2026-07-21 (Michael): print
+   ships DORMANT at go-live and stays off while he's away.** That is now a firm plan, not a judgement call at
+   deploy time — which also means the smoke test in step 7 is the *only* print traffic prod sees initially.
+   ⛔ **Gate on flipping it ON later:** a failed order currently has no recovery path but a refund (24h PDF TTL,
+   no admin re-render, customer promised a refund immediately) — see **s14e** in `../sv2-s14-print-hardening.md`
+   and `plans/storybook/tech-debt.md` §5. Not a blocker for deploying dormant; is a blocker for accepting real
+   orders unattended. The `app.print.enabled` flag (defined
    pr5, default `false`) means print ships **dormant** — the code is live but no order can be placed or
    submitted. Do the smoke test with `PRINT_ENABLED=true`, then **decide whether to leave it on**: if Michael
    is heading into the post-launch vacation, **turn it back OFF** and flip it on only when back and watching.

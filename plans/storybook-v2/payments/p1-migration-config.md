@@ -1,6 +1,6 @@
 # Payments P1 — V47 migration + config plumbing
 
-**Status:** Needs Verification — implemented 2026-07-10. Flyway applied V47 (log: "now at version v47"),
+**Status:** ✅ **Complete** — implemented 2026-07-10. Flyway applied V47 (log: "now at version v47"),
 app booted, `./gradlew test` green, schema objects confirmed via psql. Awaiting Michael's sign-off.
 **Est:** ~1.5 hours · **Depends on:** P0 (SKUs + keys exist in a sandbox) · **Blocks:** P2
 **Launch prompt:** `session-prompts.md` → P1

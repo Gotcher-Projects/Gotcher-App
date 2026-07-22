@@ -12,7 +12,10 @@
 > v2 book model and was written against a subscription that no longer exists. Read the corrections in
 > this header first — where the old body contradicts them, the header wins.
 
-**Status:** Not started — **IN SCOPE** (user decision 2026-07-02; was "optional/deferred"). **Sliced → `share/`.**
+**Status:** ✅ **Complete (2026-07-14)** — this is the *parent* file; the work was **sliced → `share/`** and all
+seven slices (s13a, s13b, s13c, s13d, s13e-1/2/3) are Complete and verified with Michael. The status here just
+never got flipped; corrected 2026-07-21. ⚠ **Built and verified LOCALLY only — the share track has never run in
+production**, since the whole `payments-v1` branch is undeployed. It ships with the first prod deploy.
 **Depends on:** v2 page types stable ✅ · Payments (one-time Stripe checkout) · **not** print
 
 ## Goal

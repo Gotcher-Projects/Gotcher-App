@@ -1,6 +1,9 @@
 # Print pr6 — Cost / shipping estimate
 
-**Status:** Pricing DONE + tested (2026-07-19); delivery estimate deferred to the tunnel session. ⚠ The pricing
+**Status:** ✅ **Complete for what it owns** (pricing, 2026-07-19; confirmed 2026-07-21) — the amount pr7 charges
+has been live-verified on real orders. ⚠ **The live Lulu delivery estimate is NOT built and is deferred
+indefinitely** — pr9 locked **D-EST = static copy** ("2–3 weeks") instead, so nothing downstream is waiting on
+it; it's a later enhancement, not an open task. ⚠ The pricing
 MODEL CHANGED (Michael, 2026-07-19): retail is a **flat, all-in step table** keyed on filled page count — NOT
 Lulu's live quote. Shipping level = **MAIL** (locked). Table: 32–34 → $35 · 35–39 → $40 · 40–44 → $42 · 45–49 →
 $45 · 50 → $50 (rounds down; guided First Year 32pp = $35, Bump 35pp = $40 land exactly). Multi-copy = qty ×

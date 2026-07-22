@@ -1,7 +1,7 @@
 # Payments P12 — Live-mode cutover
 
 **Status:** Not started
-**Est:** ~1.5 hours · **Depends on:** everything above **+ LLC account activation** (owner's, multi-week) · **Blocks:** the first real dollar
+**Est:** ~1.5 hours · **Depends on:** **`../sv2-deploy-0-first-prod-deploy.md` (run it FIRST)** + everything above **+ LLC account activation** (owner's, multi-week) · **Blocks:** the first real dollar
 **Launch prompt:** `session-prompts.md` → P12
 
 Go live. Recreate the four Products in **live** mode, register the **live** webhook, swap **all six** env
@@ -41,7 +41,8 @@ activated; **confirm the definitive yes with the owner before running this sessi
 
 ## Steps
 
-0. **First-deploy infra check (payments has never been on prod).** Deploy the branch to the VPS and confirm
+0. **First-deploy infra check** — ✅ **now owned by `../sv2-deploy-0-first-prod-deploy.md`; run that session first and this step collapses to "confirm it's still green".** Original text kept for reference:
+   **(payments has never been on prod).** Deploy the branch to the VPS and confirm
    the app boots with the new billing beans. Confirm **Caddy passes `Stripe-Signature` + the raw body
    through** on `/api/billing/webhook` (default `reverse_proxy` behavior — likely no Caddyfile change, just
    verify). **Optional but recommended:** do this first with **TEST** keys + a **test-mode** prod webhook

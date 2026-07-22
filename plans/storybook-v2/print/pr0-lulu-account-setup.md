@@ -1,6 +1,10 @@
 # Print pr0 — Lulu account setup (owner-side)
 
-**Status:** Not started — **owner task, no code**
+**Status:** ✅ **Complete** (status reconciled 2026-07-21) — **owner task, no code.** Demonstrably done: the
+**sandbox** account has been in continuous use since pr5 (many real print jobs, and a webhook registered +
+deregistered during the s14 verification), and the **prod** credentials were verified with `lulu-verify.sh prod`
+on 2026-07-16. ⚠ One pr0-shaped item is still outstanding and lives in **pr10 step 2**: confirming the
+**company card is on file for prod auto-charge** — without it a real paid print job fails at submission.
 **Est:** external (days–weeks of account/vendor lead time, not dev hours) · **Depends on:** nothing · **Blocks:** pr4, pr5, pr6 (and full end-to-end)
 **Launch prompt:** `session-prompts.md` → pr0
 **Full detail:** `lulu-spec-handoff.md`
