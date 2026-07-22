@@ -56,6 +56,15 @@ export function formatDuration(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+/**
+ * Money, from the integer cents every payments/print endpoint speaks → "$70.00". Shared by the print
+ * order modal (pr8) and the order confirmation (pr9) so a total reads identically before and after checkout.
+ */
+export function formatCents(cents, currency = 'USD') {
+  if (cents == null) return '';
+  return (cents / 100).toLocaleString('en-US', { style: 'currency', currency });
+}
+
 /** "1h 23m" style — used for sleep/feeding totals where sub-minute precision is unnecessary. */
 export function fmtDuration(secs) {
   const h = Math.floor(secs / 3600);

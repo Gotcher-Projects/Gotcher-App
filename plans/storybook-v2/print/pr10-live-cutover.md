@@ -2,7 +2,7 @@
 
 **Status:** Not started
 **Est:** ~1.5–2 hours · **Depends on:** pr1–pr9 complete **+ Payments P12 (Stripe live)** **+ Lulu prod readiness
-(company card on file, prod creds)** **+ `sv2-s14` s14a (rejection→refund path)** · **Blocks:** the first real printed order
+(company card on file, prod creds)** **+ `sv2-s14` a-1 + a-2 (failure detection → refund/notify)** · **Blocks:** the first real printed order
 **Launch prompt:** `session-prompts.md` → pr10
 **Sibling reference:** payments `p12-live-cutover.md` (same shape, for Stripe).
 
@@ -35,8 +35,16 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
 3. **Print's variable-amount Stripe checkout in live mode** — reuses P12's live keys/webhook (pr7 builds the
    amount dynamically, so confirm whether it needs any live Price object or is pure `price_data`). No new
    fixed SKU if it's dynamic.
-4. **(If in scope) register Lulu's prod order-status/shipped webhook** (pr9's optional half) against the prod URL.
-5. **⛔ ToS go-live gate (from pr0 review of Lulu's terms):**
+4. **Register the Lulu PROD webhook** — no longer optional, and no longer pr9's: s14a-1 makes
+   `PRINT_JOB_STATUS_CHANGED` our primary failure detector. `POST /webhooks/ {topics:[…], url}` against the
+   **prod** base with the prod `cradlehq.app` URL (sandbox and prod registrations are separate, like the keys).
+   Confirm with `GET /webhooks/` and `POST /webhooks/{id}/test/`. ⚠ Lulu **auto-deactivates a webhook after 5
+   consecutive failed deliveries** — check `is_active` after the first deploy, and remember the s14a-1
+   reconciliation sweep is the backstop if it ever flips off.
+5. **Verify outbound mail actually sends in prod.** `EmailService` wraps an *optional* `JavaMailSender` and
+   silently no-ops when SMTP isn't configured — so a misconfigured prod would swallow every failure alert and
+   every customer refund email without an error. Send one of each for real.
+6. **⛔ ToS go-live gate (from pr0 review of Lulu's terms):**
    - **Privacy/ToS updated** to disclose that baby photos + shipping address are sent to a third-party printer
      (Lulu §2/§8). Privacy-sensitive — infant photos.
    - **Physical-order refund/reserve policy defined** — §13 caps Lulu's liability to us at the print cost, but
@@ -47,12 +55,13 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
      sales-tax question from the digital goods; must be in the owner's hands before the first live print charge
      (see `../handoffs/tax-note-for-owner.md` → "Physical printed book" section, added pr0.5). Not a build
      blocker, but a first-live-charge gate.
-   - **⛔ s14a landed** — the print-job-rejection **refund path** (`../sv2-s14-print-hardening.md` → s14a) is the
-     minimum failure-handling bar before real money moves; a Lulu rejection after a real charge must not strand
-     a paying customer.
-6. **Real end-to-end smoke test:** order one real book to a real address (owner's), smallest that clears the
+   - **⛔ s14a-1 + s14a-2 landed** — failure detection (`../sv2-s14a-1-failure-detection.md`) and the
+     refund/notify path (`../sv2-s14a-2-refund-and-notify.md`) are the minimum failure-handling bar before real
+     money moves; a Lulu rejection after a real charge must not strand a paying customer. s14c (the order list)
+     is strongly recommended alongside them but is not a hard gate.
+7. **Real end-to-end smoke test:** order one real book to a real address (owner's), smallest that clears the
    32-page min, confirm Lulu prints + ships. Decide what to do with the test copy.
-7. **Leave the kill switch OFF at deploy; flip it ON deliberately.** The `app.print.enabled` flag (defined
+8. **Leave the kill switch OFF at deploy; flip it ON deliberately.** The `app.print.enabled` flag (defined
    pr5, default `false`) means print ships **dormant** — the code is live but no order can be placed or
    submitted. Do the smoke test with `PRINT_ENABLED=true`, then **decide whether to leave it on**: if Michael
    is heading into the post-launch vacation, **turn it back OFF** and flip it on only when back and watching.

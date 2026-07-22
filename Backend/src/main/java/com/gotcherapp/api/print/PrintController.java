@@ -121,6 +121,34 @@ public class PrintController {
         }
     }
 
+    /**
+     * Print pr9 — the post-checkout confirmation lookup: one order by the Stripe session id the success URL
+     * carries. 404 when no order matches this user + book + session (the owner scope is the IDOR boundary —
+     * another user's session id must miss, never return a name/city).
+     *
+     * <p><b>Placement is deliberate:</b> {@code /print/**} is permitAll in {@code SecurityConfig} (the token PDF
+     * routes authorize themselves), so this MUST live under {@code /books/**} — the same namespace as the rest of
+     * this controller — or a shipping address would be readable by session id with no auth at all.
+     */
+    @GetMapping("/order")
+    public ResponseEntity<?> order(
+        @AuthenticationPrincipal AuthPrincipal principal,
+        @PathVariable Long bookId,
+        @RequestParam(name = "session_id") String sessionId
+    ) {
+        try {
+            PrintOrderService.OrderSummary summary =
+                printOrderService.findOrderBySession(principal.userId(), bookId, sessionId);
+            if (summary == null) {
+                return ApiError.notFound("Order not found");
+            }
+            return ResponseEntity.ok(summary);
+        } catch (Exception e) {
+            // Catch Exception: an uncaught RuntimeException re-dispatches to /error and surfaces as 401 (CLAUDE.md).
+            return ApiError.serverError(e.getMessage());
+        }
+    }
+
     /** Render the book interior → { pdfUrl, expiresAt }. 404 if not owned. */
     @PostMapping("/interior")
     public ResponseEntity<?> renderInterior(

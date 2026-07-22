@@ -1,6 +1,13 @@
 # Print pr9 — Order confirmation + status
 
-**Status:** Not started — **scope LOCKED + build-ready (2026-07-21, with Michael)**
+**Status:** ✅ **Complete** — built + **verified end-to-end with Michael 2026-07-21** (local tunnel harness,
+4242, 2 copies of book 27 → **order #6, $70.00, `submitted`, Lulu sandbox job 316095, line item ACCEPTED**).
+Michael confirmed the confirmation card (order #, "2 copies", amount, ship-to San Antonio TX), the status line
+flipping "We're preparing it now." → **"Sent to the printer."** inside the poll window, the URL stripping to
+`/`, and the cancel path returning quietly. Authorization boundaries verified by probe: another user's token,
+a mismatched `book_id`, no token, and a bogus session id → **404 / 404 / 401 / 404**.
+Backend suite + 336 frontend tests + `npm run build` all green.
+**Status (original):** Not started — **scope LOCKED + build-ready (2026-07-21, with Michael)**
 **Est:** ~1.5 hours · **Depends on:** pr7, pr8 (both Complete) · **Blocks:** nothing
 **Launch prompt:** `session-prompts.md` → pr9
 **Read first:** `Frontend/src/components/UpgradeConfirm.jsx` (the model), `App.jsx` `boot()` (`?upgrade=success` handling),
@@ -69,6 +76,35 @@ shipping address by session id with no auth. It goes under **`/books/{bookId}/pr
 - [ ] `?print=cancelled` returns quietly to the app with no error.
 
 ---
+
+## As built (2026-07-21)
+
+**Backend**
+- `PrintOrderService.setSuccessUrl` → `/?print=success&book_id={bookId}&session_id={CHECKOUT_SESSION_ID}`.
+- `PrintOrderService.findOrderBySession(userId, bookId, sessionId)` → `OrderSummary` record (or `null` → 404).
+  Query is scoped `stripe_session_id = ? AND user_id = ? AND book_id = ?` — **both** the user and the book are
+  in the WHERE clause, so a wrong user, a wrong book, or a tampered link all look identical to "no such order".
+  The DTO is deliberately narrow: no street address, no PDF token URLs, no Stripe/Lulu ids — city/state only.
+  A blank/absent session id short-circuits to `null` without querying.
+- `PrintController GET /books/{bookId}/print/order?session_id=` — under `/books/**` (authenticated), NOT
+  `/print/**` (permitAll), per the security note above. Catches `Exception` → `ApiError` (the 401 trap).
+- `PrintOrderServiceTest` +3: row mapping, empty result → null (the IDOR miss), missing session id → null with
+  `verifyNoInteractions(jdbc)`. (The existing helper now passes a mock `JdbcTemplate` instead of `null`.)
+
+**Frontend**
+- `App.jsx` — `printConfirm` state; `boot()` handles `?print=success` (reads `book_id`+`session_id`, strips the
+  params, opens the confirmation) and swallows `?print=cancelled`. Also fixed pr8's off-by-one `PrintProvider`
+  indentation while in the file.
+- `PrintOrderConfirm.jsx` (new, top-level next to `UpgradeConfirm`) — overlay card: "Your book is on its way!",
+  order #, copies, paid, ship-to (name · city, state), the static delivery range, and the soft status line
+  (`submitted`/`shipped` → "Sent to the printer." else "We're preparing it now."). Polls 1.5s × 12s to upgrade
+  the line. **A failed lookup is NOT an error state** — it degrades to "Your payment went through and we're
+  getting your book ready", since landing on this screen already proves Stripe took the money.
+- `formatCents` moved out of `PrintOrderModal` into `lib/formatting.js` and imported by both, so a total reads
+  identically before and after checkout.
+
+**Left as-is:** the optional Lulu shipped-notification half (still nice-to-have, not built) and pr6's live
+delivery estimate (D-EST locked to static copy).
 
 ## What you're building
 

@@ -159,6 +159,75 @@ In short: add book_id to PrintOrderService success_url; new owner-scoped GET
 static "~2–3 weeks" delivery copy, soft never-fail status line. Shipped-webhook = OUT of scope.
 ```
 
+## pr9 — verification (live e2e, ~45min, WITH Michael)
+
+Built 2026-07-21, `Status: Needs Verification`. This is the interactive run that closes it. Same harness as the
+pr7/pr8 e2e — Michael drives the browser + card, Claude drives the services and reads the DB/logs.
+
+```
+Print pr9 verification — run the live e2e for the order-confirmation screen with me.
+Plan: print/pr9-order-confirmation.md (read "As built" first — the code is done, this is verification only).
+
+Set up the local harness (the same one pr7/pr8 were verified on):
+  1. PRINT_ENABLED=true in Backend/.env
+  2. start-services.sh (API + frontend + pdf-sidecar native); Ghostscript must be on PATH for the flatten
+  3. cloudflared tunnel --url http://localhost:3001 -> set BACKEND_URL=<tunnel> in .env -> restart the API
+     (so Lulu can fetch /print/pdf/{token})
+  4. stripe listen --api-key <sk_test from .env> --forward-to http://localhost:3001/billing/webhook
+
+Then walk me through ordering a printed book (demo@gotcherapp.com / DemoPass1, an orderable book, 4242 +
+a US address) and confirm:
+  - the return URL carries ?print=success&book_id=&session_id= and the params are stripped from the bar
+  - the confirmation shows order #, copies, amount paid, ship-to name/city/state, the ~2-3 week delivery copy
+  - the status line starts at "We're preparing it now." and flips to "Sent to the printer." within the 12s
+    poll (or degrades softly if the webhook lags — never an error)
+  - "Done" dismisses it and lands on the normal app
+  - re-run the flow but CANCEL at Stripe -> ?print=cancelled returns quietly, no UI, params stripped
+  - IDOR: hit GET /books/{bookId}/print/order?session_id=<that session> as a DIFFERENT user -> 404
+  - the print_orders row reached 'submitted' with a lulu_job_id; cross-check the job at Lulu
+    (OAuth + GET {LULU_API_BASE}/print-jobs/{id}/ — sandbox lands ACCEPTED/UNPAID, which is normal)
+
+Tear down after: revert BACKEND_URL to localhost, kill cloudflared + stripe listen, restart the API.
+If it all passes, mark pr9 Complete in the plan + update the print memory file.
+```
+
+## s14a-1 — Print failure detection (~2h) — **required before pr10**
+
+```
+sv2-s14a-1 — make print failures impossible to miss. Plan: ../sv2-s14a-1-failure-detection.md
+Read ../sv2-s14a-rejection-refund.md "Research findings" + decisions D1-D5 FIRST — the Lulu payload shapes
+were probed live and the design is locked; don't re-derive them.
+
+Build: V52 migration (stripe_payment_intent + failure/parked/tracking/sweep columns); capture
+session.getPaymentIntent() in the EXISTING atomic pending->paid claim; stamp parked_reason (print_disabled =
+retryable vs submit_failed); signed Lulu webhook POST /print/lulu-webhook (HMAC-SHA256 over the RAW body,
+header Lulu-HMAC-SHA256, key = LULU_CLIENT_SECRET, constant-time compare — mirror BillingWebhookController);
+ONE status mapper shared with a ~30min reconciliation sweep (safety net: Lulu auto-deactivates a webhook after
+5 failed deliveries); operator alert email. NO refund, NO customer email — that's a-2.
+Test fixture: point BACKEND_URL at a host Lulu can't fetch -> real REJECTED job (like sandbox job 314931).
+```
+
+## s14a-2 — Refund recording + customer notification (~1.5h) — **required before pr10**
+
+```
+sv2-s14a-2 — close the loop with the customer. Plan: ../sv2-s14a-2-refund-and-notify.md (needs a-1 landed).
+Michael refunds from the Stripe DASHBOARD; the app records it — no unattended auto-refund (decision D2).
+Build: charge.refunded / refund.created branch in BillingWebhookService -> match print_orders by
+stripe_payment_intent, stamp refund id/at/amount, idempotent on the Stripe event id; refund.failed -> operator
+alert; two customer emails (order failed / refund on its way), each guarded so a redelivery can't re-send.
+Physical refunds are a real cash refund — do NOT reuse the digital "move the share unlock" copy.
+```
+
+## s14c — "Your print orders" list (~1h)
+
+```
+sv2-s14c — the minimal order list. Plan: ../sv2-s14c-order-list.md (needs a-1 recording status + tracking).
+GET /print-orders (NEW top-level path — NOT under /print/**, that's permitAll; pr9 hit this exact trap),
+user-scoped, extends pr9's OrderSummary. Read-only section in StorybookTab near ShareSection, gated on
+usePrintEnabled(), hidden when there are no orders. Customer-facing status copy ("Being printed" / "Shipped"
++ tracking link / "There was a problem"), never the raw Lulu enum or raw failure_reason text.
+```
+
 ## pr10 — Lulu live cutover (1.5–2h)
 
 ```

@@ -7,6 +7,7 @@ import PrintBookPage from "./components/PrintBookPage";
 import PrintCoverPage from "./components/PrintCoverPage";
 import PurchaseModal from "./components/PurchaseModal";
 import UpgradeConfirm from "./components/UpgradeConfirm";
+import PrintOrderConfirm from "./components/PrintOrderConfirm";
 import { getStoredSession, logoutUser, saveSession, validateSession } from "./lib/auth";
 import { apiRequest } from "./lib/api";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -23,6 +24,9 @@ export default function App() {
   // credits open it with no args (defaults), share opens it with SHARE_SKUS + the active bookId.
   const [purchaseParams, setPurchaseParams] = useState(null);
   const [upgradeStatus, setUpgradeStatus] = useState(null); // Payments P7 — 'confirming' | 'done' | 'slow'
+  // Print pr9 — return from a PRINT checkout ({ bookId, sessionId } | null). Separate from upgradeStatus: a
+  // printed book is a physical order with its own details to show, so it gets its own confirmation.
+  const [printConfirm, setPrintConfirm] = useState(null);
 
   // Payments P9 — native gate. No purchase UI or call-to-action in the iOS/Android builds: our App Store
   // exemption (3.1.3(f), free companion app) holds only if there's none. One seam: leave openPurchase
@@ -91,6 +95,19 @@ export default function App() {
         confirmUpgrade();
       } else if (upgrade === 'cancelled') {
         window.history.replaceState({}, '', '/');
+      }
+
+      // Print pr9 — return from a print checkout (?print=success&book_id=&session_id=). Same discipline as
+      // above: confirmation only, the pr7 webhook is what actually submits the Lulu job. On native the return
+      // pathname carries no query, so this is a natural no-op there.
+      const print = params.get('print');
+      if (print === 'success') {
+        const rawBookId = params.get('book_id');
+        const sessionId = params.get('session_id');
+        window.history.replaceState({}, '', '/');
+        if (rawBookId && sessionId) setPrintConfirm({ bookId: Number(rawBookId), sessionId });
+      } else if (print === 'cancelled') {
+        window.history.replaceState({}, '', '/');   // abandoned checkout — back to the app, no UI
       }
     }
 
@@ -219,30 +236,31 @@ export default function App() {
     <ThemeProvider>
       <AiCreditsProvider user={user} onUserUpdate={handleUserUpdate}>
         <PurchaseProvider openPurchase={openPurchase}>
-         <PrintProvider printEnabled={user?.print_enabled}>
-          <CradleHq
-            user={user}
-            onLogout={handleLogout}
-            verifiedBanner={verifiedBanner}
-            onDismissBanner={() => setVerifiedBanner(null)}
-            onUserUpdate={handleUserUpdate}
-          />
-          {!isNative && (
-            <PurchaseModal
-              open={!!purchaseParams}
-              onClose={() => setPurchaseParams(null)}
-              skus={purchaseParams?.skus}
-              bookId={purchaseParams?.bookId}
-              heading={purchaseParams?.heading}
-              subheading={purchaseParams?.subheading}
+          <PrintProvider printEnabled={user?.print_enabled}>
+            <CradleHq
+              user={user}
+              onLogout={handleLogout}
+              verifiedBanner={verifiedBanner}
+              onDismissBanner={() => setVerifiedBanner(null)}
+              onUserUpdate={handleUserUpdate}
             />
-          )}
-          <UpgradeConfirm
-            status={upgradeStatus}
-            credits={user?.ai_credits_remaining}
-            onDismiss={() => setUpgradeStatus(null)}
-          />
-         </PrintProvider>
+            {!isNative && (
+              <PurchaseModal
+                open={!!purchaseParams}
+                onClose={() => setPurchaseParams(null)}
+                skus={purchaseParams?.skus}
+                bookId={purchaseParams?.bookId}
+                heading={purchaseParams?.heading}
+                subheading={purchaseParams?.subheading}
+              />
+            )}
+            <UpgradeConfirm
+              status={upgradeStatus}
+              credits={user?.ai_credits_remaining}
+              onDismiss={() => setUpgradeStatus(null)}
+            />
+            <PrintOrderConfirm confirm={printConfirm} onDismiss={() => setPrintConfirm(null)} />
+          </PrintProvider>
         </PurchaseProvider>
       </AiCreditsProvider>
     </ThemeProvider>

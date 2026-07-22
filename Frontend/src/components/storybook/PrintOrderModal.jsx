@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookOpen, Loader2, Info, Minus, Plus, PencilLine, AlertTriangle, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { formatCents } from "@/lib/formatting";
 
 /**
  * Print pr8 — the "Order a printed book" flow. Wraps pr5.5/pr6/pr7's endpoints:
@@ -20,11 +21,6 @@ import { apiRequest } from "@/lib/api";
  * switch (usePrintEnabled) instead; the real money guards are pr7's checkout + pr5's Lulu client.
  */
 const MAX_QUANTITY = 10; // pr7's server-side cap on the variable-amount charge
-
-function formatCents(cents, currency = "USD") {
-  if (cents == null) return "";
-  return (cents / 100).toLocaleString("en-US", { style: "currency", currency });
-}
 
 export default function PrintOrderModal({ open, onClose, bookId }) {
   const [gate, setGate] = useState(null);       // Orderability payload, or null until loaded

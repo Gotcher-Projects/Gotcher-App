@@ -134,7 +134,9 @@ public class PrintOrderService {
                 .build())
             .putMetadata("type", "print_order")                     // the webhook branch key (commit b)
             .putMetadata("printOrderId", String.valueOf(orderId))
-            .setSuccessUrl(frontendUrl + "/?print=success&session_id={CHECKOUT_SESSION_ID}")
+            // pr9: book_id rides the return URL so the confirmation can look the order up on the OWNER-scoped
+            // /books/{bookId}/print/order endpoint (/print/** is permitAll — see findOrderBySession).
+            .setSuccessUrl(frontendUrl + "/?print=success&book_id=" + bookId + "&session_id={CHECKOUT_SESSION_ID}")
             .setCancelUrl(frontendUrl + "/?print=cancelled")
             .build();
 
@@ -148,6 +150,55 @@ public class PrintOrderService {
             session.getId(), orderId);
         return session.getUrl();
     }
+
+    /**
+     * Print pr9 — read one order back for the post-checkout confirmation, keyed by the Stripe session id the
+     * success URL carries. Returns null when nothing matches (→ 404).
+     *
+     * <p><b>The {@code user_id} in the WHERE clause IS the IDOR boundary</b> (same stance as
+     * {@link PrintInteriorService}'s requireOwnedBook): a session id is a bearer-ish string that appears in a URL,
+     * so another user's session must miss, not leak a shipping address. {@code book_id} is matched too — it comes
+     * from the same success URL, so a mismatch means a tampered/stale link and should also miss. This is exactly
+     * why the endpoint lives under {@code /books/**} (authenticated) and not {@code /print/**} (permitAll).
+     */
+    public OrderSummary findOrderBySession(Long userId, Long bookId, String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return null;
+        }
+        var rows = jdbc.queryForList(
+            "SELECT po.id, po.status, po.quantity, po.page_count, po.amount_cents, po.currency, " +
+            "       po.ship_name, po.ship_city, po.ship_state_code, po.created_at, b.title AS book_title " +
+            "FROM print_orders po LEFT JOIN books b ON b.id = po.book_id " +
+            "WHERE po.stripe_session_id = ? AND po.user_id = ? AND po.book_id = ?",
+            sessionId, userId, bookId);
+        if (rows.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> r = rows.get(0);
+        Object createdAt = r.get("created_at");
+        return new OrderSummary(
+            ((Number) r.get("id")).longValue(),
+            (String) r.get("status"),
+            ((Number) r.get("quantity")).intValue(),
+            ((Number) r.get("page_count")).intValue(),
+            ((Number) r.get("amount_cents")).intValue(),
+            (String) r.get("currency"),
+            (String) r.get("ship_name"),
+            (String) r.get("ship_city"),
+            (String) r.get("ship_state_code"),
+            (String) r.get("book_title"),
+            createdAt instanceof java.sql.Timestamp ts ? ts.toInstant().toString() : null);
+    }
+
+    /**
+     * What the confirmation screen shows. Deliberately NARROW — the street address, PDF token URLs, Stripe/Lulu
+     * ids and the event id all stay server-side; city/state is enough to prove "we're shipping to the right
+     * place". {@code shipName}/{@code shipCity}/{@code shipStateCode} are null until the webhook has read them
+     * off the session, and {@code bookTitle} is nullable in {@code books} — the UI degrades on both.
+     */
+    public record OrderSummary(
+        long orderId, String status, int quantity, int pageCount, int amountCents, String currency,
+        String shipName, String shipCity, String shipStateCode, String bookTitle, String createdAt) {}
 
     /** Return the user's Stripe customer id, creating + storing one on first purchase (mirrors BillingService). */
     private String ensureCustomer(Long userId) throws Exception {
