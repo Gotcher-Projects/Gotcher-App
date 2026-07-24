@@ -51,7 +51,7 @@ echo "==> Creating baby profile (Lily, born $BIRTHDATE)..."
 curl -sf -X PUT "$API/baby-profile" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"babyName\":\"$BABY_NAME\",\"birthdate\":\"$BIRTHDATE\",\"parentName\":\"$PARENT_NAME\",\"phone\":\"$PHONE\"}" \
+  -d "{\"babyName\":\"$BABY_NAME\",\"birthdate\":\"$BIRTHDATE\",\"parentName\":\"$PARENT_NAME\",\"phone\":\"$PHONE\",\"phase\":\"baby\"}" \
   > /dev/null
 echo "    Baby profile saved."
 
