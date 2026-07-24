@@ -12,11 +12,15 @@ logs, growth percentiles, first-times, and appointments. Live at https://cradleh
   **raw `JdbcTemplate` SQL — no ORM**, Flyway migrations (`Backend/db/migration/V*.sql`), JJWT.
   Port 3001.
 - **Database** — PostgreSQL 16 via Docker Compose (`Backend/docker-compose.yml`), port 5432.
+- **PDF sidecar** — headless-Chrome PDF renderer for the print feature (dev: port 4000; prod: `pdf-sidecar`
+  Compose service). The API POSTs a print-route URL, Chrome renders it, the sidecar returns PDF bytes. Only
+  needed for print (Lulu) work — see `plans/storybook-v2/payments-print-context.md`.
 
 ## How to run
 
-- **Everything** (Docker + API + frontend): `cd Backend && ./start-services.sh` (stop:
-  `./stop-services.sh` at repo root).
+- **Everything** (Docker + API + frontend): `./start-services.sh` **from the repo root** (both
+  `start-services.sh` and `stop-services.sh` live at the root — NOT in `Backend/`). Stop: `./stop-services.sh`.
+  If the API port sticks after stop, kill the stale process: `netstat -ano | findstr :3001` → `taskkill /PID <pid> /F`.
 - **Frontend only:** `cd Frontend && npm run dev`.
 - **Frontend tests:** `cd Frontend && npm run test` (Vitest). **Backend tests:**
   `cd Backend && ./gradlew test` (JUnit 5 + Mockito).
@@ -48,7 +52,13 @@ logs, growth percentiles, first-times, and appointments. Live at https://cradleh
 ## Pointers
 
 - **Storybook primer:** `plans/storybook/storybook-context.md` — read before any memory-book work.
+- **Payments & Print primer:** `plans/storybook-v2/payments-print-context.md` — read before any Stripe (billing)
+  or Lulu (physical book / PDF sidecar) work.
 - **Pregnancy feature:** `plans/pregnancy/` (+ `pregnancy-context.md` primer).
+- **Payments track:** `plans/storybook-v2/` P-series (`p12-live-cutover.md` = Stripe live).
+- **Print (Lulu) track:** `plans/storybook-v2/print/` (pr0–pr10 + s14; `pr10-live-cutover.md` = go-live gate).
+- **Branch review + fixes:** `plans/storybook-v2-review/` (5-pass review, findings F1–F15) →
+  `plans/storybook-v2-review-fixes/` (the sliced fixes).
 - **Active review-fixes track:** `plans/storybook-and-pregnancy-review-fixes/`.
 
 ## Plans

@@ -631,3 +631,21 @@ body + Stripe-Signature -> headless Chrome renders a PDF ON THE VPS -> share lin
 exercised there) -> one 4242 test purchase grants credits -> print is provably dormant (409, no session).
 Do NOT touch: live Stripe keys/products/webhook, Lulu prod creds, PRINT_ENABLED, ToS. Those are P12 and pr10.
 ```
+
+## REVIEW-0 — 5-pass branch code review (~3-4h + fixes) — **the ship gate, run BEFORE DEPLOY-0**
+
+```
+sv2 REVIEW-0 — the standing 5-pass pre-ship review. Plan: sv2-review-0-branch-review.md
+Passes, in order (documentation LAST so it describes final code): dead code, duplication, test coverage,
+documentation, general improvements.
+SCOPE = 6ab07b0..HEAD (189 files / 16.5k insertions), NOT main..HEAD. Everything up to PR #26 (2026-06-21)
+already had this exact treatment - branch-review.html + storybook-and-pregnancy-review-fixes/ s1-s11, all
+Complete. Don't re-review it.
+Pass 5 is the high-value one here (first real-money code): audit every route under the SecurityConfig
+permitAll namespaces (/print/**, /admin/**, /book/public/**, /billing/webhook) for self-authorization - we
+hit that trap twice; IDOR user_id in WHERE not just a pre-check; the Spring 401 catch(Exception) rule;
+no secrets in logs; webhook idempotency on every branch; migrations V37-V53 additive-only.
+TRIAGE every finding as SHIP-BLOCKER (fix before DEPLOY-0) or DEFERRED (log, slice later). Do NOT let dead
+code/duplication findings turn into a pre-ship refactor.
+Output branch-review-storybook-v2.html at repo root - do NOT overwrite branch-review.html (June's record).
+```

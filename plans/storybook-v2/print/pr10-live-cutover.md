@@ -10,9 +10,11 @@ Go live with print. Swap Lulu **sandbox → production** credentials, confirm th
 print's **first-ever prod deploy** (the headless-Chrome renderer has never run on the VPS), and clear the
 ToS go-live gate (privacy disclosure + physical-order refund policy).
 
-> **⚠️ First time any print code reaches production.** Like payments (deferred entirely to P12), print stays
-> local/sandbox until done — `cradlehq.app` is live with real users. This session carries both "first deploy"
-> *and* "flip to real money + real print jobs" at once.
+> **⚠️ RESCOPED 2026-07-22 — the first-deploy half moved out.** This originally carried "first deploy" *and*
+> "flip to real money + real print jobs" at once. **`../sv2-deploy-0-first-prod-deploy.md`** now owns the
+> deploy, the 31 migrations (V23→V53), SMTP, and — critically — **wiring the PDF sidecar into
+> `docker-compose.prod.yml` and proving headless Chrome renders on the VPS.** By the time you're here the
+> renderer already works in prod; this session swaps Lulu sandbox→prod and clears the ToS gate.
 
 ---
 
@@ -23,12 +25,19 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
   prod are **separate universes** (separate registration, separate keys), same as Stripe test vs live.
 
 ## Steps
-0. **First-deploy infra check** — ✅ **now owned by `../sv2-deploy-0-first-prod-deploy.md` (steps 3–6), which also proves SMTP. Run that first.** Original text kept for reference:
-   **print has never been on prod.** Deploy the branch to the VPS and confirm the
-   **headless-Chrome renderer actually runs in the prod Docker image** (the pr1 mechanism — Puppeteer sidecar
-   or Playwright-Java + Chromium layer — must be baked into `docker-compose.prod.yml`/`Dockerfile`). Render one
-   real book → PDF on the server and inspect it. **This is the biggest prod-specific risk** (fonts, Chromium
-   deps, memory), not the Lulu call.
+0. **✅ First-deploy infra — OWNED BY `../sv2-deploy-0-first-prod-deploy.md`. Do not repeat it here.**
+   That session deploys the branch, runs V23→V53 (after a rehearsal on restored prod data), proves SMTP, and
+   **wires the PDF sidecar into prod and renders a real book on the VPS.**
+
+   ⚠ **The sidecar gap was real and is worth knowing about:** as of 2026-07-22 `docker-compose.prod.yml`
+   contained only `caddy`, `api`, `postgres` — **no `pdf-sidecar` service and no `PRINT_SIDECAR_URL` /
+   `PRINT_FRONTEND_BASE`**, so the renderer would have fallen back to `localhost:4000`/`localhost:3000` inside
+   the api container and simply not worked. pr1 proved headless Chrome in Docker; it was never added to the
+   prod compose. **Confirm DEPLOY-0 actually closed this before starting** — a book must already render to PDF
+   on the VPS, or step 7's smoke order cannot possibly succeed.
+
+   **Do not start this session until DEPLOY-0 is green.** Confirm: prod on `payments-v1`, Flyway at **v53**,
+   a PDF rendered on the server, SMTP delivering, and P12 complete (live Stripe keys in place).
 1. **Swap Lulu env to prod on the VPS:** `LULU_API_BASE=https://api.lulu.com`, prod `LULU_CLIENT_ID` /
    `LULU_CLIENT_SECRET`, confirm `LULU_POD_PACKAGE_ID` unchanged. Redeploy. Run `lulu-verify.sh` on the server.
 2. **Confirm the Lulu company card is on file** for prod auto-charge (owner task — `../handoffs/`). A **paid**
@@ -45,9 +54,9 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
    deactivates you cannot ask Lulu why. ⚠ Lulu **auto-deactivates after 5 consecutive failed deliveries**, so
    **checking `is_active` after every deploy is a real operational task**, and the s14a-1 reconciliation sweep
    is the only backstop when it flips off.
-5. **Verify outbound mail actually sends in prod.** `EmailService` wraps an *optional* `JavaMailSender` and
-   silently no-ops when SMTP isn't configured — so a misconfigured prod would swallow every failure alert and
-   every customer refund email without an error. Send one of each for real.
+5. **✅ Outbound mail — proven in DEPLOY-0 step 4.** Just re-confirm it's still working and that
+   `PRINT_OPERATOR_EMAIL` / `app.print.operator-email` points at a **real, monitored** mailbox — every operator
+   alert goes there, and a failed send permanently burns the one-shot notify guard rather than retrying.
 6. **⛔ ToS go-live gate (from pr0 review of Lulu's terms):**
    - **Privacy/ToS updated** to disclose that baby photos + shipping address are sent to a third-party printer
      (Lulu §2/§8). Privacy-sensitive — infant photos.
@@ -79,7 +88,8 @@ ToS go-live gate (privacy disclosure + physical-order refund policy).
    (~10s restart, no rebuild). Off is a "no new orders" guarantee, not a recall of in-flight jobs (s14a).
 
 ## Done when
-- [ ] Print code deployed to prod; headless-Chrome renderer produces a valid PDF **on the VPS**.
+- [ ] DEPLOY-0 green first: branch deployed, Flyway **v53**, sidecar wired, a PDF rendered **on the VPS**,
+      SMTP delivering — and P12 complete (live Stripe keys).
 - [ ] Lulu prod env vars live on the VPS; `lulu-verify.sh` green against `api.lulu.com` there.
 - [ ] Company card on file confirmed; a real paid print job submitted and accepted by Lulu.
 - [ ] Privacy/ToS disclosure of third-party printing is live; physical-order refund policy written down.
