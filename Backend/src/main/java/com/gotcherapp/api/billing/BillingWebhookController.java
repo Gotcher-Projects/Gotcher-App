@@ -1,20 +1,28 @@
 package com.gotcherapp.api.billing;
 
 import com.stripe.exception.SignatureVerificationException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Payments P3 — the Stripe webhook. Public (permitAll in SecurityConfig): Stripe sends no JWT, so the
  * signature verification IS the authentication.
  *
- * The body MUST be taken as a raw String — signature verification hashes the exact request bytes, and
- * letting Spring deserialize to a DTO would re-serialize different bytes and fail verification silently.
+ * The body MUST be read as raw bytes off the servlet input stream and decoded UTF-8 ourselves — NOT via
+ * {@code @RequestBody String}. Spring's StringHttpMessageConverter decodes with the request's negotiated
+ * (or default ISO-8859-1) charset; behind Caddy the real Stripe request tripped that converter with
+ * "Invalid encoding: ISO-8859-1", which — thrown during argument resolution, outside the try/catch below —
+ * re-dispatched to /error and surfaced as a 401 (the Spring 401 trap, see CLAUDE.md), so Stripe retried
+ * forever and no event was ever processed. Reading the raw stream sidesteps charset negotiation entirely and
+ * hands constructEvent Stripe's exact signed bytes.
  */
 @RestController
 public class BillingWebhookController {
@@ -27,11 +35,19 @@ public class BillingWebhookController {
         this.webhookService = webhookService;
     }
 
-    @PostMapping(value = "/billing/webhook", consumes = "application/json")
+    @PostMapping(value = "/billing/webhook")
     public ResponseEntity<String> webhook(
-        @RequestBody String payload,
+        HttpServletRequest request,
         @RequestHeader("Stripe-Signature") String sigHeader
     ) {
+        String payload;
+        try {
+            payload = new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            // Could not read the body at all — a transient read error. Let Stripe retry.
+            log.error("Stripe webhook: failed to read request body: {}", e.getMessage());
+            return ResponseEntity.status(500).body("");
+        }
         try {
             webhookService.handle(payload, sigHeader);
             return ResponseEntity.ok("");
