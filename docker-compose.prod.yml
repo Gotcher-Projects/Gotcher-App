@@ -46,6 +46,11 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      # Claude / Anthropic — the ✨ AI-assist. Must be passed through explicitly (no env_file here), else
+      # anthropic.api.key defaults blank in-container and every AI-assist call fails regardless of user credits.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5-20251001}
+      ANTHROPIC_TEMPERATURE: ${ANTHROPIC_TEMPERATURE:-0.3}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
@@ -68,6 +73,10 @@ services:
       LULU_CLIENT_ID: ${LULU_CLIENT_ID:-}
       LULU_CLIENT_SECRET: ${LULU_CLIENT_SECRET:-}
       LULU_POD_PACKAGE_ID: ${LULU_POD_PACKAGE_ID:-}
+      # Print render/TTL knobs — dormant tonight but forward them so a pr10 .env override actually reaches
+      # the container (same passthrough trap that blanked ANTHROPIC_API_KEY). Defaults match application.properties.
+      PRINT_RENDER_TIMEOUT_MS: ${PRINT_RENDER_TIMEOUT_MS:-120000}
+      PRINT_PDF_TTL_HOURS: ${PRINT_PDF_TTL_HOURS:-24}
       # PDF sidecar (headless Chrome) — reachable over the compose network at the service name.
       # Chrome loads the print route from the public frontend served by Caddy.
       PRINT_SIDECAR_URL: http://pdf-sidecar:4000
