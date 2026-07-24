@@ -68,9 +68,29 @@ services:
       LULU_CLIENT_ID: ${LULU_CLIENT_ID:-}
       LULU_CLIENT_SECRET: ${LULU_CLIENT_SECRET:-}
       LULU_POD_PACKAGE_ID: ${LULU_POD_PACKAGE_ID:-}
+      # PDF sidecar (headless Chrome) — reachable over the compose network at the service name.
+      # Chrome loads the print route from the public frontend served by Caddy.
+      PRINT_SIDECAR_URL: http://pdf-sidecar:4000
+      PRINT_FRONTEND_BASE: https://${APP_DOMAIN}
+      PRINT_OPERATOR_EMAIL: ${PRINT_OPERATOR_EMAIL:-print@cradlehq.app}
     depends_on:
       postgres:
         condition: service_healthy
+      pdf-sidecar:
+        condition: service_started
+
+  # Print PDF renderer (pr1) — Debian + Chromium; only the api talks to it, over the compose network.
+  # No host port: it must not be reachable from the internet. Ships alongside print (dormant until pr10).
+  pdf-sidecar:
+    build:
+      context: ./pdf-sidecar
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "4"
 
   postgres:
     image: postgres:16
