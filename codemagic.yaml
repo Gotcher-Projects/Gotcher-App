@@ -5,7 +5,7 @@ workflows:
     integrations:
       app_store_connect: CradleHQ
     environment:
-      node: 22
+      node: 24
       xcode: latest
       ios_signing:
         distribution_type: app_store
