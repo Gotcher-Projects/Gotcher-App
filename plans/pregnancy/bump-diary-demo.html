@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bump Diary — Mock</title>
+  <style>
+    /* ── CradleHQ light theme tokens (from index.css) ── */
+    :root {
+      --background: hsl(0 0% 100%);
+      --foreground: hsl(244 44% 20%);     /* brand navy */
+      --card: hsl(0 0% 100%);
+      --primary: hsl(239 84% 67%);        /* brand purple */
+      --muted-foreground: hsl(244 20% 50%);
+      --border: hsl(214.3 31.8% 91.4%);
+      --highlight: hsl(335 74% 47%);      /* brand pink */
+      --success: hsl(152 55% 38%);        /* brand mint */
+      --warm: hsl(48 96% 89%);            /* brand peach */
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #fbfaff 0%, #fdf8f1 100%);
+      color: var(--foreground);
+      padding: 40px 20px 80px;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    .display { font-family: 'Poppins', system-ui, sans-serif; }
+
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 32px; }
+    .section-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-foreground); margin: 36px 0 16px; }
+
+    /* ── Add form (sticky card in real app; shown inline here) ── */
+    .form-card {
+      background: hsl(48 96% 89% / 0.30);
+      border: 1px solid hsl(48 80% 70% / 0.4);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px hsl(335 74% 47% / 0.06);
+    }
+    .form-card h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted-foreground); margin-bottom: 5px; }
+    .field input, .field textarea {
+      width: 100%; font-size: 0.9rem; padding: 8px 11px; border-radius: 9px;
+      border: 1px solid var(--border); background: #fff; color: var(--foreground); font-family: inherit;
+    }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .photo-btn {
+      display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--muted-foreground);
+      background: none; border: none; cursor: pointer; padding: 4px 0;
+    }
+    .photo-btn:hover { color: var(--highlight); }
+    .save-btn {
+      width: 100%; margin-top: 6px; padding: 9px; border: none; border-radius: 10px;
+      background: var(--highlight); color: #fff; font-weight: 600; font-size: 0.92rem; cursor: pointer;
+    }
+    .hint { font-size: 0.72rem; color: var(--muted-foreground); margin-top: 4px; }
+
+    /* ── Week divider (mirrors JournalTab groupByMonth) ── */
+    .week-divider { display: flex; align-items: center; gap: 14px; margin: 34px 0 18px; }
+    .week-divider .wk { font-size: 0.82rem; font-weight: 700; color: var(--foreground); white-space: nowrap; }
+    .week-divider .line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Timeline grid within a week ── */
+    .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+
+    /* ── BumpCard (the shared, reusable, photo-forward unit) ── */
+    .bump-card {
+      background: var(--card);
+      border: 1px solid hsl(335 74% 47% / 0.12);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px hsl(335 74% 47% / 0.10);
+      display: flex; flex-direction: column;
+    }
+    .bump-photo {
+      width: 100%; aspect-ratio: 3/4; position: relative;
+      /* fake belly photo */
+      background: linear-gradient(155deg, #f6d9c2 0%, #eab59a 45%, #d98c8c 100%);
+    }
+    .bump-photo.landscape { aspect-ratio: 3/2; }   /* wide photo, same caption-below layout */
+    .bump-photo::after {
+      content: '🤰'; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); font-size: 2.6rem; opacity: 0.4;
+    }
+    .bump-body { padding: 14px 16px 4px; flex: 1; }
+    .size-line { font-size: 1.02rem; line-height: 1.3; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .size-line .wk { font-weight: 700; color: var(--foreground); }
+    .size-line .label { font-family: 'Poppins', system-ui, sans-serif; font-weight: 700; color: var(--highlight); }
+    .size-line .emoji { font-size: 1.15rem; }
+    .bump-date { font-size: 0.78rem; color: var(--muted-foreground); margin-top: 4px; }
+    .bump-note { font-size: 0.86rem; color: var(--muted-foreground); margin-top: 6px; }
+    .bump-actions {
+      display: flex; gap: 14px; justify-content: flex-end;
+      padding: 10px 16px; margin-top: 10px; border-top: 1px solid var(--border);
+    }
+    .bump-actions button {
+      background: none; border: none; cursor: pointer; font-size: 0.75rem;
+      color: var(--muted-foreground); display: flex; align-items: center; gap: 4px;
+    }
+    .bump-actions button:hover { color: var(--primary); }
+    .bump-actions button.del:hover { color: #ef4444; }
+
+    .single { max-width: 300px; }
+    .single.wide { max-width: 460px; }   /* landscape single card */
+
+    .note {
+      margin-top: 44px; background: #fff; border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 22px; font-size: 0.84rem; color: var(--muted-foreground); line-height: 1.65;
+    }
+    .note strong { color: var(--highlight); }
+    .note ul { margin: 8px 0 0 18px; }
+    .note li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="display">Bump Diary — visual mock</h1>
+    <p class="subtitle">CradleHQ palette · real dataset sizes · fake photos. Photo-forward card, caption below, week-divider grouping. Cards flow in a responsive grid; on mobile they stack one per row.</p>
+
+    <!-- ── Add form (in the real app this is a sticky left card) ── -->
+    <div class="section-label">Add a bump photo</div>
+    <div class="form-card" style="max-width:420px;">
+      <h2><span>📸</span> New bump photo</h2>
+      <div class="row2">
+        <div class="field">
+          <label>Week</label>
+          <input type="number" value="24" />
+          <div class="hint">Defaults to this week — editable</div>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <input type="date" value="2026-06-14" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Photo <span style="color:#ef4444">*</span></label>
+        <button class="photo-btn">📷 Photo ready (portrait)</button>
+        <div class="hint">Portrait or landscape is chosen in the crop step, same as Journal &amp; Firsts.</div>
+      </div>
+      <div class="field">
+        <label>Note (optional)</label>
+        <textarea rows="2" placeholder="How are you feeling this week?"></textarea>
+      </div>
+      <button class="save-btn">Save bump photo</button>
+    </div>
+
+    <!-- ── Timeline ── -->
+    <div class="section-label">Your bump, week by week</div>
+
+    <!-- Week 8 — single -->
+    <div class="week-divider"><span class="wk">Week 8</span><span class="line"></span></div>
+    <div class="week-grid">
+      <div class="bump-card single">
+        <div class="bump-photo"></div>
+        <div class="bump-body">
+          <div class="size-line"><span class="wk">Week 8 ·</span><span class="label">a raspberry</span><span class="emoji">🍓</span></div>
+          <div class="bump-date">April 3, 2026</div>
+          <div class="bump-note">First bump photo! Barely showing yet.</div>
+        </div>
+        <div class="bump-actions">
+          <button>✎ Edit</button>
+          <button class="del">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week 20 — single, LANDSCAPE orientation -->
+    <div class="week-divider"><span class="wk">Week 20</span><span class="line"></span></div>
+    <div class="week-grid">
+      <div class="bump-card single wide">
+        <div class="bump-photo landscape"></div>
+        <div class="bump-body">
+          <div class="size-line"><span class="wk">Week 20 ·</span><span class="label">a banana</span><span class="emoji">🍌</span></div>
+          <div class="bump-date">May 22, 2026</div>
+          <div class="bump-note">Halfway there — went landscape for this one. Definitely a bump now!</div>
+        </div>
+        <div class="bump-actions">
+          <button>✎ Edit</button>
+          <button class="del">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week 24 — TWO in one week (the "generic journal" / many-per-week case) -->
+    <div class="week-divider"><span class="wk">Week 24</span><span class="line"></span></div>
+    <div class="week-grid">
+      <div class="bump-card">
+        <div class="bump-photo"></div>
+        <div class="bump-body">
+          <div class="size-line"><span class="wk">Week 24 ·</span><span class="label">an ear of corn</span><span class="emoji">🌽</span></div>
+          <div class="bump-date">June 12, 2026</div>
+          <div class="bump-note">Feeling every kick now.</div>
+        </div>
+        <div class="bump-actions">
+          <button>✎ Edit</button>
+          <button class="del">🗑 Delete</button>
+        </div>
+      </div>
+      <div class="bump-card">
+        <div class="bump-photo"></div>
+        <div class="bump-body">
+          <div class="size-line"><span class="wk">Week 24 ·</span><span class="label">an ear of corn</span><span class="emoji">🌽</span></div>
+          <div class="bump-date">June 14, 2026</div>
+          <div class="bump-note">Same week, two days later — added a second.</div>
+        </div>
+        <div class="bump-actions">
+          <button>✎ Edit</button>
+          <button class="del">🗑 Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>What this mock shows:</strong>
+      <ul>
+        <li><strong>Photo-forward card</strong> — photo on top, caption below: size pairing (hero), date, optional note, then edit/delete.</li>
+        <li><strong>Portrait or landscape</strong> — chosen in the crop step like Journal/Firsts. Same caption-below layout; only the photo aspect changes (3:4 vs 3:2). Week 20 above is landscape.</li>
+        <li><strong>Many-per-week allowed</strong> — Week 24 has two cards (the generic-journal use case). No unique constraint.</li>
+        <li><strong>Week dividers</strong> group the timeline (same pattern as the Journal's month dividers) so multiple entries read as one section, not disconnected repeats.</li>
+        <li><strong>Self-contained card</strong> — the size caption lives on the card (not just the divider), so this exact component is reusable as an S4 storybook page and a social card.</li>
+        <li><strong>Real sizes</strong> from <code>pregnancySizes.js</code> (raspberry → banana → ear of corn). In the app the emoji is the bundled <strong>Twemoji</strong> SVG, not the OS glyph.</li>
+        <li>Ascending order (Week 8 → 24 → …) so scrolling = watching the bump grow.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

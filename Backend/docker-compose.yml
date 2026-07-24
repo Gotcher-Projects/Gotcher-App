@@ -33,6 +33,10 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
+  # NOTE: the print PDF sidecar (pr1) runs NATIVELY in dev via start-services.sh (like the api + frontend),
+  # so localhost resolves for the sidecar → frontend → API chain without host.docker.internal. It is a
+  # CONTAINER only in production (docker-compose.prod.yml, added in pr10). Dockerfile lives in ../pdf-sidecar.
+
 volumes:
   postgres_data:
   pgadmin_data:

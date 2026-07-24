@@ -54,9 +54,43 @@ services:
       BACKEND_URL: https://${APP_DOMAIN}/api
       CORS_ORIGINS: https://${APP_DOMAIN},http://localhost,https://localhost,capacitor://localhost
       ADMIN_SECRET: ${ADMIN_SECRET:-}
+      FREE_GRANT_LIMIT: ${FREE_GRANT_LIMIT:-500}
+      FREE_GRANT_SIZE: ${FREE_GRANT_SIZE:-5}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_CREDITS_50: ${STRIPE_PRICE_CREDITS_50:-}
+      STRIPE_PRICE_CREDITS_125: ${STRIPE_PRICE_CREDITS_125:-}
+      STRIPE_PRICE_BUNDLE_SHARE_150: ${STRIPE_PRICE_BUNDLE_SHARE_150:-}
+      STRIPE_PRICE_SHARE_ONLY: ${STRIPE_PRICE_SHARE_ONLY:-}
+      # Print / Lulu (pr5) — ships dormant: PRINT_ENABLED defaults OFF, real Lulu creds swap in at pr10.
+      PRINT_ENABLED: ${PRINT_ENABLED:-false}
+      LULU_API_BASE: ${LULU_API_BASE:-}
+      LULU_CLIENT_ID: ${LULU_CLIENT_ID:-}
+      LULU_CLIENT_SECRET: ${LULU_CLIENT_SECRET:-}
+      LULU_POD_PACKAGE_ID: ${LULU_POD_PACKAGE_ID:-}
+      # PDF sidecar (headless Chrome) — reachable over the compose network at the service name.
+      # Chrome loads the print route from the public frontend served by Caddy.
+      PRINT_SIDECAR_URL: http://pdf-sidecar:4000
+      PRINT_FRONTEND_BASE: https://${APP_DOMAIN}
+      PRINT_OPERATOR_EMAIL: ${PRINT_OPERATOR_EMAIL:-print@cradlehq.app}
     depends_on:
       postgres:
         condition: service_healthy
+      pdf-sidecar:
+        condition: service_started
+
+  # Print PDF renderer (pr1) — Debian + Chromium; only the api talks to it, over the compose network.
+  # No host port: it must not be reachable from the internet. Ships alongside print (dormant until pr10).
+  pdf-sidecar:
+    build:
+      context: ./pdf-sidecar
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "4"
 
   postgres:
     image: postgres:16

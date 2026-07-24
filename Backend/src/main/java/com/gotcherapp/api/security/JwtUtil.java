@@ -14,6 +14,12 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
 
+    // Print pr3 — render token: a short-lived JWT scoped to one book, authorizing the unauthenticated payload
+    // fetch during a render (headless Chrome loads /print/book/{token} → GET /print/payload/{token}). ~5 min is
+    // ample (a full-book render is ~4s) and the exposure window stays tiny.
+    private static final long PRINT_RENDER_EXPIRATION_MS = 5 * 60 * 1000L;
+    private static final String PRINT_RENDER_PURPOSE = "print-render";
+
     private final SecretKey key;
     private final long accessExpirationMs;
     private final long refreshExpirationMs;
@@ -45,6 +51,30 @@ public class JwtUtil {
                 .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
                 .signWith(key)
                 .compact();
+    }
+
+    /** Print pr3 — mint a short-lived render token scoped to one book (subject = bookId, purpose claim). */
+    public String generatePrintRenderToken(Long bookId) {
+        return Jwts.builder()
+                .subject(bookId.toString())
+                .claim("purpose", PRINT_RENDER_PURPOSE)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + PRINT_RENDER_EXPIRATION_MS))
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Print pr3 — verify a render token (signature + expiry via parseToken) and its purpose, returning the
+     * book id it authorizes. Throws {@link io.jsonwebtoken.JwtException} on any invalid/expired/wrong-purpose
+     * token, which the payload endpoint maps to 404 (don't confirm which part failed).
+     */
+    public Long getPrintRenderBookId(String token) {
+        Claims claims = parseToken(token);
+        if (!PRINT_RENDER_PURPOSE.equals(claims.get("purpose", String.class))) {
+            throw new io.jsonwebtoken.JwtException("not a print-render token");
+        }
+        return Long.parseLong(claims.getSubject());
     }
 
     public Claims parseToken(String token) {

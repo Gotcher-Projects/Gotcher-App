@@ -42,5 +42,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("com.cloudinary:cloudinary-http45:1.39.0")
+    // Stripe one-time checkout (Payments P1). Pinned to the newest STABLE release: Maven Central
+    // lists 33.2.0 only as alpha/beta and even tags a beta as <release>, so a dynamic "33.+" could
+    // resolve to a pre-release. Bump deliberately.
+    implementation("com.stripe:stripe-java:33.1.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

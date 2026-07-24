@@ -90,3 +90,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .book-chapter-first::first-letter,
+  .book-rich:not(.book-rich--edit) > p:first-child::first-letter {
+    float: left;
+    font-size: 3.2em;
+    line-height: 0.8;
+    padding-right: 0.08em;
+    font-family: ui-serif, Georgia, serif;
+    font-weight: 600;
+    color: var(--book-accent, hsl(var(--color-highlight)));
+  }
+
+  /* Explicit drop-cap span — same appearance as ::first-letter but works in
+     html2canvas (which ignores pseudo-elements). Used by LayoutRenderer. */
+  .book-drop-cap {
+    float: left;
+    font-size: 3.2em;
+    line-height: 0.8;
+    padding-right: 0.08em;
+    font-family: ui-serif, Georgia, serif;
+    font-weight: 600;
+    color: var(--book-accent, hsl(var(--color-highlight)));
+  }
+
+  /* Rich text rendered from Tiptap JSON (storybook text blocks). Inherits the
+     wrapper's font-size/family; matches the legacy paragraph rhythm. */
+  .book-rich {
+    color: hsl(var(--foreground) / 0.85);
+  }
+  .book-rich > p {
+    margin: 0;
+  }
+  .book-rich > p + p {
+    margin-top: 0.9em;
+  }
+  .book-rich strong {
+    font-weight: 600;
+  }
+}

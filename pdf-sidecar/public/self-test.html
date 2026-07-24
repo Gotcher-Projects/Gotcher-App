@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CradleHQ print sidecar — self-test</title>
+  <style>
+    /* Print trim proof: 8.5×11 trim + 0.125"/side bleed = 8.75×11.25in page, no margin (bleed handled here). */
+    @page { size: 8.75in 11.25in; margin: 0; }
+
+    html, body { margin: 0; padding: 0; }
+
+    .page {
+      box-sizing: border-box;
+      width: 8.75in;
+      height: 11.25in;
+      /* 0.125" bleed + 0.375" so content sits inside the 0.5" safety margin */
+      padding: 0.5in;
+      background: linear-gradient(135deg, #fdf2f8 0%, #eef2ff 100%);
+      color: #1f2937;
+      font-family: 'Liberation Serif', Georgia, 'Times New Roman', serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    h1 {
+      font-family: 'Liberation Sans', Arial, Helvetica, sans-serif;
+      font-size: 34pt;
+      margin: 0 0 6pt;
+      color: #be185d;
+    }
+    .sub {
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      font-size: 12pt;
+      color: #6b7280;
+      margin: 0 0 18pt;
+    }
+    p { font-size: 13pt; line-height: 1.5; margin: 0 0 12pt; }
+    .checks { font-size: 11pt; }
+    .checks li { margin-bottom: 4pt; }
+    figure { margin: 16pt 0 0; }
+    figcaption {
+      font-family: 'Liberation Sans', Arial, sans-serif;
+      font-size: 9pt; color: #6b7280; margin-top: 4pt;
+    }
+    img { width: 3.2in; height: auto; display: block; border: 1px solid #d1d5db; }
+    .swatches { display: flex; gap: 8pt; margin: 14pt 0; }
+    .swatch { width: 0.9in; height: 0.6in; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Print sidecar self-test</h1>
+    <p class="sub">pr1 — proves the headless-Chrome → PDF mechanism offline</p>
+
+    <p>
+      This page exists to prove, in a generated PDF, the four things pr1 must demonstrate. It is
+      <strong>not</strong> a real book page — that arrives with the pr2 print-view route. Open the PDF this
+      renders to and confirm each item below.
+    </p>
+
+    <ul class="checks">
+      <li><strong>Vector text</strong> — select this paragraph in the PDF; it should be real, crisp text at
+        any zoom, not a rasterized image of text.</li>
+      <li><strong>Embedded fonts</strong> — this body is a serif, the headings a sans; both must render and be
+        embedded (check the PDF's font list).</li>
+      <li><strong>Colored backgrounds</strong> — the pink→indigo page wash and the swatches below only appear
+        if <code>printBackground</code> is honoured.</li>
+      <li><strong>Native-res raster image</strong> — the 900×1200 sample below should stay sharp when you zoom
+        the PDF (it is embedded at native resolution, not down-sampled to a page raster).</li>
+    </ul>
+
+    <div class="swatches">
+      <div class="swatch" style="background:#be185d"></div>
+      <div class="swatch" style="background:#6366f1"></div>
+      <div class="swatch" style="background:#059669"></div>
+      <div class="swatch" style="background:#f59e0b"></div>
+    </div>
+
+    <figure>
+      <img src="/sample.png" alt="High-resolution gradient + grid test image" />
+      <figcaption>sample.png — 900×1200, generated offline by lib/generate-sample-png.js</figcaption>
+    </figure>
+  </div>
+
+  <script>
+    // The ready-signal seam (pr2/pr3): the sidecar can waitForSelector('[data-print-ready="true"]').
+    // Wait for fonts + the image to decode, then flip the flag.
+    (async () => {
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+        await Promise.all(
+          [...document.images].map((img) =>
+            img.complete ? Promise.resolve() : img.decode().catch(() => {})
+          )
+        );
+      } finally {
+        document.documentElement.setAttribute('data-print-ready', 'true');
+      }
+    })();
+  </script>
+</body>
+</html>

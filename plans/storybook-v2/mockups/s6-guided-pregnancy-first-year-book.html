@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guided Book — "Bump to One" (30-page mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --warm:#fbeede; --cream:#FDF6ED; --ink-soft:#A07860; --purple:#9b7fd4; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:38px 22px 90px; }
+  .wrap { max-width:1140px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:33px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 18px; font-size:15px; max-width:840px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  .legend b { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .d-auto{background:var(--gold);} .d-fill{background:var(--hi);} .d-pick{background:var(--purple);}
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:26px 20px; margin-top:26px; }
+  .cell { display:flex; flex-direction:column; align-items:center; }
+  .mc { width:160px; height:213px; background:var(--cream); border:1px solid var(--line); border-radius:7px;
+        box-shadow:0 6px 18px rgba(0,0,0,.10); position:relative; overflow:hidden; padding:13px 12px; }
+  .mc.cover, .mc.back { background:linear-gradient(160deg,#efe6d4,#e7dcc4); box-shadow:0 8px 22px rgba(0,0,0,.16); }
+  .pnum { font-size:11px; color:var(--muted); margin-top:9px; font-weight:700; }
+  .pttl { font-size:12.5px; color:var(--ink); font-weight:700; text-align:center; line-height:1.2; max-width:160px; }
+  .badge { font-size:9px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:100px; margin-top:5px; }
+  .b-auto{ background:rgba(194,163,107,.16); color:#9a7b3a;} .b-fill{ background:rgba(217,123,138,.14); color:var(--hi);} .b-pick{ background:rgba(155,127,212,.16); color:#6f55b0;}
+  .sec-row { grid-column:1/-1; display:flex; align-items:center; gap:12px; margin:14px 0 -8px; }
+  .sec-row span { font-family:'Playfair Display',serif; font-size:16px; color:var(--ink-soft); }
+  .sec-row .ln { flex:1; height:1px; background:var(--line); }
+
+  .lbl { text-align:center; font-size:6.5px; font-weight:900; letter-spacing:.18em; color:var(--gold); text-transform:uppercase; }
+  .ttl { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); line-height:1.05; margin-top:4px; }
+  .ph { border-radius:3px; } .gA{background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .gB{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .gC{background:linear-gradient(135deg,#cfe0c0,#a8c89a);} .gD{background:linear-gradient(135deg,#e6d3a8,#d8b58a);} .gE{background:linear-gradient(135deg,#cfc0e0,#b8a0d0);}
+  .tl { height:3px; background:#4A3728; opacity:.16; border-radius:2px; margin:4px auto 0; }
+  .note { background:#FFF8E8; border:1px solid #E5CB8A; border-radius:3px; }
+  .ctr { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; }
+  .divx { display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 0; }
+  .divx .l { height:1px; width:22px; background:var(--gold); opacity:.4;} .divx .h { color:var(--hi); font-size:8px; }
+  .script { font-family:'Dancing Script',cursive; color:var(--ink-soft); }
+  .statbox { text-align:center; } .statbox .v { font-family:'Playfair Display',serif; font-weight:700; font-size:9px; color:var(--ink);} .statbox .k{ font-size:5.5px; letter-spacing:.1em; color:var(--ink-soft); text-transform:uppercase;}
+  .av { border-radius:50%; background:linear-gradient(135deg,#C9B6F5,#A0C4F0); }
+  .pillg { background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.2); padding:3px; }
+  .sizetag { position:absolute; bottom:5px; left:5px; background:rgba(255,255,255,.9); border:1px solid rgba(0,0,0,.06);
+             font-size:7px; font-weight:700; color:var(--ink); padding:2px 6px; border-radius:100px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>Guided Book — "Bump to One"</h1>
+  <p class="lead">The same pre-designed fill-in book, but opening <b>before birth</b>: a pregnancy chapter
+     up front, then the full first year. <b>30 interior pages</b>, cover &amp; back wrapping around them.
+     <span style="color:#9a7b3a;font-weight:700">auto</span> pages fill from data; <span style="color:var(--hi);font-weight:700">fill</span>
+     you drop photos/words into; <span style="color:#6f55b0;font-weight:700">pick</span> you choose which First. The week-by-week
+     <b>size comparison</b> rides along as a small <b>auto tag on your bump photos</b> (pages 4–5). Photos are placeholders.</p>
+  <div class="legend">
+    <b><span class="dot d-auto"></span> auto — fills from your data</b>
+    <b><span class="dot d-fill"></span> fill — you drag photos / type</b>
+    <b><span class="dot d-pick"></span> pick — you choose which First</b>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const P = [
+  { cover:true, t:'Front Cover', type:'cover', b:'auto' },
+
+  { sec:'Before You Arrived  ·  pregnancy' },
+  { n:1,  t:'A Letter Before You Arrived', type:'preletter', b:'fill' },
+  { n:2,  t:'The Day We Found Out', type:'news', b:'fill' },
+  { n:3,  t:'Your First Photo', type:'ultrasound', b:'fill' },
+  { n:4,  t:'The Bump — Early Days', type:'bumpA', b:'fill' },
+  { n:5,  t:'The Bump — Full Bloom', type:'bumpB', b:'fill' },
+  { n:6,  t:'Getting Ready for You', type:'nursery', b:'fill' },
+
+  { sec:'The Day We Met You  ·  birth' },
+  { n:7,  t:'The Day We Met You', type:'birth', b:'auto' },
+  { n:8,  t:'Welcome to the World', type:'gallery', b:'fill' },
+  { n:9,  t:'Coming Home', type:'photocap', b:'fill' },
+  { n:10, t:'Tiny &amp; New', type:'photocap', b:'fill' },
+
+  { sec:'Your People' },
+  { n:11, t:'Your People', type:'people', b:'auto' },
+  { n:12, t:'The Wider Circle', type:'people', b:'auto' },
+  { n:13, t:'Your Family Tree', type:'tree', b:'auto' },
+
+  { sec:'Firsts — you pick the moments' },
+  { n:14, t:"A First We'll Never Forget", type:'hero', b:'pick' },
+  { n:15, t:"A First We'll Never Forget", type:'hero', b:'pick' },
+  { n:16, t:"A First We'll Never Forget", type:'hero', b:'pick' },
+  { n:17, t:"A First We'll Never Forget", type:'hero', b:'pick' },
+  { n:18, t:'Little Moments', type:'gallery', b:'fill' },
+
+  { sec:'Watch Me Grow' },
+  { n:19, t:'Months 0–3', type:'growth', b:'fill' },
+  { n:20, t:'Months 3–6', type:'growth', b:'fill' },
+  { n:21, t:'Months 6–9', type:'growth', b:'fill' },
+  { n:22, t:'Months 9–12', type:'growth', b:'fill' },
+
+  { sec:'You at One' },
+  { n:23, t:'How You Grew', type:'milestones', b:'auto' },
+  { n:24, t:'Out &amp; About', type:'gallery', b:'fill' },
+  { n:25, t:'All About You', type:'prompts', b:'fill' },
+  { n:26, t:'Your Hands &amp; Feet', type:'handfoot', b:'fill' },
+
+  { sec:'The Big Day' },
+  { n:27, t:'Happy First Birthday', type:'birthday', b:'fill' },
+  { n:28, t:'The Party', type:'gallery', b:'fill' },
+  { n:29, t:'One Year of You', type:'letter', b:'fill' },
+
+  { sec:'Closing' },
+  { n:30, t:'Your Story Continues…', type:'closing', b:'auto' },
+  { back:true, t:'Back Cover', type:'back', b:'auto' },
+];
+
+const tlines = (n, w=70) => Array.from({length:n}, (_,i)=>`<div class="tl" style="width:${w - (i===n-1?22:0)}%"></div>`).join('');
+// A bump photo with the auto size-comparison tag layered on it ("how big were you here").
+const bumpPhoto = (g, wk, em, sz) => `<div style="position:relative;flex:1"><div class="ph ${g}" style="height:96px"></div><div class="sizetag">${em} ${wk} · ${sz}</div></div>`;
+
+function art(type) {
+  switch(type) {
+    case 'cover': return `<div class="ctr"><div class="lbl" style="color:var(--ink-soft)">A Keepsake</div>
+      <div class="ttl" style="font-size:16px;margin-top:8px">Emma · Bump<br>to One</div>
+      <div class="ph gA" style="width:60px;height:60px;border-radius:50%;margin:12px auto 0"></div>
+      <div class="script" style="font-size:11px;margin-top:10px">2025 – 2026</div></div>`;
+    case 'back': return `<div class="ctr"><div class="ph gA" style="width:30px;height:30px;border-radius:50%"></div>
+      <div class="script" style="font-size:11px;margin-top:10px">made with love</div>
+      <div class="lbl" style="margin-top:8px">CradleHQ</div></div>`;
+    case 'preletter': return `<div class="lbl">Before You Arrived</div><div class="ttl" style="font-size:13px">To our little one…</div>
+      <div class="divx"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+      <div style="margin-top:4px">${tlines(7,84)}</div>
+      <div class="script" style="text-align:right;font-size:11px;margin-top:8px;padding-right:6px">Mum &amp; Dad</div>`;
+    case 'news': return `<div class="lbl">The Day We Found Out</div><div class="ttl" style="font-size:13px">We're Expecting!</div>
+      <div class="ph gE" style="width:64px;height:64px;border-radius:8px;margin:10px auto 0"></div>
+      <div class="script" style="text-align:center;font-size:12px;margin-top:8px">a little surprise ♥</div>
+      <div style="margin-top:6px">${tlines(2,76)}</div>`;
+    case 'ultrasound': return `<div class="lbl">Your First Photo</div><div class="ttl" style="font-size:13px">Hello, Baby</div>
+      <div style="width:100px;height:104px;margin:10px auto 0;border-radius:5px;position:relative;background:radial-gradient(circle at 48% 42%, #6b7682 0%, #353d49 45%, #161b24 100%)">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9aa3ad;font-size:8px;letter-spacing:.1em">12 WEEKS</div></div>
+      <div style="margin-top:8px">${tlines(1,60)}</div>`;
+    case 'bumpA': return `<div class="lbl">The Bump Grows</div><div class="ttl" style="font-size:13px">__TITLE__</div>
+      <div style="display:flex;gap:6px;margin-top:9px">
+        ${bumpPhoto('gB','Wk 14','🍋','lemon')}
+        ${bumpPhoto('gA','Wk 22','🍌','banana')}</div>
+      <div style="margin-top:8px">${tlines(2,82)}</div>`;
+    case 'bumpB': return `<div class="lbl">The Bump Grows</div><div class="ttl" style="font-size:13px">__TITLE__</div>
+      <div style="display:flex;gap:6px;margin-top:9px">
+        ${bumpPhoto('gC','Wk 30','🌽','corn')}
+        ${bumpPhoto('gE','Wk 38','🍉','melon')}</div>
+      <div style="margin-top:8px">${tlines(2,82)}</div>`;
+    case 'nursery': return `<div class="lbl">Getting Ready</div><div class="ttl" style="font-size:13px">Getting Ready for You</div>
+      <div class="ph gC" style="width:100%;height:94px;margin-top:10px"></div>
+      <div style="margin-top:8px">${tlines(2,80)}</div>`;
+    case 'birth': return `<div class="lbl">The Moment Our World Changed</div><div class="ttl" style="font-size:12px">The Day We Met You</div>
+      <div class="pillg" style="width:62px;height:62px;margin:8px auto 0"><div class="ph gA" style="width:100%;height:100%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin:8px 4px 0">
+        ${[['Weight','7.5lb'],['Length','20"'],['Head','13.8"'],['Time','7:42']].map(s=>`<div class="statbox"><div class="k">${s[0]}</div><div class="v">${s[1]}</div></div>`).join('')}
+      </div>
+      <div class="note" style="margin:8px 2px 0;padding:6px">${tlines(3,86)}</div>`;
+    case 'photocap': return `<div class="ph gB" style="width:100%;height:120px"></div>
+      <div style="margin-top:8px">${tlines(2,80)}</div>
+      <div class="script" style="text-align:center;font-size:11px;margin-top:8px">a caption…</div>`;
+    case 'gallery': return `<div class="lbl">More Moments</div><div class="ttl" style="font-size:11px">A few snapshots</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px">
+        <div class="ph gA" style="height:48px"></div><div class="ph gB" style="height:48px"></div>
+        <div class="ph gC" style="height:48px"></div><div class="ph gD" style="height:48px"></div></div>`;
+    case 'people': return `<div class="lbl">Your People</div><div class="ttl" style="font-size:11px">The people who love you</div>
+      <div class="divx"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:6px">
+        <div style="text-align:center"><div class="av" style="width:42px;height:42px;margin:0 auto"></div><div class="tl" style="width:36px;margin-top:6px"></div><div class="tl" style="width:24px;margin:3px auto 0"></div></div>
+        <div style="text-align:center"><div class="av" style="width:42px;height:42px;margin:0 auto;background:linear-gradient(135deg,#f5b6d6,#f0a0c4)"></div><div class="tl" style="width:36px;margin-top:6px"></div><div class="tl" style="width:24px;margin:3px auto 0"></div></div>
+      </div>`;
+    case 'tree': return `<div class="lbl">Your Family Tree</div><div class="ttl" style="font-size:11px">Where you come from</div>
+      <svg width="100%" height="120" viewBox="0 0 134 120" style="margin-top:6px">
+        <line x1="34" y1="26" x2="100" y2="26" stroke="#cbb89a"/><line x1="67" y1="26" x2="67" y2="50" stroke="#cbb89a"/>
+        <line x1="34" y1="62" x2="100" y2="62" stroke="#cbb89a"/><line x1="67" y1="62" x2="67" y2="86" stroke="#cbb89a"/>
+        <rect x="16" y="14" width="36" height="20" rx="5" fill="#cdbef0"/><rect x="82" y="14" width="36" height="20" rx="5" fill="#f3c6da"/>
+        <rect x="22" y="52" width="30" height="18" rx="5" fill="#bcd0ea"/><rect x="82" y="52" width="30" height="18" rx="5" fill="#cfe0c0"/>
+        <circle cx="67" cy="98" r="13" fill="#e6d3a8"/></svg>`;
+    case 'hero': return `<div class="lbl">A First We'll Never Forget</div><div class="ttl" style="font-size:12px">First Steps</div>
+      <div class="script" style="text-align:center;font-size:9px;color:var(--ink-soft)">choose which first ▾</div>
+      <div class="pillg" style="width:72px;height:72px;margin:7px auto 0;transform:rotate(1.5deg)"><div class="ph gC" style="width:100%;height:100%"></div></div>
+      <div class="note" style="margin:9px 4px 0;padding:6px">${tlines(2,84)}</div>`;
+    case 'growth': return `<div class="lbl">Watch Me Grow</div><div class="ttl" style="font-size:13px">__TITLE__</div>
+      <div style="display:flex;gap:5px;margin-top:9px">
+        <div class="ph gA" style="flex:1;height:70px"></div><div class="ph gB" style="flex:1;height:70px"></div><div class="ph gC" style="flex:1;height:70px"></div></div>
+      <div style="margin-top:8px">${tlines(2,82)}</div>`;
+    case 'milestones': return `<div class="lbl">How You Grew</div><div class="ttl" style="font-size:12px">Your Milestones</div>
+      <div style="margin-top:10px">${['Rolled over','Sat up','First word','Crawled','First steps'].map(()=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:#cfe0c0;flex:0 0 auto"></div><div class="tl" style="width:78%;margin:0"></div></div>`).join('')}</div>`;
+    case 'prompts': return `<div class="lbl">All About You</div><div class="ttl" style="font-size:12px">At One Year Old</div>
+      <div style="margin-top:9px">${['Nickname','Favourite food','Loves','Makes you laugh','Best friend'].map(k=>`<div style="margin-bottom:6px"><div style="font-size:6px;letter-spacing:.1em;color:var(--ink-soft);text-transform:uppercase">${k}</div><div class="tl" style="width:84%;margin:2px 0 0"></div></div>`).join('')}</div>`;
+    case 'handfoot': return `<div class="lbl">So Small</div><div class="ttl" style="font-size:12px">Your Hands &amp; Feet</div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:14px">
+        <div style="font-size:46px;line-height:1">✋</div><div style="font-size:46px;line-height:1">👣</div></div>
+      <div style="margin-top:14px">${tlines(1,60)}</div>`;
+    case 'birthday': return `<div class="lbl">One Whole Year</div><div class="ttl" style="font-size:13px">Happy 1st Birthday</div>
+      <div class="ph gD" style="width:100%;height:96px;margin-top:9px;position:relative">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:46px;color:#fff;opacity:.85">1</div></div>
+      <div style="margin-top:8px">${tlines(1,70)}</div>`;
+    case 'letter': return `<div class="lbl">One Year of You</div><div class="ttl" style="font-size:14px">Dear Emma…</div>
+      <div class="divx"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+      <div style="margin-top:4px">${tlines(7,84)}</div>
+      <div class="script" style="text-align:right;font-size:11px;margin-top:8px;padding-right:6px">Mum &amp; Dad</div>`;
+    case 'closing': return `<div class="ctr"><div class="divx"><span class="l"></span><span class="h">♥</span><span class="l"></span></div>
+      <div class="ttl" style="font-size:14px">Your story is<br>only beginning…</div>
+      <div style="margin-top:10px;width:80%">${tlines(2,100)}</div></div>`;
+    default: return '';
+  }
+}
+
+const grid = document.getElementById('grid');
+P.forEach(p => {
+  if (p.sec) { grid.insertAdjacentHTML('beforeend', `<div class="sec-row"><span>${p.sec}</span><div class="ln"></div></div>`); return; }
+  const cls = p.cover ? 'cover' : p.back ? 'back' : '';
+  const inner = art(p.type).replace('__TITLE__', p.t);
+  const num = p.cover ? 'Cover' : p.back ? 'Back' : `Page ${p.n}`;
+  grid.insertAdjacentHTML('beforeend',
+    `<div class="cell">
+       <div class="mc ${cls}">${inner}</div>
+       <div class="pnum">${num}</div>
+       <div class="pttl">${p.t}</div>
+       <div class="badge b-${p.b}">${p.b}</div>
+     </div>`);
+});
+</script>
+</body>
+</html>

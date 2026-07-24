@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S7 — Guided Book, in-app (real Storybook tab)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* tokens from index.css + the live Coral screenshot */
+  :root {
+    --fg:#232150;             /* navy text */
+    --indigo:#6467F2;
+    --pink:#D11F69;           /* color-highlight / brand pink */
+    --muted:#6f6e92;
+    --border:#e7e7f0;
+    --success:#2C9664;
+    --page:#fcfcff;
+    --pillpink-bg:#fde4ee; --pillpink-tx:#c01e63;
+    /* Coral book theme (selected in the screenshot) */
+    --book-bg:#fdeef0; --book-hero:#e9e7fb; --book-accent:#e08aa0; --book-ink:#2a2540; --book-soft:#a87f8c; --book-gold:#C2A36B; --book-line:#f0d9de;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#eef0f6; color:var(--fg); font-family:'Inter',system-ui,sans-serif; padding:26px 18px 80px; }
+  .mockhead { max-width:1180px; margin:0 auto 18px; }
+  a.back { color:var(--pink); text-decoration:none; font-size:13px; font-weight:700; }
+  .mockhead h1 { font-family:'Poppins',sans-serif; font-size:24px; font-weight:700; margin:8px 0 3px; }
+  .mockhead p { color:var(--muted); font-size:14px; margin:0; max-width:900px; }
+
+  /* browser window */
+  .win { max-width:1180px; margin:0 auto; background:var(--page); border:1px solid var(--border); border-radius:14px; box-shadow:0 24px 60px rgba(35,33,80,.16); overflow:hidden; }
+
+  /* verify banner */
+  .verify { background:#fdf6dd; border-bottom:1px solid #f1e6b8; font-size:12.5px; color:#7a6a25; padding:8px 28px; display:flex; align-items:center; justify-content:center; gap:8px; position:relative; }
+  .verify a { color:#7a6a25; font-weight:700; text-decoration:underline; position:absolute; right:28px; }
+
+  /* app header */
+  .hdr { display:flex; align-items:center; padding:16px 28px 4px; }
+  .hdr .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,#7b6cf0,#9a7af5); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; margin-right:10px; }
+  .hdr .brand { font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; }
+  .hdr .brand .hq { color:var(--indigo); }
+  .hdr .brand small { display:block; font-family:'Inter'; font-weight:400; font-size:10.5px; color:var(--muted); letter-spacing:.01em; margin-top:1px; }
+  .hdr .signout { margin-left:auto; border:1px solid var(--border); border-radius:8px; background:#fff; font-size:12.5px; font-weight:600; padding:7px 14px; color:var(--fg); }
+
+  /* top tabs */
+  .tabs { display:flex; justify-content:center; gap:42px; padding:10px 0 12px; border-bottom:1px solid #ececf4; }
+  .tabs a { font-size:14px; font-weight:500; color:var(--muted); text-decoration:none; padding:6px 14px; border-radius:9px; }
+  .tabs a.on { color:var(--fg); font-weight:600; border:1px solid var(--border); background:#fff; box-shadow:0 1px 2px rgba(35,33,80,.05); }
+
+  /* content column */
+  .content { max-width:900px; margin:0 auto; padding:20px 24px 30px; }
+
+  /* sub-pills */
+  .pills { display:flex; gap:10px; margin-bottom:18px; }
+  .pills .p { font-size:13px; font-weight:600; color:var(--muted); background:transparent; border-radius:100px; padding:6px 16px; cursor:pointer; }
+  .pills .p.on { background:var(--pillpink-bg); color:var(--pillpink-tx); }
+
+  /* book cover (Coral) */
+  .cover { border:1px solid #efd9de; border-radius:14px; overflow:hidden; max-width:380px; margin:0 auto 18px; box-shadow:0 1px 3px rgba(0,0,0,.06); background:var(--book-bg); }
+  .cover .hero { aspect-ratio:4/3; background:var(--book-hero); display:flex; align-items:center; justify-content:center; position:relative; }
+  .cover .hero .mark { font-family:'Poppins',sans-serif; font-weight:700; font-size:30px; color:#2a2a5a; display:flex; align-items:center; gap:6px; }
+  .cover .hero .mark .hq { color:var(--indigo); }
+  .cover .hero .chg { position:absolute; bottom:10px; right:10px; background:rgba(255,255,255,.85); border-radius:100px; font-size:11px; font-weight:600; padding:4px 11px; display:flex; gap:5px; align-items:center; }
+  .cover .meta { padding:18px 22px 20px; text-align:center; }
+  .cover .div { display:flex; align-items:center; gap:9px; justify-content:center; margin-bottom:9px; }
+  .cover .div .l { height:1px; flex:1; background:var(--book-accent); opacity:.3; } .cover .div .d { color:var(--book-accent); opacity:.55; font-size:11px; }
+  .cover h2 { font-family:'Playfair Display',serif; font-weight:700; font-size:24px; color:var(--book-ink); margin:0 0 6px; }
+  .cover .sub { font-size:12.5px; color:var(--book-soft); }
+
+  /* theme row */
+  .themerow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:22px; }
+  .themerow .lab { font-size:13px; color:var(--muted); font-weight:500; }
+  .sw { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .sw .chip { width:46px; height:36px; border-radius:9px; overflow:hidden; border:2px solid transparent; }
+  .sw.on .chip { border-color:var(--pink); transform:scale(1.05); box-shadow:0 3px 8px rgba(0,0,0,.12); }
+  .sw .chip .a { height:28px; } .sw .chip .b { height:8px; }
+  .sw .nm { font-size:10px; color:var(--muted); }
+  .dl { margin-left:auto; border:1px solid var(--border); border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:var(--fg); padding:8px 14px; display:inline-flex; gap:7px; align-items:center; }
+
+  /* ---- NEW: guided / freeform mode toggle ---- */
+  .seg { display:flex; background:#f0f0f8; border-radius:12px; padding:5px; margin-bottom:18px; max-width:420px; }
+  .seg button { flex:1; border:none; background:transparent; font-family:'Inter'; font-weight:600; font-size:13.5px; color:var(--muted); padding:10px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .seg button.on { background:#fff; color:var(--fg); box-shadow:0 1px 3px rgba(35,33,80,.14); }
+  .seg .rec { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#fff; background:var(--pink); border-radius:100px; padding:2px 7px; }
+
+  /* ---- guided progress header (styled like the Period-Chapter card) ---- */
+  .ghead { border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin-bottom:18px; background:linear-gradient(180deg,#fff,#fcfbff); }
+  .ghead .top { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .ghead .bk { font-size:30px; }
+  .ghead .ttl { font-family:'Poppins',sans-serif; font-weight:600; font-size:19px; }
+  .ghead .ttl small { display:block; font-family:'Inter'; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .ghead .cont { margin-left:auto; background:var(--pink); color:#fff; border:none; border-radius:9px; font-weight:600; font-size:13px; padding:10px 16px; cursor:pointer; }
+  .prog { height:10px; border-radius:100px; background:#ececf6; overflow:hidden; }
+  .prog > i { display:block; height:100%; width:36%; background:linear-gradient(90deg,var(--indigo),var(--pink)); border-radius:100px; }
+  .ghead .cnt { font-size:12.5px; color:var(--muted); margin-top:9px; } .ghead .cnt b{ color:var(--fg); }
+
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:0 2px 14px; }
+  .legend b { display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+  .ld { width:10px; height:10px; border-radius:3px; } .la{background:var(--book-gold);} .lf{background:var(--pink);} .lp{background:var(--indigo);}
+
+  .sec { display:flex; align-items:center; gap:11px; margin:18px 2px 10px; }
+  .sec span { font-family:'Poppins',sans-serif; font-weight:600; font-size:12.5px; color:var(--book-soft); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+  .sec .l { flex:1; height:1px; background:var(--border); }
+
+  /* page rows (full-width cards) */
+  .prow { display:flex; align-items:center; gap:15px; padding:13px 16px; border:1px solid var(--border); border-radius:13px; margin-bottom:10px; background:#fff; }
+  .prow.next { border-color:rgba(209,31,105,.45); box-shadow:0 5px 18px rgba(209,31,105,.10); }
+  .prow.soft { opacity:.5; }
+  .thumb { width:44px; height:58px; border-radius:6px; background:var(--book-bg); border:1px solid var(--book-line); flex:0 0 auto; overflow:hidden; position:relative; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .pmeta { flex:1; min-width:0; }
+  .pmeta .pt { font-size:14.5px; font-weight:600; color:var(--fg); }
+  .pmeta .pp { font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .kb { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:3px 8px; border-radius:100px; flex:0 0 auto; }
+  .kb.a{ background:rgba(194,163,107,.16); color:#9a7b3a;} .kb.f{ background:rgba(209,31,105,.12); color:var(--pink);} .kb.p{ background:rgba(100,103,242,.14); color:#4b4ed0;}
+  .st { flex:0 0 auto; text-align:right; min-width:110px; }
+  .st .b { border:none; border-radius:8px; font-weight:700; font-size:12.5px; padding:7px 13px; cursor:pointer; }
+  .st .fill { background:var(--pink); color:#fff; } .st .pick { background:#ececff; color:#4b4ed0; }
+  .st .done { color:var(--success); font-weight:700; font-size:13px; }
+  .st .mut { color:var(--muted); font-size:12px; font-weight:600; }
+  .lockline { text-align:center; font-size:12px; color:var(--muted); padding:14px 0 2px; }
+
+  .av { border-radius:50%; background:linear-gradient(135deg,#C9B6F5,#A0C4F0); }
+  .gA{background:linear-gradient(135deg,#f5c6d0,#d9b8a0);} .gB{background:linear-gradient(135deg,#b9c9d2,#cdd6cf);}
+  .gC{background:linear-gradient(135deg,#cfe0c0,#a8c89a);} .gD{background:linear-gradient(135deg,#e6d3a8,#d8b58a);}
+
+  .callout { background:#fdf6dd; border:1px solid #f1e6b8; border-radius:13px; padding:15px 20px; font-size:13px; color:#7a6a25; margin:26px auto 0; max-width:1180px; line-height:1.55; }
+  .callout b{ color:#5e5210; } .callout code{ background:#fff; border:1px solid #f1e6b8; border-radius:4px; padding:1px 5px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="mockhead">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S7 — Guided Book, inside the real Storybook tab</h1>
+  <p>Drawn to match the live app: Memories → <b>Book</b> sub-tab, the Coral cover, theme swatches, top tabs
+     &amp; fonts. The only additions are the <b>Guided ⇄ Freeform toggle</b> and, when Guided is on, the
+     <b>progress + locked page-sequence</b> below the cover (replacing the chapter list). Freeform = today's view.</p>
+</div>
+
+<div class="win">
+  <div class="verify">Please verify your email address — check your inbox for a link. <a href="#">Resend</a></div>
+
+  <div class="hdr">
+    <div class="logo">🌱</div>
+    <div class="brand">Cradle<span class="hq">HQ</span><small>Milestone tracker · Journal · Growth · Feeding · Sleep · Diaper</small></div>
+    <button class="signout">Sign Out</button>
+  </div>
+
+  <div class="tabs">
+    <a href="#">Dashboard</a>
+    <a href="#" class="on">Memories</a>
+    <a href="#">Track</a>
+    <a href="#">Health</a>
+    <a href="#">Discover</a>
+  </div>
+
+  <div class="content">
+    <div class="pills">
+      <span class="p">Journal</span>
+      <span class="p">Firsts</span>
+      <span class="p on">Book</span>
+    </div>
+
+    <!-- real cover (Coral) -->
+    <div class="cover">
+      <div class="hero"><div class="mark">Cradle<span class="hq">HQ</span></div><span class="chg">📷 Change</span></div>
+      <div class="meta">
+        <div class="div"><span class="l"></span><span class="d">♡</span><span class="l"></span></div>
+        <h2>Lily's Memory Book</h2>
+        <div class="sub">A memory book · Born November 2, 2025</div>
+      </div>
+    </div>
+
+    <!-- theme row -->
+    <div class="themerow">
+      <span class="lab">Book theme:</span>
+      <div class="sw"><div class="chip"><div class="a" style="background:#f6efe0"></div><div class="b" style="background:#c9a96e"></div></div><div class="nm">Classic</div></div>
+      <div class="sw on"><div class="chip"><div class="a" style="background:#fdeef0"></div><div class="b" style="background:#e08aa0"></div></div><div class="nm">Coral</div></div>
+      <div class="sw"><div class="chip"><div class="a" style="background:#2a2a4a"></div><div class="b" style="background:#7a7ad0"></div></div><div class="nm">Midnight</div></div>
+      <div class="sw"><div class="chip"><div class="a" style="background:#eef4ee"></div><div class="b" style="background:#6fae7c"></div></div><div class="nm">Meadow</div></div>
+      <button class="dl">⬇ Download PDF</button>
+    </div>
+
+    <!-- ===== NEW: mode toggle ===== -->
+    <div class="seg">
+      <button class="on">📘 Guided book <span class="rec">Rec</span></button>
+      <button>🧩 Freeform</button>
+    </div>
+
+    <!-- ===== guided progress header ===== -->
+    <div class="ghead">
+      <div class="top">
+        <span class="bk">📘</span>
+        <div class="ttl">Lily's First Year<small>A guided fill-in book · pages are pre-set, you fill them in</small></div>
+        <button class="cont">Continue ▾</button>
+      </div>
+      <div class="prog"><i></i></div>
+      <div class="cnt"><b>9</b> of 25 pages ready · <b>6</b> filled automatically from your data</div>
+    </div>
+
+    <div class="legend">
+      <b><span class="ld la"></span> auto — fills from your data</b>
+      <b><span class="ld lf"></span> fill — you drag photos / type</b>
+      <b><span class="ld lp"></span> pick — you choose which First</b>
+    </div>
+
+    <!-- Opening -->
+    <div class="sec"><span>Opening</span><div class="l"></div></div>
+    <div class="prow">
+      <div class="thumb"><div style="position:absolute;inset:5px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:5.5px;letter-spacing:.12em;color:var(--book-gold)">LETTER</div><div style="font-family:'Playfair Display',serif;font-size:8px;margin-top:3px">Dear Lily</div></div></div>
+      <div class="pmeta"><div class="pt">A Letter to You</div><div class="pp">Write a few words to your baby</div></div>
+      <span class="kb f">fill</span>
+      <div class="st"><span class="done">✓ Done</span></div>
+    </div>
+
+    <!-- The Beginning -->
+    <div class="sec"><span>The Beginning</span><div class="l"></div></div>
+    <div class="prow">
+      <div class="thumb"><div style="position:absolute;inset:5px;display:flex;flex-direction:column;align-items:center"><div class="av" style="width:20px;height:20px;margin-top:3px"></div><div style="font-size:5.5px;color:var(--book-soft);margin-top:4px">7.5lb · 20"</div></div></div>
+      <div class="pmeta"><div class="pt">The Day We Met You</div><div class="pp">Birth stats — pulled from your profile</div></div>
+      <span class="kb a">auto</span>
+      <div class="st"><span class="done">✓ Filled</span></div>
+    </div>
+    <div class="prow next">
+      <div class="thumb"><div style="position:absolute;inset:5px;display:grid;grid-template-columns:1fr 1fr;gap:3px"><div class="gA" style="border-radius:2px"></div><div class="gB" style="border-radius:2px"></div><div class="gC" style="border-radius:2px"></div><div class="gD" style="border-radius:2px"></div></div></div>
+      <div class="pmeta"><div class="pt">Welcome to the World</div><div class="pp">Add a few hospital photos · <b style="color:var(--pink)">up next</b></div></div>
+      <span class="kb f">fill</span>
+      <div class="st"><button class="b fill">Add photos →</button></div>
+    </div>
+    <div class="prow">
+      <div class="thumb"><div class="gB" style="position:absolute;inset:5px;border-radius:3px"></div></div>
+      <div class="pmeta"><div class="pt">Coming Home</div><div class="pp">One photo + a caption</div></div>
+      <span class="kb f">fill</span>
+      <div class="st"><button class="b fill">Add yours →</button></div>
+    </div>
+
+    <!-- Your People -->
+    <div class="sec"><span>Your People</span><div class="l"></div></div>
+    <div class="prow">
+      <div class="thumb"><svg width="100%" height="100%" viewBox="0 0 44 58"><circle cx="14" cy="18" r="7" fill="#cdbef0"/><circle cx="30" cy="18" r="7" fill="#f3c6da"/><line x1="14" y1="25" x2="14" y2="38" stroke="#cbb89a"/><line x1="30" y1="25" x2="30" y2="38" stroke="#cbb89a"/><circle cx="22" cy="45" r="8" fill="#e6d3a8"/></svg></div>
+      <div class="pmeta"><div class="pt">Your Family Tree</div><div class="pp">Built automatically from "Your People"</div></div>
+      <span class="kb a">auto</span>
+      <div class="st"><span class="mut">Edit people ›</span></div>
+    </div>
+
+    <!-- Firsts -->
+    <div class="sec"><span>Firsts — you choose the moments</span><div class="l"></div></div>
+    <div class="prow">
+      <div class="thumb"><div class="gC" style="position:absolute;inset:11px 9px;border-radius:4px;transform:rotate(3deg)"></div></div>
+      <div class="pmeta"><div class="pt">A First We'll Never Forget</div><div class="pp">Pick which First to feature here</div></div>
+      <span class="kb p">pick</span>
+      <div class="st"><button class="b pick">Choose ▾</button></div>
+    </div>
+    <div class="prow soft">
+      <div class="thumb"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#c9b9a0;font-size:18px">＋</div></div>
+      <div class="pmeta"><div class="pt">A First We'll Never Forget</div><div class="pp">Pick which First to feature here</div></div>
+      <span class="kb p">pick</span>
+      <div class="st"><span class="mut">Not yet</span></div>
+    </div>
+
+    <div class="lockline">🔒 Pages are pre-set in v1 — fill them in any order. Tapping a page opens the existing builder.</div>
+  </div>
+</div>
+
+<div class="callout">
+  <b>Same tab, same chrome:</b> Memories → Book, real cover + theme swatches + Download PDF.
+  <b>New for s7:</b> the <b>Guided ⇄ Freeform toggle</b>, a <code>guidedBookArc.js</code> locked page list, and the
+  <b>progress + page-sequence view</b> that routes a tapped <b>fill</b>/<b>pick</b> page into the existing
+  ScrapbookBuilder. Toggle to <b>Freeform</b> and you get today's chapter list + "Write a Period Chapter" card, unchanged.
+</div>
+</body>
+</html>

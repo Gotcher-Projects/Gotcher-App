@@ -7,7 +7,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Map;
 
 @RestController
@@ -25,14 +24,11 @@ public class UploadController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "context", defaultValue = "misc") String context) {
-        if (file.isEmpty()) {
-            return ApiError.badRequest("No file provided");
+        String validationError = ImageUploadService.imageValidationError(file);
+        if (validationError != null) {
+            return ApiError.badRequest(validationError);
         }
-        String folder = switch (context) {
-            case "journal"     -> "journal";
-            case "marketplace" -> "marketplace";
-            default            -> "misc";
-        };
+        String folder = UploadFolder.fromContext(context).folderName();
         try {
             String url = imageUploadService.upload(file, folder, principal.userId());
             return ResponseEntity.ok(Map.of("url", url));

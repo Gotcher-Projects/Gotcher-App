@@ -58,20 +58,6 @@ echo "  GotcherApp — Starting Services"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# ── Port conflict check ────────────────────────────────────────────────────
-if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^taverntales-"; then
-  echo "  [ERROR] TavernTales containers are running and own ports 5432/5050/3000."
-  echo "          GotcherApp's postgres will start without a port binding and all"
-  echo "          DB connections will hit the wrong database."
-  echo ""
-  echo "  Stop TavernTales first:"
-  echo "    docker stop taverntales-postgres taverntales-pgadmin"
-  echo ""
-  echo "  Then re-run this script."
-  exit 1
-fi
-# ──────────────────────────────────────────────────────────────────────────
-
 # ── Docker ─────────────────────────────────────────────────────────────────
 DOCKER_DESKTOP="/c/Program Files/Docker/Docker/Docker Desktop.exe"
 
@@ -101,6 +87,14 @@ else
   echo "  Docker already running."
 fi
 
+# ── Port conflict check (after Docker is ready — it may restore old sessions) ─
+TAVERNTALES=$(docker ps --format '{{.Names}}' 2>/dev/null | grep "^taverntales-" || true)
+if [ -n "$TAVERNTALES" ]; then
+  echo "  [WARN] TavernTales containers are running — stopping them to free ports 5432/5050..."
+  docker stop $TAVERNTALES > /dev/null 2>&1 && echo "  Stopped: $TAVERNTALES" || true
+fi
+# ──────────────────────────────────────────────────────────────────────────
+
 echo "  Starting postgres + pgadmin via docker compose..."
 docker compose -f "$ROOT_DIR/Backend/docker-compose.yml" up -d
 echo ""
@@ -122,6 +116,9 @@ fi
 # ── Services ───────────────────────────────────────────────────────────────
 start_service "api"      "$ROOT_DIR/Backend"   "set -a && [ -f .env ] && source .env; set +a && ./gradlew bootRun"  "http://localhost:3001"
 start_service "frontend" "$ROOT_DIR/Frontend"  "npm run dev"        "http://localhost:3000"
+# Print PDF sidecar (pr1) — runs natively in dev so localhost resolves for the sidecar→frontend→API chain.
+# Installs deps on first run; needs Chromium, which Puppeteer downloads during npm install. Containerized in prod.
+start_service "pdf-sidecar" "$ROOT_DIR/pdf-sidecar" "[ -d node_modules ] || npm install; npm start" "http://localhost:4000"
 # Future services — uncomment as they are built:
 # start_service "worker"   "$ROOT_DIR/Worker"    "npm run dev"  ""
 # ──────────────────────────────────────────────────────────────────────────

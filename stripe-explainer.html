@@ -1,0 +1,565 @@
+<title>Stripe Explainer — CradleHQ</title>
+<style>
+  /* ============ Tokens ============ */
+  :root {
+    --bg: #f5f6fb;
+    --surface: #ffffff;
+    --surface-2: #f0f1f9;
+    --ink: #1a1c2e;
+    --ink-soft: #454a68;
+    --muted: #767c98;
+    --border: #e4e6f2;
+    --border-strong: #d3d6e8;
+    --accent: #635bff;         /* Stripe indigo */
+    --accent-ink: #4b45d0;
+    --accent-soft: #eeecff;
+    /* role colors — consistent across both explainers */
+    --owner: #9a5b00;          /* what Michael sets up */
+    --owner-soft: #fdf1dd;
+    --owner-border: #f0d9ac;
+    --dev: #1f5fa8;            /* what the code does */
+    --dev-soft: #e6f0fb;
+    --dev-border: #c3ddf3;
+    --good: #1f7a4d;
+    --warn-soft: #fdeede;
+    --warn-border: #f2cf9e;
+    --warn-ink: #8a4b12;
+    /* code surface — dark in both themes */
+    --code-bg: #14161f;
+    --code-ink: #e6e8f2;
+    --code-border: #262a3a;
+    --shadow: 0 1px 2px rgba(20,22,40,.04), 0 8px 24px -12px rgba(20,22,40,.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e0f16;
+      --surface: #171824;
+      --surface-2: #1d1f30;
+      --ink: #e8e9f4;
+      --ink-soft: #bcbfd6;
+      --muted: #868aa6;
+      --border: #262838;
+      --border-strong: #333650;
+      --accent: #837cff;
+      --accent-ink: #a49dff;
+      --accent-soft: #1e1c3a;
+      --owner: #e8b45f;
+      --owner-soft: #2a2011;
+      --owner-border: #4a3a1a;
+      --dev: #74b0ee;
+      --dev-soft: #122334;
+      --dev-border: #244660;
+      --good: #58c98d;
+      --warn-soft: #2c2113;
+      --warn-border: #4a3a1a;
+      --warn-ink: #e8b45f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fb; --surface: #ffffff; --surface-2: #f0f1f9;
+    --ink: #1a1c2e; --ink-soft: #454a68; --muted: #767c98;
+    --border: #e4e6f2; --border-strong: #d3d6e8;
+    --accent: #635bff; --accent-ink: #4b45d0; --accent-soft: #eeecff;
+    --owner: #9a5b00; --owner-soft: #fdf1dd; --owner-border: #f0d9ac;
+    --dev: #1f5fa8; --dev-soft: #e6f0fb; --dev-border: #c3ddf3;
+    --good: #1f7a4d; --warn-soft: #fdeede; --warn-border: #f2cf9e; --warn-ink: #8a4b12;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e0f16; --surface: #171824; --surface-2: #1d1f30;
+    --ink: #e8e9f4; --ink-soft: #bcbfd6; --muted: #868aa6;
+    --border: #262838; --border-strong: #333650;
+    --accent: #837cff; --accent-ink: #a49dff; --accent-soft: #1e1c3a;
+    --owner: #e8b45f; --owner-soft: #2a2011; --owner-border: #4a3a1a;
+    --dev: #74b0ee; --dev-soft: #122334; --dev-border: #244660;
+    --good: #58c98d; --warn-soft: #2c2113; --warn-border: #4a3a1a; --warn-ink: #e8b45f;
+  }
+
+  /* ============ Base ============ */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-ink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ============ Layout ============ */
+  .wrap { display: flex; align-items: flex-start; }
+  .toc {
+    position: sticky; top: 0;
+    width: 256px; flex: none;
+    height: 100vh; overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 26px 0;
+  }
+  .toc-brand {
+    padding: 0 22px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .toc-brand b {
+    display: block; color: var(--ink);
+    font-size: 13px; font-weight: 800;
+    letter-spacing: .09em; text-transform: uppercase;
+  }
+  .toc-brand span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; letter-spacing: .02em; }
+  .toc nav a {
+    display: block; padding: 6px 22px;
+    font-size: 13px; color: var(--muted);
+    border-left: 2px solid transparent;
+  }
+  .toc nav a:hover { color: var(--ink); background: var(--surface-2); text-decoration: none; }
+  .toc .grp { padding: 15px 22px 5px; font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--accent-ink); }
+
+  .main { flex: 1 1 auto; min-width: 0; padding: 0 0 96px; }
+  .col { max-width: 820px; margin: 0 auto; padding: 0 40px; }
+
+  /* ============ Hero ============ */
+  .hero {
+    background:
+      radial-gradient(120% 140% at 100% 0%, var(--accent-soft) 0%, transparent 55%),
+      var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 46px 0 34px;
+    margin-bottom: 40px;
+  }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--accent-ink); text-transform: uppercase; }
+  .hero h1 { color: var(--ink); font-size: 34px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; margin: 14px 0 10px; text-wrap: balance; }
+  .hero p { font-size: 16px; max-width: 60ch; margin: 0; }
+  .flowline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .flowline .chip { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .flowline .arr { color: var(--muted); align-self: center; font-size: 13px; }
+
+  /* ============ Typography ============ */
+  h2 { color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.01em; margin: 52px 0 6px; scroll-margin-top: 24px; }
+  h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 10px; font-weight: 800; }
+  h2 + .lede { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
+  h3 { color: var(--ink); font-size: 16px; font-weight: 700; margin: 30px 0 8px; }
+  p { margin: 0 0 14px; }
+  .col ul, .col ol { margin: 0 0 14px; padding-left: 22px; }
+  .col li { margin-bottom: 7px; }
+  strong { color: var(--ink); font-weight: 700; }
+  code { font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace; font-size: .875em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--accent-ink); white-space: nowrap; }
+  hr { border: 0; border-top: 1px solid var(--border); margin: 44px 0; }
+
+  /* ============ Role blocks ============ */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0; }
+  .role { border-radius: 14px; padding: 18px 20px; border: 1px solid; }
+  .role h4 { margin: 0 0 4px; font-size: 12px; letter-spacing: .07em; text-transform: uppercase; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+  .role p { font-size: 13.5px; margin: 0; color: var(--ink-soft); }
+  .role.owner { background: var(--owner-soft); border-color: var(--owner-border); }
+  .role.owner h4 { color: var(--owner); }
+  .role.dev { background: var(--dev-soft); border-color: var(--dev-border); }
+  .role.dev h4 { color: var(--dev); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .role.owner .dot { background: var(--owner); }
+  .role.dev .dot { background: var(--dev); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 9px; border-radius: 6px; border: 1px solid; vertical-align: middle; }
+  .tag.owner { color: var(--owner); background: var(--owner-soft); border-color: var(--owner-border); }
+  .tag.dev { color: var(--dev); background: var(--dev-soft); border-color: var(--dev-border); }
+
+  /* ============ Cards / callouts ============ */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px 22px; box-shadow: var(--shadow); margin: 18px 0; }
+  .note { border-left: 3px solid var(--accent); background: var(--surface); border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px; padding: 14px 18px; margin: 18px 0; font-size: 14px; }
+  .note.gotcha { border-left-color: var(--warn-ink); background: var(--warn-soft); border-color: var(--warn-border); }
+  .note.gotcha strong { color: var(--warn-ink); }
+  .note .lbl { display: block; font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--accent-ink); margin-bottom: 4px; }
+  .note.gotcha .lbl { color: var(--warn-ink); }
+
+  /* ============ Steps ============ */
+  ol.steps { list-style: none; padding: 0; margin: 16px 0; counter-reset: s; }
+  ol.steps > li { position: relative; padding: 3px 0 14px 42px; margin: 0; counter-increment: s; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  ol.steps > li:not(:last-child)::after { content: ""; position: absolute; left: 13px; top: 30px; bottom: 2px; width: 1px; background: var(--border-strong); }
+
+  /* ============ Tables ============ */
+  .tbl-scroll { overflow-x: auto; margin: 18px 0; border: 1px solid var(--border); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); color: var(--ink); font-weight: 700; font-size: 12px; letter-spacing: .02em; }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+
+  /* ============ Code ============ */
+  .code { position: relative; background: var(--code-bg); border: 1px solid var(--code-border); border-radius: 12px; margin: 16px 0; overflow: hidden; }
+  .code-h { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--code-border); }
+  .code-h .lang { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8f95b5; }
+  .code-h .file { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: #6a7093; }
+  .code pre { margin: 0; padding: 15px 16px; overflow-x: auto; }
+  .code code { font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 12.75px; line-height: 1.6; background: none; border: 0; padding: 0; color: var(--code-ink); white-space: pre; }
+  .k { color: #c792ea; } .s { color: #c3e88d; } .c { color: #626a86; font-style: italic; } .f { color: #82aaff; } .t { color: #ffcb6b; } .n { color: #f78c6c; } .a { color: #f07178; }
+
+  /* ============ Glossary ============ */
+  dl.gloss { margin: 16px 0; }
+  dl.gloss dt { color: var(--ink); font-weight: 700; font-size: 14.5px; margin-top: 14px; }
+  dl.gloss dd { margin: 3px 0 0; font-size: 14px; }
+
+  /* ============ Refs ============ */
+  .refs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin: 16px 0; }
+  .refs a { display: block; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .refs a span { display: block; font-size: 12px; color: var(--muted); }
+
+  footer { max-width: 820px; margin: 40px auto 0; padding: 22px 40px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+
+  @media (max-width: 940px) {
+    .toc { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 18px 0; }
+    .toc nav { columns: 2; padding: 0 8px; }
+    .wrap { display: block; }
+    .split, .refs { grid-template-columns: 1fr; }
+    .col { padding: 0 22px; }
+    .hero { padding: 32px 0 26px; }
+    .hero h1 { font-size: 27px; }
+  }
+</style>
+
+<div class="wrap">
+  <aside class="toc">
+    <div class="toc-brand">
+      <b>Stripe Explainer</b>
+      <span>CradleHQ · subscriptions &amp; billing</span>
+    </div>
+    <nav>
+      <div class="grp">Orientation</div>
+      <a href="#what">1 · What Stripe is</a>
+      <a href="#model">2 · Our specific setup</a>
+      <a href="#money">3 · Money flow</a>
+      <div class="grp">The two sides</div>
+      <a href="#owner">4 · What you set up</a>
+      <a href="#code">5 · What the code does</a>
+      <div class="grp">Build &amp; verify</div>
+      <a href="#samples">6 · Code samples</a>
+      <a href="#test">7 · Test mode</a>
+      <a href="#security">8 · Security notes</a>
+      <div class="grp">Reference</div>
+      <a href="#refs">9 · Reference links</a>
+      <a href="#gloss">10 · Glossary</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div style="border:2px solid #b42318;background:#fff4f3;color:#5a1410;border-radius:10px;padding:18px 20px;margin:0 0 24px;">
+      <strong style="display:block;font-size:1.05rem;margin-bottom:8px;">⚠️ OUT OF DATE — do not learn Stripe from this document (2026-07-10)</strong>
+      <p style="margin:0 0 10px;">This explainer was written on 2026-07-03, against a <strong>$4.99/month "Plus" subscription</strong>
+      that <strong>no longer exists</strong>. The pricing model changed on 2026-07-09. Everything below about subscriptions,
+      the Billing Portal, grace periods, monthly credit allotments, and tier upgrades describes a product we are
+      <strong>not building</strong>.</p>
+      <p style="margin:0 0 10px;"><strong>What's true now:</strong> four <strong>one-time</strong> SKUs — $5/50 credits ·
+      $10/125 credits · $15/150 credits + share unlock · $10/share-only. Nothing recurring. Nothing to cancel.
+      <code>users.tier</code> is vestigial. Credits never expire and never refill.</p>
+      <p style="margin:0;">Read <code>plans/storybook-v2/payments/stripe-primer.md</code> (the why) and
+      <code>plans/storybook-v2/payments/p0-account-setup.md</code> (the first-login walkthrough) instead.
+      A rewrite of this page is queued. Also stale here: <code>stripe-java</code> is at <strong>33.x</strong>, not 32.x,
+      and Stripe has replaced the test-mode toggle with <strong>Sandboxes</strong>.</p>
+    </div>
+    <header class="hero">
+      <div class="col">
+        <span class="eyebrow">◆ Owner ramp-up · money IN</span>
+        <h1>Stripe, for the CradleHQ subscription</h1>
+        <p>What Stripe is, what <strong>you</strong> set up on the business side, and what the <strong>code</strong>
+        does — for the <strong>Plus $4.99/month</strong> subscription we're about to build. Written against our
+        actual plan, not a generic tutorial.</p>
+        <div class="flowline">
+          <span class="chip">Customer</span><span class="arr">→</span>
+          <span class="chip">Stripe Checkout</span><span class="arr">→</span>
+          <span class="chip">Subscription</span><span class="arr">→</span>
+          <span class="chip">Webhook</span><span class="arr">→</span>
+          <span class="chip">CradleHQ grants Plus</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="col">
+
+      <!-- 1 -->
+      <h2 id="what"><span class="n">1</span>What Stripe is</h2>
+      <p class="lede">The payment company that lets a website charge cards and run subscriptions.</p>
+      <p>Stripe is the plumbing between a customer's credit card and our bank account. We never see or store a
+      card number — the customer types it into a page Stripe hosts, Stripe charges it every month, and Stripe
+      deposits the money into the LLC's bank account. Our job is just to tell Stripe <em>"start a $4.99/month
+      subscription for this person,"</em> and then to <em>listen</em> for Stripe telling us <em>"they paid —
+      turn on their Plus features."</em></p>
+
+      <h3>The subscription mental model</h3>
+      <p>Five Stripe objects, in the order they come to life. Learn these five words and the rest of Stripe reads easily:</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Object</th><th>What it is</th><th>In CradleHQ</th></tr>
+        <tr><td><strong>Customer</strong></td><td>A person Stripe knows, tied to an email + saved card.</td><td>One per registered user, created the first time they upgrade. We store its <code>cus_…</code> id.</td></tr>
+        <tr><td><strong>Product</strong></td><td>A thing you sell.</td><td>A single product named <strong>"Plus."</strong></td></tr>
+        <tr><td><strong>Price</strong></td><td>How much a product costs + how often.</td><td><strong>$4.99, recurring monthly.</strong> Has a <code>price_…</code> id the code references.</td></tr>
+        <tr><td><strong>Subscription</strong></td><td>A live agreement: this customer pays this price on a cycle.</td><td>Created when they check out; its <code>sub_…</code> id lives on the user row.</td></tr>
+        <tr><td><strong>Invoice</strong></td><td>One bill in the cycle — created &amp; paid automatically each month.</td><td>Every successful monthly invoice is our signal to refill their 10 AI credits.</td></tr>
+      </table>
+      </div>
+      <div class="note"><span class="lbl">The key idea</span>You don't build a billing engine. You create a <strong>Price</strong> once, send people to Stripe's <strong>Checkout</strong>, and react to the <strong>events</strong> Stripe sends back. That's the whole integration.</div>
+
+      <!-- 2 -->
+      <h2 id="model"><span class="n">2</span>Our specific setup</h2>
+      <p class="lede">The exact choices locked in <code>payments/stripe-full-plan.md</code> — don't re-litigate these.</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Decision</th><th>What we chose</th></tr>
+        <tr><td>Tier &amp; price</td><td><strong>Plus — $4.99 / month.</strong> (Pro tier deferred until print ships.)</td></tr>
+        <tr><td>Checkout style</td><td><strong>Stripe-hosted Checkout</strong> — we redirect the user to a Stripe page and get them back on success. Zero card fields in our app.</td></tr>
+        <tr><td>Turning Plus on</td><td>A <strong>webhook</strong> from Stripe flips <code>users.tier</code> to <code>'plus'</code>. Payment is the source of truth, not a button in our UI.</td></tr>
+        <tr><td>AI credits</td><td><strong>10 credits/month</strong>, reset to 10 on each successful monthly invoice.</td></tr>
+        <tr><td>Cancelling</td><td>Stripe's <strong>Billing Portal</strong> — a hosted page for cancel / update card / see invoices. No custom cancel UI to build.</td></tr>
+        <tr><td>Failed payment</td><td><strong>3-day grace period</strong>, then downgrade to <code>free</code>. Generated content is <strong>never deleted</strong> on downgrade.</td></tr>
+        <tr><td>Free trial</td><td><strong>None</strong> for V1.</td></tr>
+      </table>
+      </div>
+
+      <!-- 3 -->
+      <h2 id="money"><span class="n">3</span>Money flow</h2>
+      <p class="lede">Stripe is the <strong>money-IN</strong> account. (Lulu, later, is money-OUT.)</p>
+      <div class="card"><p style="margin:16px 0;"><strong>Customer's card</strong> &nbsp;→&nbsp; <strong>Stripe</strong> (charges $4.99, keeps a small fee) &nbsp;→&nbsp; <strong>payout to the LLC bank account</strong>.</p></div>
+      <p>Because customers pay <em>us</em> through Stripe, the LLC is the merchant of record. This is the same
+      account that will later fund physical books: when a customer orders a printed storybook, they pay
+      <em>us</em> here via Stripe, and we separately pay the printer (Lulu) on a company card. See the
+      <a href="lulu-explainer.html">Lulu explainer</a> for that side.</p>
+
+      <hr>
+
+      <!-- 4 -->
+      <h2 id="owner"><span class="n">4</span><span class="tag owner"><span class="dot" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--owner)"></span>Owner</span> &nbsp;What you set up</h2>
+      <p class="lede">The account work only you can do — it needs the LLC's legal, tax, and bank details.</p>
+      <p>None of this touches code. It's account creation in Stripe's dashboard, plus copying a few keys back to
+      the developer. The detailed, non-technical walkthrough is in
+      <a href="plans/storybook-v2/handoffs/stripe-account-handoff.md"><code>handoffs/stripe-account-handoff.md</code></a>
+      — this is the summary so you know <em>why</em> each step exists.</p>
+      <ol class="steps">
+        <li><strong>Create the Stripe account</strong> under the LLC — business email, account type <em>Company / LLC</em>, legal name, address, EIN.</li>
+        <li><strong>Identity + bank</strong> — enter a company representative's ID details (Stripe legally needs a real person) and link the LLC bank account for payouts.</li>
+        <li><strong>Activate</strong> — Stripe reviews the account. <em>This can take a few days.</em> The developer isn't blocked meanwhile — <strong>test mode works immediately</strong> (see §7).</li>
+        <li><strong>Create the product + price</strong> — a product named <strong>"Plus,"</strong> recurring <strong>$4.99/month</strong>, in <strong>live mode</strong>. Copy the resulting <code>price_…</code> id.</li>
+        <li><strong>Add the webhook endpoint</strong> — the developer gives you a URL (e.g. <code>https://cradlehq.app/billing/webhook</code>); add it and copy the signing secret <code>whsec_…</code>.</li>
+        <li><strong>Grab the live secret key</strong> — Developers → API keys → <code>sk_live_…</code>.</li>
+        <li><strong>Invite the developer</strong> as a team member so they can pull <em>test</em> keys themselves.</li>
+      </ol>
+
+      <h3>The keys you hand back — and how to read them</h3>
+      <p>Stripe keys are prefixed so you always know what you're holding. <strong>Test</strong> keys are safe to
+      share; <strong>live</strong> and <strong>signing</strong> secrets are not — send those via a one-time
+      self-destructing link (Onetime Secret), never plain email.</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Looks like</th><th>What it is</th><th>Secret?</th></tr>
+        <tr><td><code>sk_test_…</code></td><td>Secret key, <strong>test</strong> mode — fake money, developer self-serves.</td><td>Low — test only</td></tr>
+        <tr><td><code>sk_live_…</code></td><td>Secret key, <strong>live</strong> mode — charges real cards.</td><td><strong>Yes — guard it</strong></td></tr>
+        <tr><td><code>pk_…</code></td><td>Publishable key — safe to expose in a browser. (We barely use it with hosted checkout.)</td><td>No</td></tr>
+        <tr><td><code>whsec_…</code></td><td>Webhook signing secret — proves an incoming event is really from Stripe.</td><td><strong>Yes</strong></td></tr>
+        <tr><td><code>price_…</code></td><td>The id of the Plus $4.99 price.</td><td>No — plain email is fine</td></tr>
+      </table>
+      </div>
+      <div class="note gotcha"><span class="lbl">Owner takeaway</span>Everything on this side has a <strong>test</strong> twin and a <strong>live</strong> twin. The developer builds against the test twins for weeks; you only produce the <strong>live</strong> ones (steps 4–6) once, when we're ready to charge real customers.</div>
+
+      <!-- 5 -->
+      <h2 id="code"><span class="n">5</span><span class="tag dev"><span class="dot" style="width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--dev)"></span>Dev</span> &nbsp;What the code does</h2>
+      <p class="lede">A new <code>com.gotcherapp.api.billing</code> package with four endpoints, plus one migration.</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Endpoint</th><th>Auth</th><th>Does</th></tr>
+        <tr><td><code>POST /billing/checkout</code></td><td>JWT</td><td>Creates a Stripe Checkout Session for Plus; returns the URL to redirect to.</td></tr>
+        <tr><td><code>POST /billing/webhook</code></td><td><strong>Public</strong></td><td>Stripe calls this. Verifies the signature, then updates the user's tier/credits.</td></tr>
+        <tr><td><code>GET /billing/portal</code></td><td>JWT</td><td>Creates a Billing Portal session; returns the URL for self-serve cancel/manage.</td></tr>
+        <tr><td><code>GET /billing/status</code></td><td>JWT</td><td>Returns tier, credits remaining, reset date, grace status for the UI.</td></tr>
+      </table>
+      </div>
+      <p>The webhook is the heart of it. Stripe sends an event; the handler maps it to a database change:</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Stripe event</th><th>What the code does</th></tr>
+        <tr><td><code>checkout.session.completed</code></td><td>Set <code>tier='plus'</code>, store <code>stripe_customer_id</code> + <code>stripe_subscription_id</code>, set credits to 10, clear grace.</td></tr>
+        <tr><td><code>invoice.payment_succeeded</code></td><td>Monthly renewal — <strong>reset credits to 10</strong>, clear any grace flag.</td></tr>
+        <tr><td><code>invoice.payment_failed</code></td><td>Set <code>tier_grace_until = now + 3 days</code> (don't downgrade yet).</td></tr>
+        <tr><td><code>customer.subscription.deleted</code></td><td>Set <code>tier='free'</code>, clear the subscription id. Keep all their content.</td></tr>
+      </table>
+      </div>
+      <p>Config the developer adds — the <code>V32</code> migration (new Stripe columns on <code>users</code>) and three env vars:</p>
+      <div class="code">
+        <div class="code-h"><span class="lang">env</span><span class="file">Backend/.env</span></div>
+        <pre><code><span class="a">STRIPE_SECRET_KEY</span>=<span class="s">sk_test_…</span>          <span class="c"># sk_live_… in production</span>
+<span class="a">STRIPE_WEBHOOK_SECRET</span>=<span class="s">whsec_…</span>
+<span class="a">STRIPE_PRICE_PLUS_MONTHLY</span>=<span class="s">price_…</span></code></pre>
+      </div>
+
+      <!-- 6 -->
+      <h2 id="samples"><span class="n">6</span>Code samples</h2>
+      <p class="lede">Real <code>stripe-java</code> calls, shaped to our Spring + <code>JdbcTemplate</code> stack. Current SDK is <a href="https://central.sonatype.com/artifact/com.stripe/stripe-java"><code>com.stripe:stripe-java:32.1.0</code></a> (the plan was drafted against 25.+; use the current line).</p>
+
+      <h3>Gradle + init</h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">groovy</span><span class="file">Backend/build.gradle</span></div>
+        <pre><code><span class="f">implementation</span> <span class="s">'com.stripe:stripe-java:32.+'</span></code></pre>
+      </div>
+
+      <h3>① Create a Checkout Session <span class="tag dev" style="font-size:9.5px">POST /billing/checkout</span></h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">Java</span><span class="file">BillingService.java</span></div>
+        <pre><code><span class="c">// Stripe.apiKey is set once at startup from STRIPE_SECRET_KEY.</span>
+<span class="k">public</span> <span class="t">String</span> <span class="f">createCheckoutSession</span>(<span class="t">long</span> userId) <span class="k">throws</span> <span class="t">StripeException</span> {
+    <span class="t">User</span> user = users.<span class="f">findById</span>(userId);
+
+    <span class="c">// Reuse the Stripe customer if we've made one before.</span>
+    <span class="t">String</span> customerId = user.<span class="f">stripeCustomerId</span>();
+    <span class="k">if</span> (customerId == <span class="k">null</span>) {
+        <span class="t">Customer</span> c = <span class="t">Customer</span>.<span class="f">create</span>(
+            <span class="t">CustomerCreateParams</span>.<span class="f">builder</span>()
+                .<span class="f">setEmail</span>(user.<span class="f">email</span>())
+                .<span class="f">build</span>());
+        customerId = c.<span class="f">getId</span>();
+        users.<span class="f">setStripeCustomerId</span>(userId, customerId);   <span class="c">// JdbcTemplate UPDATE</span>
+    }
+
+    <span class="t">SessionCreateParams</span> params = <span class="t">SessionCreateParams</span>.<span class="f">builder</span>()
+        .<span class="f">setMode</span>(<span class="t">SessionCreateParams</span>.<span class="t">Mode</span>.<span class="a">SUBSCRIPTION</span>)
+        .<span class="f">setCustomer</span>(customerId)
+        .<span class="f">addLineItem</span>(<span class="t">SessionCreateParams</span>.<span class="t">LineItem</span>.<span class="f">builder</span>()
+            .<span class="f">setPrice</span>(plusPriceId)        <span class="c">// STRIPE_PRICE_PLUS_MONTHLY</span>
+            .<span class="f">setQuantity</span>(<span class="n">1L</span>).<span class="f">build</span>())
+        .<span class="f">setClientReferenceId</span>(<span class="t">String</span>.<span class="f">valueOf</span>(userId))  <span class="c">// so the webhook knows who</span>
+        .<span class="f">setSuccessUrl</span>(appBaseUrl + <span class="s">"/upgrade-success?session_id={CHECKOUT_SESSION_ID}"</span>)
+        .<span class="f">setCancelUrl</span>(appBaseUrl + <span class="s">"/book"</span>)
+        .<span class="f">build</span>();
+
+    <span class="k">return</span> <span class="t">Session</span>.<span class="f">create</span>(params).<span class="f">getUrl</span>();   <span class="c">// hand this URL to the frontend</span>
+}</code></pre>
+      </div>
+
+      <h3>② Verify + handle the webhook <span class="tag dev" style="font-size:9.5px">POST /billing/webhook</span></h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">Java</span><span class="file">BillingController.java</span></div>
+        <pre><code><span class="a">@PostMapping</span>(value = <span class="s">"/webhook"</span>, consumes = <span class="s">"application/json"</span>)
+<span class="k">public</span> <span class="t">ResponseEntity</span>&lt;<span class="t">String</span>&gt; <span class="f">webhook</span>(
+        <span class="a">@RequestBody</span> <span class="t">String</span> payload,
+        <span class="a">@RequestHeader</span>(<span class="s">"Stripe-Signature"</span>) <span class="t">String</span> sig) {
+    <span class="t">Event</span> event;
+    <span class="k">try</span> {
+        <span class="c">// Rejects anything not signed with our whsec_ secret.</span>
+        event = <span class="t">Webhook</span>.<span class="f">constructEvent</span>(payload, sig, webhookSecret);
+    } <span class="k">catch</span> (<span class="t">SignatureVerificationException</span> e) {
+        <span class="k">return</span> <span class="t">ResponseEntity</span>.<span class="f">badRequest</span>().<span class="f">body</span>(<span class="s">"bad signature"</span>);
+    }
+
+    <span class="t">StripeObject</span> obj = event.<span class="f">getDataObjectDeserializer</span>().<span class="f">getObject</span>().<span class="f">orElse</span>(<span class="k">null</span>);
+    <span class="k">switch</span> (event.<span class="f">getType</span>()) {
+        <span class="k">case</span> <span class="s">"checkout.session.completed"</span> -&gt; billing.<span class="f">activatePlus</span>((<span class="t">Session</span>) obj);
+        <span class="k">case</span> <span class="s">"invoice.payment_succeeded"</span> -&gt; billing.<span class="f">refillCredits</span>((<span class="t">Invoice</span>) obj);
+        <span class="k">case</span> <span class="s">"invoice.payment_failed"</span>    -&gt; billing.<span class="f">startGrace</span>((<span class="t">Invoice</span>) obj);
+        <span class="k">case</span> <span class="s">"customer.subscription.deleted"</span> -&gt; billing.<span class="f">downgrade</span>((<span class="t">Subscription</span>) obj);
+        <span class="k">default</span> -&gt; { <span class="c">/* ignore — still 200 so Stripe doesn't retry */</span> }
+    }
+    <span class="k">return</span> <span class="t">ResponseEntity</span>.<span class="f">ok</span>(<span class="s">"ok"</span>);   <span class="c">// ALWAYS 200 for handled events</span>
+}</code></pre>
+      </div>
+      <div class="note gotcha"><span class="lbl">Return 200 — always</span>Any non-2xx (or an uncaught exception) makes Stripe <strong>retry the event for days</strong>. Handle what you know, ignore the rest, and return 200. Keep the work fast; do nothing that can hang.</div>
+
+      <h3>③ Billing Portal (self-serve cancel) <span class="tag dev" style="font-size:9.5px">GET /billing/portal</span></h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">Java</span><span class="file">BillingService.java</span></div>
+        <pre><code><span class="k">import</span> com.stripe.model.billingportal.<span class="t">Session</span>;
+<span class="k">import</span> com.stripe.param.billingportal.<span class="t">SessionCreateParams</span>;
+
+<span class="k">public</span> <span class="t">String</span> <span class="f">portalUrl</span>(<span class="t">long</span> userId) <span class="k">throws</span> <span class="t">StripeException</span> {
+    <span class="t">String</span> customerId = users.<span class="f">findById</span>(userId).<span class="f">stripeCustomerId</span>();
+    <span class="t">Session</span> s = <span class="t">Session</span>.<span class="f">create</span>(<span class="t">SessionCreateParams</span>.<span class="f">builder</span>()
+        .<span class="f">setCustomer</span>(customerId)
+        .<span class="f">setReturnUrl</span>(appBaseUrl + <span class="s">"/book"</span>)
+        .<span class="f">build</span>());
+    <span class="k">return</span> s.<span class="f">getUrl</span>();   <span class="c">// cancel, update card, view invoices — all hosted by Stripe</span>
+}</code></pre>
+      </div>
+
+      <h3>④ The frontend redirect</h3>
+      <div class="code">
+        <div class="code-h"><span class="lang">JSX</span><span class="file">UpgradeModal.jsx</span></div>
+        <pre><code><span class="k">async function</span> <span class="f">upgrade</span>() {
+  <span class="k">const</span> { url } = <span class="k">await</span> <span class="f">apiRequest</span>(<span class="s">'/billing/checkout'</span>, { method: <span class="s">'POST'</span> });
+  window.location.href = url;   <span class="c">// leave the app → land on Stripe's page</span>
+}</code></pre>
+      </div>
+
+      <!-- 7 -->
+      <h2 id="test"><span class="n">7</span>Test mode</h2>
+      <p class="lede">Everything above works with fake money before the live account is even approved.</p>
+      <p>Stripe test mode is on from the moment an account exists — no approval, no bank link needed. The
+      developer builds the entire flow with <code>sk_test_…</code> keys and these fake cards:</p>
+      <div class="tbl-scroll">
+      <table>
+        <tr><th>Card number</th><th>Behavior</th></tr>
+        <tr><td><code>4242 4242 4242 4242</code></td><td>Succeeds. (Any future expiry, any CVC.)</td></tr>
+        <tr><td><code>4000 0000 0000 0002</code></td><td>Declined — <code>generic_decline</code>.</td></tr>
+        <tr><td><code>4000 0025 0000 3155</code></td><td>Requires 3-D Secure authentication.</td></tr>
+      </table>
+      </div>
+      <h3>Local webhooks with the Stripe CLI</h3>
+      <p>Webhooks can't reach <code>localhost</code> from the internet, so the Stripe CLI tunnels them — and it
+      prints a webhook signing secret to use locally:</p>
+      <div class="code">
+        <div class="code-h"><span class="lang">bash</span></div>
+        <pre><code>stripe listen --forward-to localhost:3001/billing/webhook
+<span class="c"># → prints:  Your webhook signing secret is whsec_… (use it as STRIPE_WEBHOOK_SECRET locally)</span>
+
+<span class="c"># In another terminal, fire a fake event:</span>
+stripe trigger checkout.session.completed</code></pre>
+      </div>
+      <div class="note"><span class="lbl">Rollout order</span>Ship the backend to production <em>in test mode</em> first and confirm webhooks land. Only flip <code>STRIPE_SECRET_KEY</code> to <code>sk_live_…</code> once the whole flow is verified end-to-end.</div>
+
+      <!-- 8 -->
+      <h2 id="security"><span class="n">8</span>Security notes</h2>
+      <ul>
+        <li><strong>Verify every webhook.</strong> The endpoint is public — anyone can POST to it. <code>Webhook.constructEvent</code> with the <code>whsec_</code> secret is what proves the event actually came from Stripe. Without it, a stranger could POST a fake "payment succeeded" and get Plus for free.</li>
+        <li><strong>Secret keys never touch the browser.</strong> <code>sk_live_…</code> and <code>whsec_…</code> live only in the server's environment — never in JSX, never in a committed file. Hosted Checkout means the client only ever handles a redirect URL.</li>
+        <li><strong>Add <code>/billing/webhook</code> to the public list in <code>SecurityConfig</code></strong> — it has no JWT (Stripe isn't logged in). Everything else under <code>/billing/**</code> stays JWT-protected.</li>
+      </ul>
+      <div class="note gotcha"><span class="lbl">CradleHQ gotcha · the 401 trap</span>An uncaught <code>RuntimeException</code> in a Spring controller re-dispatches to <code>/error</code> <em>unauthenticated</em> and surfaces as a <strong>401, not a 500</strong> — which looks like an auth bug when it's really a Stripe error. In every billing endpoint, <strong>catch <code>Exception</code></strong> (not just <code>StripeException</code>) and return a mapped <code>ApiError</code>. This is already burned into us from the Cloudinary work.</div>
+
+      <hr>
+
+      <!-- 9 -->
+      <h2 id="refs"><span class="n">9</span>Reference links</h2>
+      <p class="lede">Current as of July 2026 — the pages to actually read while building.</p>
+      <div class="refs">
+        <a href="https://docs.stripe.com/billing/subscriptions/build-subscriptions">Build a subscription integration<span>The canonical hosted-checkout + webhook flow</span></a>
+        <a href="https://docs.stripe.com/api/checkout/sessions/create">API · Create a Checkout Session<span>Every parameter, per language</span></a>
+        <a href="https://docs.stripe.com/webhooks">Webhooks<span>Signature verification, retries, best practices</span></a>
+        <a href="https://docs.stripe.com/customer-management/integrate-customer-portal">Customer / Billing Portal<span>The hosted cancel-and-manage page</span></a>
+        <a href="https://docs.stripe.com/testing">Testing<span>Test cards + scenarios</span></a>
+        <a href="https://docs.stripe.com/stripe-cli">Stripe CLI<span>Local webhook forwarding &amp; triggers</span></a>
+        <a href="https://github.com/stripe/stripe-java">stripe-java on GitHub<span>SDK source, changelog, current version</span></a>
+        <a href="https://central.sonatype.com/artifact/com.stripe/stripe-java">stripe-java on Maven Central<span>Latest release to pin</span></a>
+      </div>
+
+      <!-- 10 -->
+      <h2 id="gloss"><span class="n">10</span>Glossary</h2>
+      <dl class="gloss">
+        <dt>Customer</dt><dd>A person Stripe knows — an email plus saved payment method, identified by a <code>cus_…</code> id. One per upgraded user.</dd>
+        <dt>Product vs Price</dt><dd>The <strong>product</strong> is <em>what</em> you sell ("Plus"); the <strong>price</strong> is <em>how much and how often</em> ($4.99/month, id <code>price_…</code>). One product can have many prices; we have one.</dd>
+        <dt>Subscription</dt><dd>A live recurring agreement between a customer and a price. Its <code>sub_…</code> id lives on our user row while Plus is active.</dd>
+        <dt>Invoice</dt><dd>A single bill Stripe generates and charges each cycle. A paid invoice each month is our cue to refill credits.</dd>
+        <dt>Webhook</dt><dd>An HTTP POST Stripe makes <em>to us</em> when something happens (payment succeeded, subscription cancelled). How our database learns about billing events.</dd>
+        <dt>Signing secret (<code>whsec_</code>)</dt><dd>A shared secret used to cryptographically verify a webhook really came from Stripe and wasn't forged.</dd>
+        <dt>Idempotency</dt><dd>Designing a handler so processing the same event twice is harmless — important because Stripe may deliver an event more than once.</dd>
+        <dt>Publishable vs secret key</dt><dd><code>pk_…</code> is safe in a browser; <code>sk_…</code> can charge cards and must stay server-side. Each has a <code>test</code> and a <code>live</code> variant.</dd>
+        <dt>Billing Portal</dt><dd>A Stripe-hosted page where customers cancel, swap cards, and view invoices — so we build no cancel UI.</dd>
+        <dt>Grace period</dt><dd>Our 3-day window after a failed payment before downgrading, giving the customer time to fix their card.</dd>
+      </dl>
+
+    </div>
+    <footer>
+      CradleHQ · Stripe onboarding explainer · generated for owner ramp-up before the Payments build sessions.
+      Companion: <a href="lulu-explainer.html">lulu-explainer.html</a>. Source plan:
+      <code>plans/storybook-v2/payments/stripe-full-plan.md</code>.
+    </footer>
+  </main>
+</div>

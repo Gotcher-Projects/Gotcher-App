@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Memory Book — S8 + S9 Verification Guide</title>
+<style>
+  :root {
+    --bg: #fdf9f2; --card: #ffffff; --ink: #2b2b2b; --muted: #6b6357;
+    --accent: #9b7e5a; --accent-soft: #f1e8d8; --line: #e4d9c4;
+    --good: #2e7d52; --warn: #b4690e; --bad: #b3261e; --code-bg: #2b2b2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6; padding: 0 0 80px;
+  }
+  header {
+    background: linear-gradient(135deg, #9b7e5a, #b89b76); color: #fff;
+    padding: 36px 24px; text-align: center;
+  }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header p { margin: 0; opacity: .9; font-size: 14px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px 24px; margin-top: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  h2 { margin: 0 0 4px; font-size: 20px; color: var(--accent); }
+  h2 .sub { font-size: 13px; color: var(--muted); font-weight: 400; }
+  h3 { margin: 22px 0 8px; font-size: 15px; }
+  p.lead { color: var(--muted); margin-top: 4px; }
+  code { background: var(--accent-soft); padding: 1px 6px; border-radius: 5px;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+  pre { background: var(--code-bg); color: #f3eee4; padding: 14px 16px; border-radius: 10px;
+    overflow-x: auto; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: inherit; }
+  ul, ol { padding-left: 22px; } li { margin: 5px 0; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px;
+    border-radius: 999px; vertical-align: middle; }
+  .pill.new { background: #e8f3ec; color: var(--good); }
+  .pill.changed { background: #fdf0dd; color: var(--warn); }
+  .pill.removed { background: #fbe6e4; color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .check { list-style: none; padding-left: 0; }
+  .check li { position: relative; padding-left: 30px; margin: 10px 0; }
+  .check li::before { content: "☐"; position: absolute; left: 4px; top: -1px;
+    font-size: 18px; color: var(--accent); }
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .note.warn { background: #fdf0dd; border-color: var(--warn); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+  .tag { font-size: 12px; color: var(--muted); }
+  .step-num { display:inline-flex; align-items:center; justify-content:center;
+    width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;
+    font-size:12px;font-weight:700;margin-right:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📖 Memory Book — Scrapbook Builder S8 + S9</h1>
+  <p>What changed, and exactly how to verify it · generated 2026-06-03</p>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>Overview</h2>
+    <p class="lead">
+      The <strong>Scrapbook Builder</strong> is the new full-screen editor for a memory-book chapter.
+      It replaces the old free-form <code>LayoutEditor</code> with a slot-based template system.
+      This round delivered two sessions plus a product change:
+    </p>
+    <ul>
+      <li><strong>S8 — Place Content + Photos:</strong> drag-and-drop and tap-to-place memory text and
+        photos into template slots, a photo tray for choosing/uploading, and debounced draft autosave.</li>
+      <li><strong>S9 — Inline Editing, Backgrounds, Publish:</strong> edit &amp; format the AI text right
+        in its slot, set a per-page background color, and publish the chapter.</li>
+      <li><strong>Stickers removed:</strong> stickers are no longer part of the memory-book system —
+        all sticker UI, rendering, and assets were deleted.</li>
+    </ul>
+    <div class="note">
+      <strong>Where to find it in the app:</strong> open a baby profile → <em>Storybook</em> tab →
+      on any chapter card choose <em>Edit layout</em> (the builder opens full-screen). Use the demo
+      account <code>demo@gotcherapp.com</code> / <code>DemoPass1</code> (baby Lily, fully seeded).
+    </div>
+  </section>
+
+  <section>
+    <h2>How to run it locally</h2>
+    <pre><code># From the repo root — starts Docker (Postgres), the API (3001), and the frontend (3000)
+cd Backend
+./start-services.sh
+
+# Frontend only (if services are already up):
+cd Frontend
+npm run dev        # http://localhost:3000</code></pre>
+    <p class="tag">Then sign in with the demo account above and go to the Storybook tab.</p>
+  </section>
+
+  <section>
+    <h2>What changed <span class="sub">— files touched</span></h2>
+    <table>
+      <tr><th>File</th><th></th><th>What</th></tr>
+      <tr><td><code>components/storybook/ScrapbookBuilder.jsx</code></td>
+          <td><span class="pill changed">CHANGED</span></td>
+          <td>Drag/tap placement, photo tray, inline rich-text editing, per-page background, publish, autosave.</td></tr>
+      <tr><td><code>components/storybook/PhotoTray.jsx</code></td>
+          <td><span class="pill new">NEW</span></td>
+          <td>Extracted from <code>LayoutEditor</code>; shared photo picker/uploader.</td></tr>
+      <tr><td><code>components/storybook/RichTextEditor.jsx</code></td>
+          <td><span class="pill new">NEW</span></td>
+          <td>Extracted Tiptap editor for a single text block.</td></tr>
+      <tr><td><code>components/storybook/FormatToolbar.jsx</code></td>
+          <td><span class="pill new">NEW</span></td>
+          <td>Extracted bold/italic/align/size toolbar.</td></tr>
+      <tr><td><code>components/storybook/FontPicker.jsx</code></td>
+          <td><span class="pill new">NEW</span></td>
+          <td>Extracted floating font-family picker.</td></tr>
+      <tr><td><code>lib/storybookGrouping.js</code></td>
+          <td><span class="pill changed">CHANGED</span></td>
+          <td>New shared <code>extractPieceText()</code> helper; <code>buildGroupedLayoutData</code> reuses it.</td></tr>
+      <tr><td><code>lib/bookCanvas.jsx</code></td>
+          <td><span class="pill changed">CHANGED</span></td>
+          <td>Exposes <code>FONT_OPTIONS</code>/<code>REVERSE_FONT_MAP</code>; sticker rendering removed.</td></tr>
+      <tr><td><code>components/storybook/LayoutEditor.jsx</code></td>
+          <td><span class="pill changed">CHANGED</span></td>
+          <td>Now imports the shared editor modules; all sticker code removed.</td></tr>
+      <tr><td><code>components/tabs/StorybookTab.jsx</code></td>
+          <td><span class="pill changed">CHANGED</span></td>
+          <td>Passes <code>onUpdate</code> into the builder (enables autosave + publish).</td></tr>
+      <tr><td><code>lib/stickers.js</code> · <code>public/stickers/*</code></td>
+          <td><span class="pill removed">REMOVED</span></td>
+          <td>Sticker system and its 16 SVG assets deleted.</td></tr>
+      <tr><td><code>test/storybookGrouping.test.js</code></td>
+          <td><span class="pill new">NEW</span></td>
+          <td>18 unit tests for the memory-list / grouping / layout-build logic.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>✅ Verify S8 — Placing content &amp; photos</h2>
+    <p class="lead">Open the builder for a chapter that already has generated content (Lily's seeded chapters do).
+      If a page shows "No layout yet," click <em>Choose a layout</em> first.</p>
+    <ul class="check">
+      <li><strong>Drag text:</strong> from the left <em>Memories</em> panel, drag a memory's <em>text</em> row
+        onto a <em>text</em> slot → the slot fills with that memory's AI text (photo markers stripped).</li>
+      <li><strong>Drag photo:</strong> drag a memory's <em>photo</em> thumbnail onto a <em>photo</em> slot → the photo fills it.</li>
+      <li><strong>Tap-to-place (mobile/narrow):</strong> tap a memory row (it highlights) → tap a matching slot →
+        it places. Resize the window narrow or use device emulation to confirm it works without a mouse.</li>
+      <li><strong>Wrong-type is rejected:</strong> dragging text onto a photo slot (or vice-versa) does nothing.</li>
+      <li><strong>Photo tray:</strong> tap an empty photo slot → the tray opens → pick an existing photo,
+        and also try <em>Upload a photo</em> → the uploaded image fills the slot.</li>
+      <li><strong>Re-assign a photo:</strong> on a filled photo slot, click the small camera button → tray reopens.</li>
+      <li><strong>Autosave:</strong> after any change the header shows <em>Saving…</em> then <em>Saved&nbsp;✓</em>.</li>
+      <li><strong>Persistence:</strong> close the builder, reopen the same chapter → your arrangement is still there.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>✅ Verify S9 — Editing, backgrounds, publish</h2>
+    <ul class="check">
+      <li><strong>Edit text:</strong> tap a text slot (with no memory selected) → it becomes an editor; type to change the words.</li>
+      <li><strong>Formatting:</strong> with the editor open, the toolbar above the canvas toggles
+        <em>bold</em>, <em>italic</em>, <em>left/center/right</em> alignment, and <em>S/M/L</em> size — each renders in the slot.</li>
+      <li><strong>Font family:</strong> the floating font picker on the slot switches the block's font; tapping the active font again clears the override.</li>
+      <li><strong>Fit:</strong> type a lot of text → it stays fit inside the fixed slot (shrinks, no overflow).</li>
+      <li><strong>Click-away commits:</strong> click the page background → editing ends and the text is saved.</li>
+      <li><strong>Page background:</strong> use the <em>Page bg</em> swatches → the canvas background changes for that page only.</li>
+      <li><strong>Publish:</strong> click <em>Publish Chapter</em> → the builder closes and the chapter shows as published.</li>
+      <li><strong>Published view matches:</strong> view the published chapter → it renders identically (same
+        <code>bookCanvas</code> render model powers builder and published view).</li>
+      <li><strong>Everything persists across reload</strong> (refresh the browser, reopen the chapter).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>✅ Verify sticker removal</h2>
+    <ul class="check">
+      <li>The builder has <strong>no</strong> "Add Sticker" control and no sticker option anywhere.</li>
+      <li>The legacy <em>Layout editor</em> toolbar (if you reach it) also no longer shows "Add Sticker."</li>
+      <li>Existing chapters still open and render fine (any old sticker block simply draws nothing).</li>
+      <li class="tag" style="list-style:none;padding-left:0;">Code check (optional): searching the
+        frontend for <code>sticker</code> returns nothing in <code>src/</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Automated tests</h2>
+    <p class="lead">New unit tests cover the memory-book data logic. Run them with:</p>
+    <pre><code>cd Frontend
+npx vitest run src/test/storybookGrouping.test.js   # 18 tests
+npx vitest run                                       # full suite</code></pre>
+    <p>The new file exercises:</p>
+    <ul>
+      <li><code>buildMemoryList</code> — source keys, photo overrides, no-photo handling, skipping missing ids, date sorting.</li>
+      <li><code>extractPieceText</code> — body cleanup (photo markers + blank lines), title/caption/pullQuote, missing pieces.</li>
+      <li><code>autoSuggestGroups</code> — long entries get their own page, short runs group up to 3, runs break on a long entry.</li>
+      <li><code>buildGroupedLayoutData</code> — v2 output, text slot fill, photo assignment, empty photo slots.</li>
+    </ul>
+    <div class="note warn">
+      <strong>Known pre-existing failures (not from this work):</strong> the full suite reports
+      <code>2 failed</code> in <code>api.test.js</code> (apiUpload) and <code>auth.test.js</code>
+      (validateSession). These were already failing before these changes — they're tracked as open
+      items in the project memory (S11) and live in files this work did not touch. Everything else
+      (109 tests) passes, and <code>npx vite build</code> succeeds clean.
+    </div>
+  </section>
+
+  <section>
+    <h2>Notes &amp; one open decision</h2>
+    <ul>
+      <li><strong>Plans updated:</strong> <code>plans/storybook/s8-builder-placement.md</code> and
+        <code>s9-builder-editing.md</code> are marked <em>Needs Verification</em>; S9's sticker scope was struck out.</li>
+      <li><strong>Placement on filled slots:</strong> if you have a memory <em>selected</em>, tapping an already-filled
+        slot replaces its content (not only empty slots). Tapping a filled text slot with <em>nothing</em> selected
+        edits it instead. Say the word if you'd prefer placement to only target empty slots.</li>
+      <li><strong>S10 setup:</strong> the editor pieces were extracted into their own modules specifically so the
+        legacy <code>LayoutEditor.jsx</code> can be deleted cleanly in the S10 cutover.</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>

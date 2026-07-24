@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Storybook V2 — S2 &amp; S3 UI Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B; --line:#e7ddca; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:48px 24px; }
+  .wrap { max-width:760px; margin:0 auto; }
+  h1 { font-family:'Playfair Display',serif; font-size:34px; margin:0 0 6px; }
+  p.lead { color:var(--muted); margin:0 0 32px; font-size:15px; }
+  a.card { display:block; text-decoration:none; color:inherit; background:var(--card); border:1px solid var(--line);
+           border-radius:16px; padding:22px 24px; margin-bottom:16px; transition:.15s; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+  a.card:hover { border-color:var(--hi); box-shadow:0 6px 20px rgba(217,123,138,.12); transform:translateY(-1px); }
+  a.card h2 { font-family:'Playfair Display',serif; font-size:21px; margin:0 0 4px; }
+  a.card span { color:var(--muted); font-size:14px; }
+  .tag { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase;
+         color:var(--gold); margin-bottom:14px; }
+  .note { background:#fff7e9; border:1px solid #ecd9a8; border-radius:12px; padding:14px 18px; font-size:13px; color:#7a5c2a; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">Storybook V2 · Design review</div>
+  <h1>S2 &amp; S3 — UI mockups</h1>
+  <p class="lead">Static mockups of the data-entry UI and book-page designs for the two sessions we deferred,
+     so you can pick a direction before we build. Nothing here is wired into the app.</p>
+
+  <a class="card" href="s10b-ai-assist.html">
+    <h2>S10b — AI assist: accept flow &amp; ✨ placement</h2>
+    <span>The per-field “✨ write this for me” helper: <b>review-before-apply vs. undo toast</b>, the out-of-credits state, and where ✨ sits in the letter (Tiptap) builder. Interactive. <b>Newest.</b></span>
+  </a>
+
+  <a class="card" href="s2-birth-stats.html">
+    <h2>S2 — Birth Stats Card</h2>
+    <span>3 options for <b>where the birth details are entered</b> + 2 designs for the book page.</span>
+  </a>
+
+  <a class="card" href="s2-profile-modal.html">
+    <h2>S2 (revised) — Profile → modal refactor</h2>
+    <span>Move "Profile Setup" off the dashboard into an <b>Edit-profile modal</b> that also houses birth details. Before/after + two modal layouts.</span>
+  </a>
+
+  <a class="card" href="s3-your-people.html">
+    <h2>S3 — Your People</h2>
+    <span>2 options for the <b>family-member manager</b> + 2 designs for the "About Your People" book page.</span>
+  </a>
+
+  <a class="card" href="s5-family-tree.html">
+    <h2>S5 — Family Tree (book page)</h2>
+    <span>The "Your People" data as a connected tree. <b>2 designs</b> — classic three-tier + a siblings/initial-fallback variant. <b>Newest.</b></span>
+  </a>
+
+  <a class="card" href="s7-book-library-and-chooser.html">
+    <h2>S7 — Book library &amp; new-book chooser</h2>
+    <span>How you <b>pick a book to edit</b> (a shelf of books) and <b>choose Guided vs Freeform</b> when starting a new one. Introduces multiple books per baby. <b>Newest.</b></span>
+  </a>
+
+  <a class="card" href="s7-guided-book-in-app.html">
+    <h2>S7 — Guided Book, in-app (Storybook tab)</h2>
+    <span>The guided book drawn with the <b>real tab chrome</b> — actual BookCover, theme swatches, app fonts &amp; palette. Two screens: choose guided vs freeform, and the guided book in progress. <b>Newest.</b></span>
+  </a>
+
+  <a class="card" href="s7-guided-book-shell.html">
+    <h2>S7 — Guided Book shell &amp; entry flow (abstract)</h2>
+    <span>Same flow as a plain wireframe: the mode chooser, the locked page-sequence shell, and how filling a page reuses today's ScrapbookBuilder.</span>
+  </a>
+
+  <a class="card" href="s6-fill-in-page-types.html">
+    <h2>S6 — Fill-in page types</h2>
+    <span>The <b>5 new designed pages</b> the guided book needs: chapter divider, month-by-month growth, "All About You" prompts, hands &amp; feet, and the bump page (auto size tag).</span>
+  </a>
+
+  <a class="card" href="s6.5-prefilled-pages.html">
+    <h2>S6.5 — Prefilled pages</h2>
+    <span>The <b>one new page type</b> — <b>How You Grew</b> (milestones), seeded-but-editable <b>prefill</b> — plus a reference strip showing the rest of S6.5 is template <b>reuse</b>, not new code.</span>
+  </a>
+
+  <a class="card" href="s6-guided-pregnancy-first-year-book.html">
+    <h2>Guided Book — "Bump to One" (full 30-page mock)</h2>
+    <span>Pregnancy chapter up front, then the full first year. 30 interior pages + cover/back. <b>Newest.</b></span>
+  </a>
+
+  <a class="card" href="s6-guided-first-year-book.html">
+    <h2>Guided Book — "Your First Year" (full 25-page mock)</h2>
+    <span>The birth-onward version: 25 interior pages + cover/back, with auto / fill / pick page types.</span>
+  </a>
+
+  <a class="card" href="s5-firsts-chapter.html">
+    <h2>S5 — Firsts chapter (hero + gallery)</h2>
+    <span>How an auto-derived firsts chapter would have worked — kept for reference (we're leaning away from auto-generated chapters).</span>
+  </a>
+
+  <a class="card" href="SUGGESTIONS.md">
+    <h2>Written suggestions &amp; open decisions →</h2>
+    <span>My recommendation for each, the trade-offs, and the small calls still left to make.</span>
+  </a>
+
+  <div class="note">
+    <b>Decisions already locked (from your answers):</b> data binding = <b>live read</b> (the page reflects current
+    data); units = <b>follow existing growth preference</b>; people photos = <b>square crop</b>.
+  </div>
+</div>
+</body>
+</html>

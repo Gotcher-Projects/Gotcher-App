@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CradleHQ — Storybook V2 Page Components (Mockup)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===========================================================
+       Static visual mockups of the NEW Storybook V2 page renderers.
+       Styled with the real Classic book theme from bookThemes.js:
+         bg #fdf9f2 · accent #9b7e5a · fontClass font-serif
+       Label fonts use the app's Inter / Poppins (index.css).
+       These are mockups — photos are gradient placeholders.
+       =========================================================== */
+
+    :root {
+      --bg: #fdf9f2;
+      --accent: #9b7e5a;
+      --ink: #2e2820;
+      --ink-soft: #6b6256;
+      --serif: Georgia, 'Times New Roman', 'Iowan Old Style', serif;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --display: 'Poppins', var(--sans);
+      --script: 'Dancing Script', 'Snell Roundhand', cursive;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: #e9e5dc;
+      color: #1a1a1a;
+      padding: 44px 40px 80px;
+    }
+
+    /* ---------- doc header ---------- */
+    header.doc { max-width: 1080px; margin: 0 auto 18px; }
+    header.doc h1 { font-family: var(--display); font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+    header.doc p  { font-size: 13px; color: #6c6358; max-width: 720px; line-height: 1.55; }
+
+    /* ---------- classification legend ---------- */
+    .legend {
+      max-width: 1080px; margin: 0 auto 36px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .chip {
+      font-size: 11px; padding: 5px 10px; border-radius: 20px;
+      background: #fff; border: 1px solid #d8d2c6; color: #5a5246;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chip b { font-weight: 600; color: #2e2820; }
+    .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; }
+    .tag-new { background: #ede8f8; color: #6b46c1; }
+    .tag-adj { background: #eef1f5; color: #4a6079; }
+
+    /* ---------- gallery of pages ---------- */
+    .pages {
+      max-width: 1080px; margin: 0 auto;
+      display: flex; flex-wrap: wrap; gap: 40px 36px;
+      justify-content: flex-start;
+    }
+    .page-wrap { width: 460px; }
+    .page-label {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .page-label h2 { font-family: var(--display); font-size: 15px; font-weight: 600; color: #2e2820; }
+    .page-label .src { font-size: 11px; color: #8a8275; margin-left: auto; }
+
+    /* the book page itself — 3:4 at 460px wide */
+    .page {
+      position: relative;
+      width: 460px; height: 613px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      border-radius: 3px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.08), 0 14px 36px rgba(40,30,15,.16);
+      overflow: hidden;
+    }
+
+    .page-num {
+      position: absolute; bottom: 22px; left: 0; right: 0;
+      text-align: center; font-family: var(--serif);
+      font-size: 12px; color: var(--ink-soft); opacity: .75;
+    }
+
+    /* shared small-caps section label */
+    .eyebrow {
+      font-family: var(--sans);
+      font-size: 10.5px; font-weight: 600; letter-spacing: 2.2px;
+      text-transform: uppercase; color: var(--accent);
+      text-align: center;
+    }
+    .page-title {
+      font-family: var(--serif); font-weight: 700;
+      color: var(--ink); text-align: center; line-height: 1.15;
+    }
+    .rule { width: 46px; height: 2px; background: var(--accent); opacity: .6; margin: 14px auto; border-radius: 2px; }
+
+    /* photo placeholder (mockup stand-in for a real cropped photo) */
+    .photo {
+      position: relative; overflow: hidden; border-radius: 2px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,0) 60%),
+        linear-gradient(160deg, #cdb79a 0%, #b89b78 38%, #9c8466 70%, #d9c3a4 100%);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.05);
+    }
+    .photo::after {
+      content: '🍼';
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 30px; opacity: .35;
+    }
+    /* circular avatars are small — drop the placeholder glyph */
+    .photo.avatar::after, .photo.av::after { display: none; }
+    .photo.v2 { background:
+        linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,0) 60%),
+        linear-gradient(160deg, #c9b6c4 0%, #b196ac 45%, #9c7e98 75%, #d7c4d2 100%); }
+    .photo.v3 { background:
+        linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,0) 60%),
+        linear-gradient(160deg, #b8c6b0 0%, #95ab8c 45%, #7d9472 75%, #cdd8c4 100%); }
+    .photo.v4 { background:
+        linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,0) 60%),
+        linear-gradient(160deg, #d6c0a0 0%, #c2a274 45%, #a8895f 75%, #e2cfb0 100%); }
+
+    /* =========================================================
+       1. LetterPage  (sv2-s1)
+       ========================================================= */
+    .letter { padding: 56px 52px 0; display: flex; flex-direction: column; align-items: center; }
+    .letter .heart { font-size: 22px; color: var(--accent); margin-bottom: 18px; }
+    .letter .page-title { font-size: 27px; margin-top: 8px; max-width: 320px; }
+    .letter .body {
+      font-family: var(--script);
+      font-size: 20.5px; line-height: 1.5; color: #4a4034;
+      margin-top: 26px; text-align: left; align-self: stretch;
+    }
+    .letter .body p { margin-bottom: 13px; }
+    .letter .sign { font-family: var(--script); font-size: 21px; color: var(--accent); align-self: flex-end; margin-top: 8px; }
+
+    /* =========================================================
+       2. BirthDayPage  (sv2-s2)
+       ========================================================= */
+    .birth { padding: 44px 40px 0; display: flex; flex-direction: column; align-items: center; }
+    .birth .page-title { font-size: 30px; margin-top: 10px; }
+    .birth .subtitle { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--ink-soft); text-align: center; margin-top: 8px; }
+    .birth .photo { width: 100%; height: 196px; margin-top: 18px; }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      width: 100%; margin-top: 20px;
+      border: 1px solid rgba(155,126,90,.3); border-radius: 6px; overflow: hidden;
+      background: rgba(255,255,255,.5);
+    }
+    .stat { padding: 12px 4px; text-align: center; border-right: 1px solid rgba(155,126,90,.18); }
+    .stat:last-child { border-right: none; }
+    .stat .k { font-family: var(--sans); font-size: 8.5px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); }
+    .stat .v { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+    .stat .u { font-family: var(--sans); font-size: 9px; color: var(--ink-soft); }
+    .note {
+      margin-top: 20px; width: 100%;
+      border-left: 3px solid var(--accent);
+      background: rgba(155,126,90,.07);
+      padding: 14px 16px; border-radius: 0 6px 6px 0;
+      font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.55; color: #4a4034;
+    }
+
+    /* =========================================================
+       3. PeoplePage  (sv2-s3)
+       ========================================================= */
+    .people { padding: 48px 44px 0; display: flex; flex-direction: column; align-items: center; }
+    .people .page-title { font-size: 26px; margin-top: 8px; }
+    .people .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 34px; width: 100%; }
+    .person { text-align: center; }
+    .person .avatar { width: 118px; height: 118px; border-radius: 50%; margin: 0 auto; }
+    .person .name { font-family: var(--serif); font-size: 19px; font-weight: 700; margin-top: 14px; color: var(--ink); }
+    .person .role { font-family: var(--sans); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
+    .person .bio { font-family: var(--serif); font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); margin-top: 12px; }
+    .people .divider { font-size: 16px; color: var(--accent); opacity: .6; margin-top: 32px; }
+
+    /* =========================================================
+       4. GalleryPage  (sv2-s4)
+       ========================================================= */
+    .gallery { padding: 48px 44px 0; display: flex; flex-direction: column; align-items: center; }
+    .gallery .page-title { font-size: 25px; margin-top: 8px; }
+    .gallery .subtitle { font-family: var(--serif); font-style: italic; font-size: 13.5px; color: var(--ink-soft); margin-top: 6px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; width: 100%; }
+    .cell .photo { width: 100%; height: 150px; }
+    .cell .cap { font-family: var(--serif); font-style: italic; font-size: 11.5px; color: var(--ink-soft); text-align: center; margin-top: 7px; }
+
+    /* =========================================================
+       5. ChapterDividerPage  (sv2-s6)
+       ========================================================= */
+    .divider-page { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 0 56px; }
+    .ch-label { display: flex; align-items: center; gap: 14px; }
+    .ch-label .ln { width: 40px; height: 1px; background: var(--accent); opacity: .5; }
+    .ch-label .txt { font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
+    .badge-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 27px; margin: 26px 0 22px;
+      box-shadow: 0 6px 16px rgba(155,126,90,.35);
+    }
+    .ch-title { font-family: var(--serif); font-size: 38px; font-weight: 700; color: var(--ink); text-align: center; line-height: 1.1; }
+    .ch-sub { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink-soft); margin-top: 14px; text-align: center; }
+    /* floating decoratives — absolutely positioned spans (html2canvas-safe, NOT pseudo-elements) */
+    .deco { position: absolute; color: var(--accent); opacity: .28; user-select: none; }
+    .deco.d1 { top: 60px; left: 54px; font-size: 22px; }
+    .deco.d2 { top: 110px; right: 70px; font-size: 14px; opacity: .2; }
+    .deco.d3 { bottom: 120px; left: 78px; font-size: 16px; opacity: .22; }
+    .deco.d4 { bottom: 72px; right: 58px; font-size: 24px; }
+    .deco.d5 { top: 50%; right: 44px; font-size: 12px; opacity: .18; }
+
+    /* =========================================================
+       6. FamilyTreePage  (sv2-s9 — DEFERRED)
+       ========================================================= */
+    .tree-page { padding: 44px 30px 0; display: flex; flex-direction: column; align-items: center; }
+    .tree-page .page-title { font-size: 26px; margin-top: 8px; }
+    .tree { position: relative; width: 460px; height: 470px; margin-top: 8px; align-self: center; }
+    .tree svg { position: absolute; inset: 0; width: 460px; height: 470px; }
+    .node { position: absolute; width: 92px; text-align: center; }
+    .node .av {
+      border-radius: 50%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-weight: 700; color: #fff;
+      box-shadow: 0 2px 6px rgba(40,30,15,.18);
+    }
+    .node .av.initial { background: linear-gradient(160deg, #b89b78, #9c8466); }
+    .node .nm { font-family: var(--serif); font-size: 12.5px; font-weight: 700; color: var(--ink); margin-top: 6px; line-height: 1.1; }
+    .node .rl { font-family: var(--sans); font-size: 8px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-top: 2px; }
+
+    .note-foot { max-width: 1080px; margin: 44px auto 0; font-size: 12px; color: #7a7163; line-height: 1.6; }
+    .note-foot code { background: #fff; padding: 1px 5px; border-radius: 3px; border: 1px solid #d8d2c6; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <header class="doc">
+    <h1>Storybook V2 — New Page Components</h1>
+    <p>Static visual mockups of the five new book-page renderers introduced across the SV2 sessions.
+       Styled with the real <b>Classic</b> book theme (<code style="font-family:var(--sans)">bg #fdf9f2 · accent #9b7e5a · serif</code>)
+       from <code style="font-family:var(--sans)">bookThemes.js</code>. Photos are gradient placeholders.</p>
+  </header>
+
+  <div class="legend">
+    <span class="chip"><span class="tag tag-new">New</span> <b>LetterPage</b> — sv2-s1</span>
+    <span class="chip"><span class="tag tag-new">New</span> <b>BirthDayPage</b> — sv2-s2</span>
+    <span class="chip"><span class="tag tag-new">New</span> <b>PeoplePage</b> — sv2-s3</span>
+    <span class="chip"><span class="tag tag-new">New</span> <b>GalleryPage</b> — sv2-s4 <span style="color:#8a8275">(rest of s4 = data + Firsts UI)</span></span>
+    <span class="chip"><span class="tag tag-new">New</span> <b>ChapterDividerPage</b> — sv2-s6 <span style="color:#8a8275">(+ GuidedBook shell)</span></span>
+    <span class="chip"><span class="tag tag-new">New</span> <b>FamilyTreePage</b> — sv2-s9 <span style="color:#8a8275">(deferred)</span></span>
+    <span class="chip"><span class="tag tag-adj">Wiring</span> s5 · s7 · s8 — no new page component</span>
+  </div>
+
+  <div class="pages">
+
+    <!-- 1. LetterPage ------------------------------------------------ -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>1 · LetterPage</h2><span class="src">sv2-s1 · LetterPage.jsx</span></div>
+      <div class="page">
+        <div class="letter">
+          <div class="heart">♡</div>
+          <div class="eyebrow">A Letter To You</div>
+          <div class="page-title">A Letter Before You Arrived</div>
+          <div class="rule"></div>
+          <div class="body">
+            <p>My darling Lily,</p>
+            <p>We haven't met you yet, but you are already the biggest part of our hearts. Every night we wonder what your laugh will sound like, whose nose you'll have, and all the little things that will make you, you.</p>
+            <p>We promise to be there for every first — every step, every scraped knee, every brave new thing. We can't wait to watch you become exactly who you're meant to be.</p>
+            <p>Hurry slowly, little one. We're ready.</p>
+          </div>
+          <div class="sign">— With all our love, Mum &amp; Dad xx</div>
+        </div>
+        <div class="page-num">2</div>
+      </div>
+    </div>
+
+    <!-- 2. BirthDayPage ---------------------------------------------- -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>2 · BirthDayPage</h2><span class="src">sv2-s2 · BirthDayPage.jsx</span></div>
+      <div class="page">
+        <div class="birth">
+          <div class="eyebrow">The Moment Our World Changed Forever</div>
+          <div class="page-title">The day we met you</div>
+          <div class="subtitle">14 March 2026 · Royal Women's Hospital</div>
+          <div class="photo"></div>
+          <div class="stats">
+            <div class="stat"><div class="k">Weight</div><div class="v">3.40</div><div class="u">kg</div></div>
+            <div class="stat"><div class="k">Length</div><div class="v">50.5</div><div class="u">cm</div></div>
+            <div class="stat"><div class="k">Head</div><div class="v">35.0</div><div class="u">cm</div></div>
+            <div class="stat"><div class="k">Time</div><div class="v">6:42</div><div class="u">am</div></div>
+          </div>
+          <div class="note">
+            After the longest, most hopeful wait, you arrived just before sunrise — tiny, perfect, and impossibly loud. The whole world went quiet and bright all at once.
+          </div>
+        </div>
+        <div class="page-num">8</div>
+      </div>
+    </div>
+
+    <!-- 3. PeoplePage ------------------------------------------------ -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>3 · PeoplePage</h2><span class="src">sv2-s3 · PeoplePage.jsx</span></div>
+      <div class="page">
+        <div class="people">
+          <div class="eyebrow">Your People</div>
+          <div class="page-title">The ones who love you</div>
+          <div class="cols">
+            <div class="person">
+              <div class="photo v2 avatar"></div>
+              <div class="name">Sarah</div>
+              <div class="role">Mum</div>
+              <div class="bio">The calm in every storm. She sings off-key, gives the best hugs, and has loved you since before you were a heartbeat.</div>
+            </div>
+            <div class="person">
+              <div class="photo avatar"></div>
+              <div class="name">James</div>
+              <div class="role">Dad</div>
+              <div class="bio">Builder of pillow forts and teller of tall tales. He'll teach you to be brave, kind, and to always, always come back for a hug.</div>
+            </div>
+          </div>
+          <div class="divider">✿</div>
+        </div>
+        <div class="page-num">5</div>
+      </div>
+    </div>
+
+    <!-- 4. GalleryPage ----------------------------------------------- -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>4 · GalleryPage</h2><span class="src">sv2-s4 · GalleryPage.jsx</span></div>
+      <div class="page">
+        <div class="gallery">
+          <div class="eyebrow">More From This Moment</div>
+          <div class="page-title">First Steps</div>
+          <div class="subtitle">More from your first wobbly adventure</div>
+          <div class="grid2">
+            <div class="cell"><div class="photo v3"></div><div class="cap">One hand on the couch…</div></div>
+            <div class="cell"><div class="photo v4"></div><div class="cap">…and she's off!</div></div>
+            <div class="cell"><div class="photo v2"></div><div class="cap">Straight into Dad's arms</div></div>
+            <div class="cell"><div class="photo"></div><div class="cap">So proud of herself</div></div>
+          </div>
+        </div>
+        <div class="page-num">14</div>
+      </div>
+    </div>
+
+    <!-- 5. ChapterDividerPage ---------------------------------------- -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>5 · ChapterDividerPage</h2><span class="src">sv2-s6 · ChapterDividerPage.jsx</span></div>
+      <div class="page">
+        <!-- floating decoratives: real spans, not ::before (html2canvas-safe) -->
+        <span class="deco d1">✦</span>
+        <span class="deco d2">♡</span>
+        <span class="deco d3">✦</span>
+        <span class="deco d4">✿</span>
+        <span class="deco d5">·</span>
+        <div class="divider-page">
+          <div class="ch-label"><span class="ln"></span><span class="txt">Chapter Two</span><span class="ln"></span></div>
+          <div class="badge-icon">✦</div>
+          <div class="ch-title">Birth</div>
+          <div class="ch-sub">The day we met you</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. FamilyTreePage (DEFERRED) --------------------------------- -->
+    <div class="page-wrap">
+      <div class="page-label"><h2>6 · FamilyTreePage</h2><span class="src">sv2-s9 · FamilyTreePage.jsx · deferred</span></div>
+      <div class="page">
+        <div class="tree-page">
+          <div class="eyebrow">Where You Come From</div>
+          <div class="page-title">Your Family Tree</div>
+          <div class="tree">
+            <!-- connecting lines: inline SVG (foreignObject-free → html2canvas-safe) -->
+            <svg viewBox="0 0 460 470" preserveAspectRatio="none">
+              <g stroke="#9b7e5a" stroke-opacity="0.45" stroke-width="1.5" fill="none">
+                <line x1="64"  y1="70" x2="120" y2="235"/>
+                <line x1="176" y1="70" x2="120" y2="235"/>
+                <line x1="288" y1="70" x2="340" y2="235"/>
+                <line x1="400" y1="70" x2="340" y2="235"/>
+                <line x1="120" y1="235" x2="230" y2="400"/>
+                <line x1="340" y1="235" x2="230" y2="400"/>
+              </g>
+            </svg>
+
+            <!-- Tier 1 — grandparents -->
+            <div class="node" style="left:18px; top:44px;">
+              <div class="av initial" style="width:52px;height:52px;font-size:18px;">M</div>
+              <div class="nm">Margaret</div><div class="rl">Nana</div>
+            </div>
+            <div class="node" style="left:130px; top:44px;">
+              <div class="av initial" style="width:52px;height:52px;font-size:18px;">R</div>
+              <div class="nm">Robert</div><div class="rl">Pop</div>
+            </div>
+            <div class="node" style="left:242px; top:44px;">
+              <div class="photo v2 av" style="width:52px;height:52px;"></div>
+              <div class="nm">Helen</div><div class="rl">Grandma</div>
+            </div>
+            <div class="node" style="left:354px; top:44px;">
+              <div class="av initial" style="width:52px;height:52px;font-size:18px;">G</div>
+              <div class="nm">George</div><div class="rl">Grandad</div>
+            </div>
+
+            <!-- Tier 2 — parents -->
+            <div class="node" style="left:74px; top:203px;">
+              <div class="photo v2 av" style="width:62px;height:62px;"></div>
+              <div class="nm">Sarah</div><div class="rl">Mum</div>
+            </div>
+            <div class="node" style="left:294px; top:203px;">
+              <div class="photo av" style="width:62px;height:62px;"></div>
+              <div class="nm">James</div><div class="rl">Dad</div>
+            </div>
+
+            <!-- Tier 3 — baby -->
+            <div class="node" style="left:184px; top:366px;">
+              <div class="photo av" style="width:70px;height:70px;box-shadow:0 0 0 3px #9b7e5a, 0 4px 12px rgba(155,126,90,.4);"></div>
+              <div class="nm" style="font-size:14px;">Lily</div><div class="rl">You</div>
+            </div>
+          </div>
+        </div>
+        <div class="page-num">6</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note-foot">
+    Mockup only — fonts: book body uses the serif theme stack; the letter uses a script face
+    (<code>Dancing Script</code> stands in for the production script font); small-caps labels use
+    <code>Inter</code>. Real renders will read <code>theme.bg / accent / textColor / fontClass</code>
+    so each page restyles per book theme (Classic / Coral / Midnight / Meadow). Decoratives on the
+    chapter divider are absolutely-positioned spans on purpose — pseudo-elements don't survive
+    html2canvas PDF export.
+  </p>
+</body>
+</html>

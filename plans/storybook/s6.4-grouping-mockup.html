@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S6.4 — Grouping Step Mockup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #d6cfc5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 48px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .page-title {
+      font-size: 13px;
+      color: #6b6560;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.5);
+      padding: 6px 18px;
+      border-radius: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Device shell ── */
+    .device {
+      width: 390px;
+      background: #fdf9f2;
+      border-radius: 44px;
+      box-shadow:
+        0 0 0 10px #1a1614,
+        0 0 0 12px #3a3330,
+        0 30px 80px rgba(0,0,0,0.35);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 800px;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      background: #fdf9f2;
+      padding: 14px 28px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .status-time { font-size: 15px; font-weight: 700; color: #1c1917; }
+    .status-icons { display: flex; gap: 5px; align-items: center; }
+    .status-icons svg { width: 16px; height: 16px; fill: #1c1917; }
+
+    /* ── Header ── */
+    .header {
+      padding: 6px 20px 14px;
+      border-bottom: 1px solid #e8dfd0;
+      background: #fdf9f2;
+      flex-shrink: 0;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .back-btn {
+      background: none; border: none; cursor: pointer;
+      color: #9b8c7a; padding: 4px; display: flex; align-items: center;
+    }
+    .close-btn {
+      background: none; border: none; cursor: pointer;
+      color: #9b8c7a; padding: 4px; display: flex; align-items: center;
+    }
+    .header-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em;
+      color: #a89b8e; font-weight: 600;
+    }
+    .header-title {
+      font-size: 21px; font-weight: 800; color: #1c1917; line-height: 1.2;
+    }
+    .header-sub {
+      font-size: 13px; color: #a89b8e; margin-top: 3px;
+    }
+    .header-sub em { font-style: normal; color: #9b7e5a; font-weight: 600; }
+
+    /* ── Scrollable content ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Page card ── */
+    .page-card {
+      background: #fff;
+      border: 1.5px solid #e8dfd0;
+      border-radius: 18px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .page-card:hover { border-color: #c4b09a; }
+
+    .page-card-top {
+      padding: 10px 14px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .page-num {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em;
+      font-weight: 700; color: #b5a898;
+    }
+    .remove-page {
+      font-size: 11px; color: #c8bdb2; background: none; border: none;
+      cursor: pointer; padding: 2px 0;
+    }
+    .remove-page:hover { color: #ef4444; }
+
+    .page-card-body {
+      padding: 10px 14px 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    /* ── Template preview column ── */
+    .tpl-col {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+    .tpl-preview {
+      width: 68px; height: 90px;
+      background: #fdf9f2;
+      border: 1.5px solid #ddd0b8;
+      border-radius: 8px;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .tpl-preview:hover { border-color: #9b7e5a; }
+
+    .blk-t { background: rgba(155,126,90,0.22); border-radius: 2px; }
+    .blk-p { background: rgba(155,126,90,0.42); border-radius: 2px; }
+
+    .change-tpl {
+      font-size: 11px; font-weight: 600; color: #9b7e5a;
+      background: none; border: none; cursor: pointer; padding: 0;
+      white-space: nowrap;
+    }
+    .change-tpl:hover { text-decoration: underline; }
+
+    /* ── Right column ── */
+    .page-right {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column; gap: 9px;
+    }
+    .tpl-name {
+      font-size: 13px; font-weight: 700; color: #1c1917; line-height: 1.3;
+    }
+    .tpl-desc {
+      font-size: 11px; color: #a89b8e; margin-top: -5px;
+    }
+
+    .memory-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 8px 4px 9px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+      user-select: none;
+    }
+    .chip.journal   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .chip.firsttime { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .chip-x {
+      background: none; border: none; cursor: pointer;
+      font-size: 14px; line-height: 1; opacity: 0.45; color: inherit; padding: 0;
+    }
+    .chip-x:hover { opacity: 1; }
+
+    .add-mem-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500; color: #9b7e5a;
+      background: none; border: 1.5px dashed #c8b49a; border-radius: 20px;
+      padding: 4px 11px; cursor: pointer; transition: all 0.15s;
+      width: fit-content;
+    }
+    .add-mem-btn:hover { background: rgba(155,126,90,0.08); border-color: #9b7e5a; }
+
+    .empty-page-hint {
+      font-size: 12px; color: #c8bdb2; font-style: italic; padding: 4px 0;
+    }
+
+    /* ── Add page ── */
+    .add-page-btn {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: #9b7e5a; font-weight: 600;
+      background: none; border: none; cursor: pointer; padding: 6px 2px;
+    }
+    .add-page-btn:hover { color: #7c6048; }
+
+    /* ── Footer ── */
+    .footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 20px 30px;
+      background: linear-gradient(to bottom, transparent, #fdf9f2 28%);
+      flex-shrink: 0;
+    }
+    .gen-btn {
+      width: 100%; padding: 15px;
+      background: #9b7e5a; color: #fff;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+      box-shadow: 0 4px 16px rgba(155,126,90,0.35);
+      transition: background 0.15s;
+    }
+    .gen-btn:hover { background: #7c6048; }
+    .gen-btn:disabled { background: #c8bdb2; box-shadow: none; cursor: not-allowed; }
+
+    /* ── Bottom sheet ── */
+    .sheet-overlay {
+      position: absolute; inset: 0; z-index: 50;
+      background: rgba(0,0,0,0); pointer-events: none;
+      transition: background 0.2s;
+      display: flex; align-items: flex-end;
+    }
+    .sheet-overlay.open {
+      background: rgba(0,0,0,0.38); pointer-events: auto;
+    }
+    .sheet {
+      background: #fdf9f2;
+      border-radius: 22px 22px 0 0;
+      padding: 10px 20px 36px;
+      width: 100%;
+      max-height: 72%;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      flex-shrink: 0;
+    }
+    .sheet-overlay.open .sheet { transform: translateY(0); }
+    .sheet-handle {
+      width: 36px; height: 4px; background: #ddd0b8; border-radius: 2px;
+      margin: 0 auto 14px;
+    }
+    .sheet-title {
+      font-size: 15px; font-weight: 800; color: #1c1917; margin-bottom: 14px;
+    }
+
+    /* ── Template picker grid ── */
+    .tpl-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    .tpl-opt {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer; padding: 8px 4px;
+      border-radius: 12px; border: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tpl-opt:hover { background: rgba(155,126,90,0.08); border-color: rgba(155,126,90,0.3); }
+    .tpl-opt.sel { border-color: #9b7e5a; background: rgba(155,126,90,0.07); }
+    .tpl-opt-lbl { font-size: 11px; font-weight: 600; color: #57534e; text-align: center; }
+
+    .tpl-opt .tpl-preview {
+      width: 58px; height: 77px; cursor: pointer;
+    }
+
+    /* ── Memory picker list ── */
+    .mem-list { display: flex; flex-direction: column; gap: 8px; }
+    .mem-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px;
+      background: #fff; border: 1.5px solid #e8dfd0; border-radius: 12px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .mem-opt:hover { border-color: #9b7e5a; background: rgba(155,126,90,0.04); }
+    .mem-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; flex-shrink: 0; letter-spacing: 0.03em;
+    }
+    .mem-badge.j { background: #eff6ff; color: #1d4ed8; }
+    .mem-badge.f { background: #f5f3ff; color: #6d28d9; }
+    .mem-opt-info { flex: 1; min-width: 0; }
+    .mem-opt-name { font-size: 13px; font-weight: 600; color: #1c1917; }
+    .mem-opt-preview { font-size: 11px; color: #a89b8e; margin-top: 1px; line-clamp: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .mem-has-photo { font-size: 14px; flex-shrink: 0; }
+
+    .no-mems { text-align: center; padding: 28px 0; font-size: 13px; color: #a89b8e; }
+  </style>
+</head>
+<body>
+  <p class="page-title">S6.4 Mockup — Grouping Step &nbsp;·&nbsp; Interactive prototype</p>
+
+  <div class="device" id="device">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg viewBox="0 0 24 24"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-top">
+        <button class="back-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="close-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="header-label">Create a Chapter · Step 3.5</div>
+      <div class="header-title">Arrange your pages</div>
+      <div class="header-sub">AI suggested this layout — <em>change anything.</em></div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="content" id="content"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <button class="gen-btn" id="gen-btn" onclick="generate()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Generate <span id="gen-label">3 pages</span>
+      </button>
+    </div>
+
+    <!-- Bottom sheet (shared) -->
+    <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+      <div class="sheet" id="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sheet-title"></div>
+        <div id="sheet-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Data ──────────────────────────────────────────────────────────────────
+
+    const MEMORIES = [
+      { id: 'm1', label: 'First Smile',         type: 'journal',   preview: 'It happened just after breakfast, the morning sun coming in sideways…', hasPhoto: true  },
+      { id: 'm2', label: 'Morning Walk',         type: 'journal',   preview: 'We bundled you up and headed out before 8am…',                         hasPhoto: false },
+      { id: 'm3', label: 'First Steps',          type: 'firsttime', preview: '',                                                                      hasPhoto: true  },
+      { id: 'm4', label: 'First Laugh',          type: 'firsttime', preview: '',                                                                      hasPhoto: false },
+      { id: 'm5', label: 'First Bath',           type: 'firsttime', preview: '',                                                                      hasPhoto: false },
+      { id: 'm6', label: 'Hospital Homecoming',  type: 'journal',   preview: 'We brought you home on a Tuesday. The car seat felt enormous…',        hasPhoto: true  },
+    ];
+
+    const TEMPLATES = [
+      {
+        id: 'classic',
+        label: 'Classic',
+        desc: 'Text above, photo below',
+        memoryCount: 1,
+        preview: () => `
+          <div class="blk-t" style="flex:2"></div>
+          <div class="blk-p" style="flex:3"></div>`,
+      },
+      {
+        id: 'side-by-side',
+        label: 'Side by Side',
+        desc: 'Text left, photo right',
+        memoryCount: 1,
+        preview: () => `
+          <div style="display:flex;gap:3px;flex:1">
+            <div class="blk-t" style="flex:1"></div>
+            <div class="blk-p" style="flex:1"></div>
+          </div>`,
+      },
+      {
+        id: 'hero',
+        label: 'Hero Photo',
+        desc: 'Full photo, caption below',
+        memoryCount: 1,
+        preview: () => `
+          <div style="position:relative;flex:1">
+            <div class="blk-p" style="position:absolute;inset:0;border-radius:2px"></div>
+            <div class="blk-t" style="position:absolute;bottom:0;left:0;right:0;height:22%;border-radius:0 0 2px 2px;background:rgba(255,255,255,0.7)"></div>
+          </div>`,
+      },
+      {
+        id: 'text-only',
+        label: 'Text Only',
+        desc: 'Full-page story',
+        memoryCount: 1,
+        preview: () => `<div class="blk-t" style="flex:1"></div>`,
+      },
+      {
+        id: 'gallery',
+        label: 'Gallery',
+        desc: '2 photos + text',
+        memoryCount: 1,
+        preview: () => `
+          <div style="display:flex;gap:3px;flex:2">
+            <div class="blk-p" style="flex:1"></div>
+            <div class="blk-p" style="flex:1"></div>
+          </div>
+          <div class="blk-t" style="flex:2"></div>`,
+      },
+      {
+        id: 'two-up',
+        label: 'Two Memories',
+        desc: 'Two stories stacked',
+        memoryCount: 2,
+        preview: () => `
+          <div class="blk-t" style="flex:1"></div>
+          <div class="blk-t" style="flex:1"></div>`,
+      },
+      {
+        id: 'two-up-photo',
+        label: 'Two + Photo',
+        desc: 'Two memories, one photo',
+        memoryCount: 2,
+        preview: () => `
+          <div style="display:flex;gap:3px;flex:1">
+            <div class="blk-t" style="flex:1"></div>
+            <div class="blk-p" style="flex:1"></div>
+          </div>
+          <div class="blk-t" style="flex:1"></div>`,
+      },
+      {
+        id: 'two-up-both',
+        label: 'Two + Both Photos',
+        desc: 'Each memory with its photo',
+        memoryCount: 2,
+        preview: () => `
+          <div style="display:flex;gap:3px;flex:1">
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+              <div class="blk-t" style="flex:1"></div>
+              <div class="blk-p" style="flex:1"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+              <div class="blk-t" style="flex:1"></div>
+              <div class="blk-p" style="flex:1"></div>
+            </div>
+          </div>`,
+      },
+      {
+        id: 'three-short',
+        label: 'Three Memories',
+        desc: 'Three short stories',
+        memoryCount: 3,
+        preview: () => `
+          <div class="blk-t" style="flex:1"></div>
+          <div class="blk-t" style="flex:1"></div>
+          <div class="blk-t" style="flex:1"></div>`,
+      },
+      {
+        id: 'photo-full',
+        label: 'Full Photo',
+        desc: 'Single full-bleed photo',
+        memoryCount: 0,
+        preview: () => `<div class="blk-p" style="flex:1"></div>`,
+      },
+    ];
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    let state = {
+      pages: [
+        { id: 'pg1', templateId: 'classic',     memoryIds: ['m1', 'm2'] },
+        { id: 'pg2', templateId: 'three-short', memoryIds: ['m3', 'm4', 'm5'] },
+        { id: 'pg3', templateId: 'text-only',   memoryIds: ['m6'] },
+      ],
+      activeSheet: null,  // { type: 'template'|'memory', pageId }
+    };
+
+    function assignedIds() {
+      return new Set(state.pages.flatMap(p => p.memoryIds));
+    }
+
+    function unassigned() {
+      const used = assignedIds();
+      return MEMORIES.filter(m => !used.has(m.id));
+    }
+
+    function mem(id) { return MEMORIES.find(m => m.id === id); }
+    function tpl(id) { return TEMPLATES.find(t => t.id === id); }
+
+    // ── Actions ───────────────────────────────────────────────────────────────
+
+    function removeMemory(pageId, memId) {
+      state.pages = state.pages.map(p =>
+        p.id === pageId ? { ...p, memoryIds: p.memoryIds.filter(id => id !== memId) } : p
+      );
+      render();
+    }
+
+    function removePage(pageId) {
+      state.pages = state.pages.filter(p => p.id !== pageId);
+      render();
+    }
+
+    function addPage() {
+      const id = 'pg' + Date.now();
+      state.pages = [...state.pages, { id, templateId: 'text-only', memoryIds: [] }];
+      render();
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+
+    function selectTemplate(pageId, tplId) {
+      state.pages = state.pages.map(p =>
+        p.id === pageId ? { ...p, templateId: tplId } : p
+      );
+      closeSheet();
+      render();
+    }
+
+    function addMemoryToPage(pageId, memId) {
+      state.pages = state.pages.map(p =>
+        p.id === pageId ? { ...p, memoryIds: [...p.memoryIds, memId] } : p
+      );
+      closeSheet();
+      render();
+    }
+
+    function openTemplateSheet(pageId) {
+      state.activeSheet = { type: 'template', pageId };
+      renderSheet();
+      document.getElementById('sheet-overlay').classList.add('open');
+    }
+
+    function openMemorySheet(pageId) {
+      state.activeSheet = { type: 'memory', pageId };
+      renderSheet();
+      document.getElementById('sheet-overlay').classList.add('open');
+    }
+
+    function closeSheet(e) {
+      if (e && e.target !== document.getElementById('sheet-overlay')) return;
+      document.getElementById('sheet-overlay').classList.remove('open');
+      setTimeout(() => { state.activeSheet = null; }, 250);
+    }
+
+    function generate() {
+      const filled = state.pages.filter(p => p.memoryIds.length > 0);
+      if (filled.length === 0) return;
+      const btn = document.getElementById('gen-btn');
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.22-3.04"/></svg> Writing your pages…';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = '✓ Done! (prototype)';
+        btn.style.background = '#4ade80';
+        setTimeout(() => {
+          btn.style.background = '';
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Generate <span id="gen-label">${filled.length} page${filled.length !== 1 ? 's' : ''}</span>`;
+        }, 1800);
+      }, 2000);
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    function templatePreviewHTML(tplId, small) {
+      const t = tpl(tplId);
+      const w = small ? 58 : 68;
+      const h = small ? 77 : 90;
+      return `<div class="tpl-preview" style="width:${w}px;height:${h}px;" onclick="openTemplateSheet('PAGE_ID')">${t ? t.preview() : ''}</div>`;
+    }
+
+    function renderPage(page, index) {
+      const t = tpl(page.templateId) || TEMPLATES[0];
+      const mems = page.memoryIds.map(mem).filter(Boolean);
+      const canRemove = state.pages.length > 1;
+
+      const chipsHTML = mems.map(m => `
+        <span class="chip ${m.type === 'journal' ? 'journal' : 'firsttime'}">
+          ${m.label}
+          <button class="chip-x" onclick="removeMemory('${page.id}','${m.id}')" title="Remove">×</button>
+        </span>`).join('');
+
+      const prevHTML = `
+        <div class="tpl-preview" onclick="openTemplateSheet('${page.id}')" title="Change layout">
+          ${t.preview()}
+        </div>`;
+
+      const noMemsHint = mems.length === 0
+        ? `<p class="empty-page-hint">No memories — add one below or remove this page</p>`
+        : '';
+
+      return `
+        <div class="page-card" id="${page.id}">
+          <div class="page-card-top">
+            <span class="page-num">Page ${index + 1}</span>
+            ${canRemove ? `<button class="remove-page" onclick="removePage('${page.id}')">Remove page</button>` : ''}
+          </div>
+          <div class="page-card-body">
+            <div class="tpl-col">
+              ${prevHTML}
+              <button class="change-tpl" onclick="openTemplateSheet('${page.id}')">Change layout</button>
+            </div>
+            <div class="page-right">
+              <div>
+                <div class="tpl-name">${t.label}</div>
+                <div class="tpl-desc">${t.desc}</div>
+              </div>
+              ${noMemsHint}
+              ${mems.length > 0 ? `<div class="memory-chips">${chipsHTML}</div>` : ''}
+              <button class="add-mem-btn" onclick="openMemorySheet('${page.id}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add memory
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function render() {
+      const pool = unassigned();
+      const filledPages = state.pages.filter(p => p.memoryIds.length > 0);
+      const genBtn = document.getElementById('gen-btn');
+      if (genBtn && !genBtn.disabled) {
+        const lbl = document.getElementById('gen-label');
+        if (lbl) lbl.textContent = `${filledPages.length} page${filledPages.length !== 1 ? 's' : ''}`;
+      }
+
+      const pagesHTML = state.pages.map((p, i) => renderPage(p, i)).join('');
+
+      const poolSection = pool.length > 0 ? `
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:14px;padding:11px 14px;">
+          <p style="font-size:11px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">
+            Unassigned (${pool.length})
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${pool.map(m => `
+              <span class="chip ${m.type === 'journal' ? 'journal' : 'firsttime'}" style="opacity:0.7;">
+                ${m.label}
+              </span>`).join('')}
+          </div>
+          <p style="font-size:11px;color:#c2410c;margin-top:8px;">Tap "Add memory" on a page to assign these.</p>
+        </div>` : '';
+
+      document.getElementById('content').innerHTML = `
+        ${poolSection}
+        ${pagesHTML}
+        <button class="add-page-btn" onclick="addPage()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add a page
+        </button>`;
+    }
+
+    function renderSheet() {
+      const s = state.activeSheet;
+      if (!s) return;
+      const titleEl = document.getElementById('sheet-title');
+      const bodyEl  = document.getElementById('sheet-body');
+
+      if (s.type === 'template') {
+        const page = state.pages.find(p => p.id === s.pageId);
+        titleEl.textContent = 'Choose a layout';
+        bodyEl.innerHTML = `
+          <div class="tpl-grid">
+            ${TEMPLATES.map(t => `
+              <div class="tpl-opt ${page?.templateId === t.id ? 'sel' : ''}" onclick="selectTemplate('${s.pageId}','${t.id}')">
+                <div class="tpl-preview" style="width:58px;height:77px;pointer-events:none">
+                  ${t.preview()}
+                </div>
+                <span class="tpl-opt-lbl">${t.label}</span>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      if (s.type === 'memory') {
+        const pool = unassigned();
+        titleEl.textContent = 'Add a memory';
+        if (pool.length === 0) {
+          bodyEl.innerHTML = `<p class="no-mems">All memories are already assigned.<br>Remove one from another page first.</p>`;
+        } else {
+          bodyEl.innerHTML = `
+            <div class="mem-list">
+              ${pool.map(m => `
+                <div class="mem-opt" onclick="addMemoryToPage('${s.pageId}','${m.id}')">
+                  <span class="mem-badge ${m.type === 'journal' ? 'j' : 'f'}">${m.type === 'journal' ? 'Journal' : 'First Time'}</span>
+                  <div class="mem-opt-info">
+                    <div class="mem-opt-name">${m.label}</div>
+                    ${m.preview ? `<div class="mem-opt-preview">${m.preview}</div>` : ''}
+                  </div>
+                  ${m.hasPhoto ? '<span class="mem-has-photo">📷</span>' : ''}
+                </div>`).join('')}
+            </div>`;
+        }
+      }
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    render();
+
+    // Close sheet on overlay click already handled by onclick on .sheet-overlay
+    // but we also need keyboard close
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.getElementById('sheet-overlay').classList.remove('open');
+        setTimeout(() => { state.activeSheet = null; }, 250);
+      }
+    });
+  </script>
+
+  <style>
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+  </style>
+</body>
+</html>

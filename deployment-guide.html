@@ -633,6 +633,33 @@ ssh deploy@87.99.153.7 "cd ~/gotcherapp && \
   </div>
 
   <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>Seed Demo Accounts</h2>
+  <p>
+    The two Storybook demo accounts (<code>demo-pregnancy@demoapp.com</code>,
+    <code>demo-bumptobaby@demoapp.com</code>) are created by a Node seed that talks to the API over
+    HTTPS — it is a <strong>client</strong>, so it does not run inside a prod container. Run it from any
+    machine with the repo + Node&nbsp;20, pointed at the public API. Existing accounts are skipped
+    (idempotent), and <code>demo@gotcherapp.com</code> is never touched.
+  </p>
+
+  <div class="step" id="seed-demo">
+    <div class="step-header">
+      <div class="step-num" style="background:#2563eb;">→</div>
+      <div class="step-title">Run the demo seed against prod</div>
+    </div>
+    <pre><code><span class="comment"># From a machine with the repo (laptop / deploy box). Needs Node 20.</span>
+cd Frontend
+npm ci                                          <span class="comment"># installs vite-node (resolves the guided-arc import)</span>
+API=https://cradlehq.app/api npm run seed:demo</code></pre>
+    <ul class="bullets">
+      <li>Creates the accounts in the <strong>prod</strong> DB and uploads ~13 photos to the prod Cloudinary account.</li>
+      <li>Password for both accounts: <code>DemoPass1</code>.</li>
+      <li>Only <code>vite-node</code> is required (pulled by <code>npm ci</code>); <code>sharp</code> is a local-only dev tool, never needed here.</li>
+      <li>Full details + a run-on-the-VPS-host fallback: <code>Frontend/scripts/README.md</code>.</li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
   <h2>Database Backup &amp; Restore</h2>
 
   <div class="step" id="backup">

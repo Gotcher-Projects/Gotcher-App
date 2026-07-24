@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S5 — Firsts chapter (hero + gallery) · mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700;900&family=Merriweather:ital@0;1&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FBF7EF; --card:#fff; --ink:#2C1810; --muted:#8a7a6a; --hi:#D97B8A; --gold:#C2A36B;
+          --line:#e7ddca; --warm:#fbeede; --cream:#FDF6ED; --ink-soft:#A07860; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Lato',sans-serif; padding:40px 20px 90px; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  a.back { color:var(--hi); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Playfair Display',serif; font-size:32px; margin:6px 0 4px; }
+  .lead { color:var(--muted); margin:0 0 30px; font-size:15px; max-width:760px; }
+  h2.sec { font-family:'Playfair Display',serif; font-size:23px; margin:46px 0 6px; padding-top:24px; border-top:1px solid var(--line); }
+  .sec-sub { color:var(--muted); font-size:14px; margin:0 0 22px; max-width:760px; }
+
+  /* derivation diagram */
+  .flow { display:flex; gap:14px; align-items:stretch; flex-wrap:wrap; }
+  .flowbox { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; flex:1; min-width:200px; }
+  .flowbox h4 { margin:0 0 8px; font-size:13px; font-weight:900; letter-spacing:.02em; }
+  .flowbox .tag { font-size:11px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+  .flowbox code { background:var(--warm); border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-size:11.5px; color:#7a5c3a; }
+  .arrow { align-self:center; color:var(--hi); font-size:24px; font-weight:900; }
+  .pillrow { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .seqpill { font-size:11px; font-weight:800; padding:4px 9px; border-radius:100px; border:1px solid var(--line); }
+  .seqpill.hero { background:rgba(217,123,138,.12); border-color:rgba(217,123,138,.4); color:var(--hi); }
+  .seqpill.gal  { background:rgba(194,163,107,.16); border-color:rgba(194,163,107,.5); color:#9a7b3a; }
+  .seqpill.skip { background:#f3eee6; color:#a99; text-decoration:line-through; }
+
+  /* mini filmstrip */
+  .strip { display:flex; gap:12px; overflow-x:auto; padding:6px 2px 16px; }
+  .mini { flex:0 0 auto; width:128px; }
+  .minicanvas { width:128px; height:170px; background:var(--cream); border:1px solid var(--line); border-radius:6px;
+                box-shadow:0 4px 14px rgba(0,0,0,.08); position:relative; overflow:hidden; }
+  .mini .cap { text-align:center; font-size:11px; color:var(--muted); margin-top:6px; font-weight:700; }
+  .mlabel { position:absolute; top:8px; left:0; right:0; text-align:center; font-size:6px; font-weight:900; letter-spacing:.18em; color:var(--gold); text-transform:uppercase; }
+  .mtitle { position:absolute; top:16px; left:0; right:0; text-align:center; font-family:'Playfair Display',serif; font-size:11px; font-weight:700; }
+  .mpolaroid { position:absolute; top:34px; left:50%; transform:translateX(-50%) rotate(1.5deg); width:64px; height:64px; background:#fff; box-shadow:0 1px 5px rgba(0,0,0,.25); padding:3px; }
+  .mphoto { width:100%; height:100%; }
+  .mnote { position:absolute; bottom:10px; left:10px; right:10px; height:26px; background:#FFF8E8; border:1px solid #E5CB8A; border-radius:2px; }
+  .mgrid { position:absolute; top:30px; left:12px; right:12px; bottom:12px; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .mgrid div { background:linear-gradient(135deg,#b9c9d2,#cdd6cf); border-radius:2px; }
+  .firstgroup { border:1px dashed var(--line); border-radius:12px; padding:10px 12px 4px; margin-bottom:14px; }
+  .firstgroup > .fhead { font-size:12.5px; font-weight:900; color:var(--ink); margin-bottom:8px; }
+  .firstgroup > .fhead span { font-weight:400; color:var(--muted); }
+
+  /* full canvases */
+  .pages { display:flex; gap:30px; flex-wrap:wrap; }
+  .pagewrap h3 { font-size:15px; margin:0 0 4px; }
+  .pagewrap p { font-size:12.5px; color:var(--muted); margin:0 0 12px; max-width:330px; }
+  .canvas { width:330px; height:440px; background:var(--cream); border:1px solid var(--line); border-radius:8px;
+            box-shadow:0 12px 34px rgba(0,0,0,.12); position:relative; overflow:hidden; }
+  .clabel { text-align:center; font-size:9px; font-weight:900; letter-spacing:.22em; color:var(--gold); text-transform:uppercase; padding-top:26px; }
+  .ctitle { font-family:'Playfair Display',serif; text-align:center; font-weight:700; color:var(--ink); font-size:25px; margin-top:6px; }
+  .cdate { text-align:center; font-size:11px; font-style:italic; color:var(--ink-soft); margin-top:3px; }
+  .polaroid { width:172px; height:172px; background:#fff; box-shadow:0 5px 16px rgba(0,0,0,.2); padding:8px; margin:16px auto 0; transform:rotate(1deg); }
+  .polaroid .ph { width:100%; height:100%; }
+  .g-baby { background:linear-gradient(135deg,#f5c6d0,#d9b8a0); }
+  .g-blue { background:linear-gradient(135deg,#b9c9d2,#cdd6cf); }
+  .g-green{ background:linear-gradient(135deg,#cfe0c0,#a8c89a); }
+  .g-warm { background:linear-gradient(135deg,#e6d3a8,#d8b58a); }
+  .notecard { margin:18px 20px 0; background:#FFF8E8; border:1px solid #E5CB8A; border-radius:6px; padding:12px 14px;
+              font-family:'Merriweather',serif; font-style:italic; font-size:12.5px; line-height:1.6; color:var(--ink); text-align:center; }
+  .divider { display:flex; align-items:center; justify-content:center; gap:8px; margin:16px 0 0; }
+  .divider .ln { height:1px; width:40px; background:var(--gold); opacity:.4; } .divider .hp { color:var(--hi); font-size:11px; }
+  .attrib { text-align:center; font-family:'Dancing Script',cursive; color:var(--ink-soft); font-size:16px; margin-top:10px; }
+  /* gallery canvas */
+  .gsub { text-align:center; font-size:11px; font-style:italic; color:var(--ink-soft); margin-top:3px; }
+  .galgrid { margin:20px 22px 0; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .galcell { } .galcell .gimg { width:100%; aspect-ratio:1; border-radius:5px; }
+  .galcell .gcap { text-align:center; font-size:10px; font-style:italic; color:var(--ink-soft); margin-top:5px; }
+
+  .legend { font-size:13px; color:var(--muted); background:#fffdf8; border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin-top:18px; line-height:1.65; }
+  .legend b { color:var(--ink); } .legend .y { color:#3a7a4a; font-weight:700; } .legend .n { color:#b0506a; font-weight:700; }
+  .q { background:rgba(217,123,138,.07); border:1px solid rgba(217,123,138,.25); border-radius:12px; padding:14px 18px; margin-top:14px; font-size:13.5px; line-height:1.7; }
+  .q b { color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S5 — The "Firsts" chapter: hero + gallery, built from your data</h1>
+  <p class="lead">The moment-hero and gallery page renderers already exist. S5 is the <b>wiring</b>:
+     it turns your existing First Times into a chapter automatically — one <b>hero page</b> (featured
+     photo + your own note) followed by a <b>gallery page</b> (the extra photos) for each First. No AI,
+     no "generate" button — it reads straight from your First Times and updates live as you add them.</p>
+
+  <!-- 1 — how it's derived -->
+  <h2 class="sec">1 · How the chapter is built (no generation)</h2>
+  <p class="sec-sub">It's pure derivation. We read your First Times in date order and lay out a page
+     sequence. Edit a First Time's photo or note and the page changes with it — nothing to re-run.</p>
+
+  <div class="flow">
+    <div class="flowbox">
+      <div class="tag">Your data</div>
+      <h4>First Times</h4>
+      <div style="font-size:12.5px;color:var(--muted)">
+        <code>first_times</code>: label, date, hero <code>image_url</code>, your <code>notes</code><br><br>
+        <code>first_time_photos</code>: the extra photos per First (sv2-s4)
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="flowbox">
+      <div class="tag">Derivation (this session)</div>
+      <h4>Page sequence</h4>
+      <div style="font-size:12.5px;color:var(--muted)">For each First, in <code>occurred_date</code> order:</div>
+      <div class="pillrow">
+        <span class="seqpill hero">hero · First A</span>
+        <span class="seqpill gal">gallery · A</span>
+        <span class="seqpill hero">hero · First B</span>
+        <span class="seqpill skip">gallery · B</span>
+        <span class="seqpill hero">hero · First C</span>
+        <span class="seqpill gal">gallery · C</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px">First B has no extra photos → its gallery page is skipped.</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="flowbox">
+      <div class="tag">Renderers (already exist)</div>
+      <h4>On the page</h4>
+      <div style="font-size:12.5px;color:var(--muted)">
+        <code>MomentHeroCanvas</code> reads the First's photo + note<br><br>
+        <code>GalleryCanvas</code> reads <code>first_time_photos</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 — the chapter as a filmstrip -->
+  <h2 class="sec">2 · What the chapter looks like (three First Times)</h2>
+  <p class="sec-sub">Each First Time becomes a hero page, then a gallery page if it has extra photos.
+     Read in the book as a flowing sequence; here they're grouped per First so you can see the pairing.</p>
+
+  <div class="firstgroup">
+    <div class="fhead">First Steps <span>· 11 Mar 2026 · 3 extra photos</span></div>
+    <div class="strip">
+      <div class="mini">
+        <div class="minicanvas">
+          <div class="mlabel">A First We'll Never Forget</div>
+          <div class="mtitle">First Steps</div>
+          <div class="mpolaroid"><div class="mphoto g-baby"></div></div>
+          <div class="mnote"></div>
+        </div>
+        <div class="cap">Hero</div>
+      </div>
+      <div class="mini">
+        <div class="minicanvas">
+          <div class="mlabel">More from…</div>
+          <div class="mtitle" style="font-size:9px;top:14px">More from First Steps</div>
+          <div class="mgrid"><div></div><div></div><div></div><div></div></div>
+        </div>
+        <div class="cap">Gallery</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="firstgroup">
+    <div class="fhead">First Smile <span>· 02 Feb 2026 · no extra photos</span></div>
+    <div class="strip">
+      <div class="mini">
+        <div class="minicanvas">
+          <div class="mlabel">A First We'll Never Forget</div>
+          <div class="mtitle">First Smile</div>
+          <div class="mpolaroid"><div class="mphoto g-warm"></div></div>
+          <div class="mnote"></div>
+        </div>
+        <div class="cap">Hero</div>
+      </div>
+      <div class="mini" style="opacity:.4">
+        <div class="minicanvas" style="display:flex;align-items:center;justify-content:center">
+          <span style="font-size:10px;color:#a99;text-align:center;padding:0 8px">no gallery —<br>0 extra photos</span>
+        </div>
+        <div class="cap" style="color:#a99">Skipped</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="firstgroup">
+    <div class="fhead">First Food <span>· 20 Jan 2026 · 2 extra photos</span></div>
+    <div class="strip">
+      <div class="mini">
+        <div class="minicanvas">
+          <div class="mlabel">A First We'll Never Forget</div>
+          <div class="mtitle">First Food</div>
+          <div class="mpolaroid"><div class="mphoto g-green"></div></div>
+          <div class="mnote"></div>
+        </div>
+        <div class="cap">Hero</div>
+      </div>
+      <div class="mini">
+        <div class="minicanvas">
+          <div class="mlabel">More from…</div>
+          <div class="mtitle" style="font-size:9px;top:14px">More from First Food</div>
+          <div class="mgrid" style="grid-template-columns:1fr 1fr"><div></div><div></div></div>
+        </div>
+        <div class="cap">Gallery</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 — the two real page types, full size -->
+  <h2 class="sec">3 · The two page types, full size</h2>
+  <p class="sec-sub">These are the actual renderers (already built in earlier sessions). S5 just feeds
+     them each First Time's data instead of you placing things by hand.</p>
+
+  <div class="pages">
+    <div class="pagewrap">
+      <h3>Hero page — <code style="font-size:12px">MomentHeroCanvas</code></h3>
+      <p>Featured photo + your own note from <code style="font-size:11px">first_times.notes</code>.</p>
+      <div class="canvas">
+        <div class="clabel">A First We'll Never Forget</div>
+        <div class="ctitle">First Steps</div>
+        <div class="cdate">11 March 2026</div>
+        <div class="polaroid"><div class="ph g-baby"></div></div>
+        <div class="notecard">You let go of the couch, wobbled, and took three whole steps into my arms before plopping down with the biggest, proudest grin. We cheered so loud you did it again.</div>
+        <div class="divider"><span class="ln"></span><span class="hp">♥</span><span class="ln"></span></div>
+        <div class="attrib">— Mum &amp; Dad</div>
+      </div>
+    </div>
+
+    <div class="pagewrap">
+      <h3>Gallery page — <code style="font-size:12px">GalleryCanvas</code></h3>
+      <p>The extra photos from <code style="font-size:11px">first_time_photos</code>, optional captions.</p>
+      <div class="canvas">
+        <div class="clabel">More Moments</div>
+        <div class="ctitle" style="font-size:22px">More from First Steps</div>
+        <div class="gsub">A few more snapshots</div>
+        <div class="divider"><span class="ln"></span><span class="hp">♥</span><span class="ln"></span></div>
+        <div class="galgrid">
+          <div class="galcell"><div class="gimg g-baby"></div><div class="gcap">Almost there!</div></div>
+          <div class="galcell"><div class="gimg g-blue"></div><div class="gcap">Cruising the couch</div></div>
+          <div class="galcell"><div class="gimg g-green"></div><div class="gcap">Proud grin</div></div>
+          <div class="galcell"><div class="gimg g-warm"></div><div class="gcap">Worn out</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- decisions -->
+  <h2 class="sec">4 · The rules (my recommendations)</h2>
+  <div class="legend">
+    <b>Live derivation, no snapshot.</b> The chapter is built from your current First Times every time
+    it renders, so <span class="y">new First Times appear automatically</span> and edits flow through —
+    there is no "regenerate" step.<br>
+    <b>No AI.</b> The hero note is your own <code>first_times.notes</code> text. A blank note renders as a
+    soft placeholder. (Wording help is a later, opt-in, paid per-field assist — not this session.)<br>
+    <b>Skip empty galleries.</b> A First with no extra photos shows <span class="y">only its hero page</span>
+    — no empty 2×2 grid.<br>
+    <b>Order.</b> By <code>occurred_date</code> (oldest → newest), matching the First Times list.
+  </div>
+
+  <div class="q">
+    <b>The one thing to decide before building:</b> S5 wires this chapter <i>into the guided book</i>
+    (<code>GuidedBook.jsx</code>), which is built in <b>S6</b> — and S6 isn't built yet. So either
+    <b>(A)</b> do S6's guided-book shell first, then S5 slots the Firsts chapter in; or <b>(B)</b> S5
+    builds the reusable derivation + a standalone "Firsts preview" now, and the guided-book home comes in
+    S6. I lean <b>A</b> (build the shell first so S5 has somewhere to live), but B lets us ship + verify
+    the Firsts wiring sooner. Your call.
+  </div>
+</div>
+</body>
+</html>

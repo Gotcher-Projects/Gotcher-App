@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storybook — Text Fit &amp; Repetitive Openings: Recommendations</title>
+<style>
+  :root{
+    --ink:#23201b; --muted:#6b6256; --line:#e3dccd; --bg:#fdfbf6; --card:#fff;
+    --accent:#9b7e5a; --accent-soft:#f3ece0; --warn:#b4791f; --good:#3f7d52;
+    --code-bg:#2c2a26; --code-ink:#f3ede2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 24px 96px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+  .sub{color:var(--muted);margin:0 0 28px;font-size:15px}
+  h2{font-size:22px;margin:46px 0 6px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:17px;margin:26px 0 6px}
+  p{margin:10px 0}
+  small{color:var(--muted)}
+  ul,ol{margin:8px 0 8px 4px;padding-left:22px}
+  li{margin:6px 0}
+  code{background:var(--accent-soft);padding:1px 5px;border-radius:4px;font-size:13.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:10px;
+    overflow:auto;font-size:13px;line-height:1.6;font-family:"SF Mono",Menlo,Consolas,monospace}
+  pre code{background:none;color:inherit;padding:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0;
+    box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px;vertical-align:middle}
+  .pill.gen{background:#eaf2ff;color:#2b5fa6}
+  .pill.layout{background:#eef7ee;color:var(--good)}
+  .pill.rec{background:var(--accent-soft);color:var(--accent)}
+  .tag{font-size:12px;color:var(--muted);font-weight:600}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--accent-soft);font-weight:700}
+  .lead{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;
+    padding:14px 18px;margin:16px 0}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.two{grid-template-columns:1fr}}
+  .num{display:inline-block;min-width:30px;font-weight:700;color:var(--accent)}
+  .star{color:var(--warn);font-weight:700}
+  hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+  .foot{color:var(--muted);font-size:13px;margin-top:40px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Storybook — Text Fit &amp; Repetitive Openings</h1>
+<p class="sub">Recommendations to feed a future implementation plan · CradleHQ · mapped 2026-05-30 ·
+companion to <code>plans/storybook/storybook-context.md</code>.
+Earlier diagnosis of the same surface lives in <code>storybook-layout-findings.html</code> (repo root, S5.45).</p>
+
+<div class="lead">
+<strong>The single most important framing:</strong> both problems you described come from
+<em>one</em> generation path — <strong>“One Page Per Memory”</strong> mode
+(<code>generate-pages</code> → <code>SINGLE_ENTRY_SYSTEM_PROMPT</code>). In that mode
+<strong>each page is a separate, independent Claude call</strong> using an identical prompt,
+so (a) every page is told to write in <code>"You did… / You were…"</code> → they all open with
+“You”, and (b) every page targets ~60–100 words regardless of how much room the page has →
+short, photo-less pages leave the lower two-thirds empty. The “One Story” woven path has the
+same opener tendency but, being a single call, is much easier to vary.
+</div>
+
+<h2>1 · What the system does today (the relevant slice)</h2>
+<ul>
+<li><strong>Page-per-memory layout it builds</strong> (<code>StorybookWizard.handleGeneratePages</code>):
+a text block at <code>y 0.04, height 0.92</code> when there’s no photo (or <code>0.34</code> with a photo
+above a <code>0.56</code> photo). On a 600×800 page that text box is the whole page.</li>
+<li><strong><code>fitText</code> (<code>useFittedFontSize</code>) only shrinks.</strong> It binary-searches the
+largest font that <em>fits</em> the box, capped at the 15px base. It will never enlarge short text to fill,
+so a 40-word memory renders at 15px in a 730px-tall box → mostly whitespace.</li>
+<li><strong>No per-page title, date, or age</strong> is rendered on generated pages, so consecutive pages are
+structurally identical (text block, optional photo) — which compounds the “they blend together” feeling.</li>
+<li><strong>The woven <code>SYSTEM_PROMPT</code></strong> also mandates the <em>same</em> closing move on every
+chapter (“close with a brief forward-looking line…”) — repetitive across chapters, not just openings.</li>
+</ul>
+
+<h3>Current prompts (verbatim, from <code>ClaudeClient.java</code>)</h3>
+
+<p><span class="tag">SINGLE_ENTRY_SYSTEM_PROMPT — used by “One Page Per Memory”</span></p>
+<pre><code>You are writing a single page in a baby's memory book, capturing one specific moment or
+milestone. Write in second person, addressed to the baby ('You did…' / 'You were…').
+LENGTH: Write 1–2 short paragraphs, about 60–100 words total, that capture this single
+memory warmly and specifically. This is one page in a printed book, so brevity matters —
+never exceed two short paragraphs. Do not pad or add content not in the source.
+STRICT RULES:
+(1) Only reference people and relationships explicitly named in the entry.
+(2) Do not infer parent genders or count. Use 'the people who love you' if unclear.
+(3) Tone: heartfelt and warm, never saccharine.
+(4) No title, no photo markers, no forward-looking closing line — just the paragraphs.</code></pre>
+
+<p><span class="tag">SYSTEM_PROMPT — used by “One Story” + single-chapter generate</span></p>
+<pre><code>You are writing a chapter in a baby's memory book. Write in second person, addressed to the
+baby ('You did…' / 'You were…').
+LENGTH: For each memory or event provided, assess its richness — a brief note may earn 1
+paragraph, a detailed entry with personal context may deserve 3–4. Write exactly as many
+paragraphs as the content genuinely earns. Do not pad with generic filler, repetition, or
+sentiment not in the source. Maximum: 25 paragraphs.
+STRICT RULES:
+(1) Only reference people, relationships, and events explicitly named in the journal entries.
+(2) Do not infer how many parents are present, their genders, or anyone's relationship…
+(3) Never write 'your dad', 'your mom', or 'the two of us' unless those exact relationships
+    appear in the source text. If silent, describe the baby's actions or use 'the people who love you'.
+(4) Do not add emotional reactions, physical details, or sensory color not in the source.
+(5) Use 'we' only if the journal entries themselves use 'we'.
+(6) Tone: heartfelt and warm, never saccharine.
+(7) Photo markers: when a 'Photos available:' line is present, place [PHOTO:journal:42] /
+    [PHOTO:first_time:42] on its own line after the most relevant paragraph.
+STRUCTURE: Open by grounding the reader in a specific moment or sensory detail from the
+earliest entry — not a general scene-setting sentence. Close with a brief forward-looking
+line that points toward what is still to come.</code></pre>
+
+<p><span class="tag">User prompt (per memory)</span> built in <code>StorybookService.buildSingleJournalPrompt</code>:</p>
+<pre><code>Baby: {babyName}
+
+Journal entry — Week {week}: {title}
+{story}
+
+Parent's memory: {entryNote}      // only if present</code></pre>
+
+<hr>
+
+<h2>2 · Problem A — short / photo-less pages waste space</h2>
+
+<p>Two complementary levers: change <em>what the AI writes</em> (more, better-shaped text) and
+change <em>how the page renders it</em> (let it breathe by design, not by accident).</p>
+
+<h3>Generation-side <span class="pill gen">prompt / backend</span></h3>
+<table>
+<tr><th>#</th><th>Recommendation</th><th>Why it helps</th></tr>
+<tr><td><span class="num">A1</span><span class="star">★</span></td>
+<td><strong>Raise the length floor and allow gentle reflective framing.</strong> Bump the target
+from “60–100 words” to roughly <strong>90–160 words</strong>, and relax rule (4)’s “do not pad” into a
+precise allowance: <em>you may add a reflective closing beat and lightly evoke the season / the
+baby’s age, but never invent specific events, people, places, or quotes.</em></td>
+<td>Highest-leverage fix. The current prompt actively forbids the very thing that would fill the
+page. A slightly longer, grounded reflection fills the box with real content rather than air.</td></tr>
+<tr><td><span class="num">A2</span></td>
+<td><strong>Return decorative fields the layout can place:</strong> a short <code>pullQuote</code>
+(one lyrical line distilled from the body) and a code-computed <code>dateLabel</code>
+(e.g. “Spring · 4 months old”, derived from <code>week</code> + <code>birthdate</code>, <em>not</em> from the AI).</td>
+<td>Turns empty space into <em>designed</em> space: a large pull-quote and a date/age header read as
+intentional layout, not a half-finished page.</td></tr>
+<tr><td><span class="num">A3</span></td>
+<td><strong>Merge thin, adjacent memories.</strong> When several selected memories are short and close
+in time/theme, combine them onto one richer page (or steer the user toward “One Story” for sparse
+periods). Could be a grouping pre-pass or a “suggested page count”.</td>
+<td>Stops the system from spending a whole page on a one-line memory.</td></tr>
+</table>
+
+<h3>Layout / render-side <span class="pill layout">frontend</span></h3>
+<table>
+<tr><th>#</th><th>Recommendation</th><th>Why it helps</th></tr>
+<tr><td><span class="num">A4</span><span class="star">★</span></td>
+<td><strong>Let <code>fitText</code> grow, not just shrink.</strong> Allow the fitted size to exceed the
+15px base up to a sane ceiling (≈1.6–1.8×), and <strong>vertically center</strong> short text blocks.</td>
+<td>Directly fixes “small text in a big box.” A short memory scales up to a comfortable size and sits
+centered instead of clinging to the top-left. The ceiling stops a 5-word memory becoming a billboard.</td></tr>
+<tr><td><span class="num">A5</span></td>
+<td><strong>Content-aware default template</strong> when building generated pages — pick by
+(text length × has-photo):
+<ul>
+<li>short + photo → hero photo with a caption band</li>
+<li>short + no photo → centered <em>“quote card”</em>: large display text, generous margins, a divider/sticker accent, date label</li>
+<li>long + photo → photo as accent, text dominant (drop cap)</li>
+<li>long + no photo → full-bleed text with drop cap</li>
+</ul></td>
+<td>Replaces today’s single fixed split. A sparse page gets a layout that’s <em>meant</em> to be sparse.</td></tr>
+<tr><td><span class="num">A6</span></td>
+<td><strong>Decorative fill primitives:</strong> date/age header, theme divider (<code>theme.dividerChar</code>),
+drop cap (the <code>.book-rich</code> first-letter cap already exists), an auto-placed sticker, framed photo + caption.</td>
+<td>Cheap, on-brand ways to occupy space meaningfully.</td></tr>
+<tr><td><span class="num">A7</span></td>
+<td><em>(Optional, print economy)</em> <strong>two short memories per spread</strong> — pack very short ones
+together instead of one-per-page.</td>
+<td>Fewer near-empty pages overall; better for the eventual PDF/print product.</td></tr>
+</table>
+
+<hr>
+
+<h2>3 · Problem B — every page opens with “You” / pages blend together</h2>
+
+<h3>Generation-side <span class="pill gen">prompt / backend</span></h3>
+<table>
+<tr><th>#</th><th>Recommendation</th><th>Why it helps</th></tr>
+<tr><td><span class="num">B1</span><span class="star">★</span></td>
+<td><strong>Stop instructing “You did… / You were…”.</strong> Keep warm second-person address overall,
+but explicitly: <em>do not begin a page with “You” or with the baby’s name</em>, and <strong>rotate
+opener techniques</strong>. Give the model the menu (see B3).</td>
+<td>The repetition is literally trained in by the example openers in the prompt. Removing them and
+demanding variety is the direct cause-fix.</td></tr>
+<tr><td><span class="num">B2</span><span class="star">★</span></td>
+<td><strong>Make cross-page variety possible.</strong> Today each page is an isolated call, so it can’t know
+how its neighbors begin. Two options:
+<br>• <em>(a)</em> pass each call the opening lines already used (“do not open like any of these”), or
+<br>• <em>(b) recommended:</em> generate the whole set in <strong>one batched call</strong> returning JSON
+<code>[{sourceKey, body, pullQuote}]</code>, so the model varies openings across all pages at once.</td>
+<td>(b) is cleaner, cheaper, faster (1 call vs N), guarantees whole-book variety, and naturally carries
+the A2 fields. It does change the credit model (currently 1 credit/page) — call that out for the plan.</td></tr>
+<tr><td><span class="num">B3</span></td>
+<td><strong>Round-robin an <code>openerStyle</code></strong> across pages and pass it into each prompt, e.g.:
+sensory image · season/age · a sound or near-quote · small action then turn to “you” · a question ·
+direct address with a fresh verb (“Your laugh arrived today.”).</td>
+<td>Deterministic variety even if the model drifts toward its default.</td></tr>
+<tr><td><span class="num">B4</span></td>
+<td><strong>Vary closings too.</strong> The woven <code>SYSTEM_PROMPT</code> forces a forward-looking closing
+line on <em>every</em> chapter — repetitive across the book. Make it optional / rotate it.</td>
+<td>Removes a second source of sameness in the One Story path.</td></tr>
+</table>
+
+<h3>Layout / render-side <span class="pill layout">frontend</span></h3>
+<table>
+<tr><th>#</th><th>Recommendation</th><th>Why it helps</th></tr>
+<tr><td><span class="num">B5</span></td>
+<td><strong>Per-page title / date / age header</strong> (memory title + date label).</td>
+<td>Gives each page a distinct beat and a sense of progression instead of an undifferentiated stream.</td></tr>
+<tr><td><span class="num">B6</span></td>
+<td><strong>Rotate template / accent per consecutive page</strong> — alternate photo side, alternate a
+background tint from <code>theme.palette</code>, drop-cap some pages.</td>
+<td>Visual variety so the eye registers separate pages even when the prose is uniform.</td></tr>
+<tr><td><span class="num">B7</span></td>
+<td><em>(Optional)</em> <strong>section dividers / thematic grouping pages.</strong></td>
+<td>Structural punctuation between groups of memories.</td></tr>
+</table>
+
+<hr>
+
+<h2>4 · Recommended prompt rewrites</h2>
+
+<h3>4a · New <code>SINGLE_ENTRY_SYSTEM_PROMPT</code> (drop-in, per-page calls)</h3>
+<p>Implements A1 + B1 + B3. Note the rotating opener is injected per call (<code>{openerStyle}</code>).</p>
+<pre><code>You are writing a single page in a baby's keepsake memory book, capturing one moment.
+Write warmly, in second person addressed to the baby, but with a natural storyteller's voice.
+
+OPENING (important): Do NOT begin with the word "You" or with the baby's name. Open using
+this technique for this page: {openerStyle}. Vary your sentence rhythm.
+
+LENGTH: 2–3 short paragraphs, about 90–160 words — enough to fill a printed page without
+feeling thin. Earn the length; do not list or repeat.
+
+YOU MAY: add a gentle reflective beat, and lightly evoke the season or the baby's age, to
+round out the page.
+YOU MAY NOT: invent specific events, people, places, words spoken, or feelings that are not
+in the source. When unsure who was present, write "the people who love you".
+
+ALSO RETURN: a one-line "pullQuote" — a short, lyrical line drawn from the page (≤ 12 words).
+
+STRICT: only reference people/relationships explicitly named; never assume parent count or
+gender; heartfelt and warm, never saccharine; no title, no photo markers.
+
+Return JSON only: { "body": "...", "pullQuote": "..." }</code></pre>
+
+<p><strong>Opener-technique pool</strong> to round-robin into <code>{openerStyle}</code>:</p>
+<pre><code>1. a sensory image (light, sound, texture)
+2. the season or the baby's age ("At four months, the world got louder.")
+3. a small sound or near-word the baby made
+4. a small action, then turn to address the baby
+5. a gentle question
+6. direct address with a fresh subject/verb ("Your laugh arrived today.")</code></pre>
+
+<h3>4b · Recommended: one batched call (B2 option b)</h3>
+<p>Replace the N independent calls in <code>generatePages()</code> with a single call that receives all
+selected memories and returns an array. The model then guarantees variety across the whole set, and
+you get the A2 decorative fields for free.</p>
+<pre><code>SYSTEM: You are composing the pages of a baby's keepsake book — one page per memory,
+in order. Across the whole set, every page must OPEN DIFFERENTLY: never start two pages
+the same way, and never start a page with "You" or the baby's name. Rotate among:
+sensory image · season/age · a sound · an action-then-address · a question · fresh
+direct address. Each page: warm second person, 90–160 words, 2–3 short paragraphs.
+[…carry over the STRICT no-inference rules verbatim…]
+
+Return JSON only:
+{ "pages": [ { "sourceKey": "journal:42", "body": "...", "pullQuote": "..." }, … ] }
+
+USER:  Baby: {name}
+       Memory 1 — journal:42 — Week 6: "First bath"
+       {story} [Parent's memory: {note}]
+       Memory 2 — first_time:9 — "First smile"
+       …</code></pre>
+<p><small><strong>Trade-off to decide in the plan:</strong> batching changes today’s “1 credit per page”
+billing (it’d be 1 call). Either keep per-page credit accounting in code, or revisit the credit model.</small></p>
+
+<h3>4c · Woven <code>SYSTEM_PROMPT</code> tweaks (One Story path)</h3>
+<ul>
+<li>Add: <em>“Vary how each paragraph opens; do not begin consecutive paragraphs with ‘You’.”</em></li>
+<li>Make the forced forward-looking closing (B4) <em>optional</em> rather than mandatory.</li>
+</ul>
+
+<hr>
+
+<h2>5 · Suggested shape of the implementation plan</h2>
+<p>This naturally becomes a small full-stack plan (next free number after the current S5.x set, e.g.
+<code>s5.46-prose-variety-and-fill.md</code>). A sensible ordering:</p>
+<ol>
+<li><span class="pill gen">backend</span> Rewrite <code>SINGLE_ENTRY_SYSTEM_PROMPT</code> (A1 + B1) and add the
+round-robin <code>openerStyle</code> + return <code>pullQuote</code> (4a). Bump <code>generateSingle</code>
+max tokens (220 → ~320) to fit the longer target.</li>
+<li><span class="pill gen">backend</span> <em>(Optional, recommended)</em> batched <code>generate-pages</code>
+call returning JSON (4b); decide credit handling.</li>
+<li><span class="pill layout">frontend</span> <code>fitText</code> grow-to-fill + vertical centering (A4) — smallest change, biggest visible win for short pages.</li>
+<li><span class="pill layout">frontend</span> Content-aware generated-page templates (A5) + date/age header + pull-quote block (A2, B5).</li>
+<li><span class="pill layout">frontend</span> Per-page template/accent rotation (B6).</li>
+</ol>
+<p>Steps 1 and 3 alone resolve the bulk of both complaints; the rest is polish and can be staged.</p>
+
+<p class="foot">Generated as planning input for a future session. No code was changed.
+See <code>plans/storybook/storybook-context.md</code> for the full architecture primer and
+<code>storybook-layout-findings.html</code> (repo root) for the prior S5.45 layout diagnosis.</p>
+
+</div>
+</body>
+</html>

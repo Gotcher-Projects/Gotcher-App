@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { LoadingButton } from "@/components/ui/LoadingButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Droplets, HelpCircle, Trash2 } from "lucide-react";
+import { formatDate } from "@/lib/formatting";
 
 const DIAPER_TYPES       = [{ value: 'normal', label: 'Normal' }, { value: 'loose', label: 'Loose' }, { value: 'hard', label: 'Hard' }];
 const DIAPER_COLORS      = [{ value: 'yellow', label: 'Yellow' }, { value: 'brown', label: 'Brown' }, { value: 'green', label: 'Green' }, { value: 'black', label: 'Black' }, { value: 'red', label: 'Red' }, { value: 'white', label: 'White' }, { value: 'orange', label: 'Orange' }];
@@ -42,7 +43,7 @@ export default function DiaperTab({ logs, onAdd, onDelete, onError }) {
 
   const byDay = {};
   logs.forEach(l => {
-    const d = new Date(l.loggedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const d = formatDate(l.loggedAt, { style: 'short', withYear: false });
     if (!byDay[d]) byDay[d] = [];
     byDay[d].push(l);
   });

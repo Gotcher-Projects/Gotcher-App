@@ -55,12 +55,17 @@ class FirstTimeServiceTest {
     @Test
     void findAll_returnsMappedList_whenProfileExists() {
         when(babyProfileRepository.findProfileIdByUserId(USER_ID)).thenReturn(Optional.of(PROFILE_ID));
-        when(jdbc.queryForList(anyString(), eq(PROFILE_ID))).thenReturn(List.of(sampleRow()));
+        // findAll runs two queries off the same profile id: the first_times rows, then the
+        // additional first_time_photos (V38). Stub them distinctly so the photos query doesn't
+        // receive the first_times row (which has no first_time_id → NPE in mapPhoto).
+        when(jdbc.queryForList(contains("FROM first_times WHERE"), eq(PROFILE_ID))).thenReturn(List.of(sampleRow()));
+        when(jdbc.queryForList(contains("first_time_photos"), eq(PROFILE_ID))).thenReturn(List.of());
 
         List<FirstTime> result = firstTimeService.findAll(USER_ID);
 
         assertEquals(1, result.size());
         assertEquals("First smile", result.get(0).label());
+        assertEquals(List.of(), result.get(0).additionalPhotos());
     }
 
     // ── create ────────────────────────────────────────────────────────────────

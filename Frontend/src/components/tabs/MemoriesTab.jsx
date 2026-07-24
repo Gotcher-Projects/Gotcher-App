@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import PillNav from "@/components/ui/PillNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,39 +7,74 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Camera, Trash2, Pencil } from "lucide-react";
 import { LoadingButton } from "@/components/ui/LoadingButton";
+import PhotoPickerButton from "@/components/ui/PhotoPickerButton";
 import { apiUpload } from "@/lib/api";
+import { formatDate, formatMonthYear } from "@/lib/formatting";
 import { shareFirstTime } from "@/lib/share";
-import { openCropModal } from "@/lib/imageUtils.jsx";
-import { pickPhoto } from "@/lib/camera";
+import { uploadCroppedPhoto } from "@/lib/imageUtils.jsx";
+import StorybookTab from "@/components/tabs/StorybookTab";
+import BumpDiary from "@/components/pregnancy/BumpDiary";
+import AiAssistField from "@/components/storybook/AiAssistField";
 
-export default function MemoriesTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError }) {
+export default function MemoriesTab({
+  data, week, onAdd, onEdit, onDelete, onUpdateImage,
+  firsts, babyName, onAddFirst, onUpdateFirst, onDeleteFirst, onUpload, onError,
+  dueDate, bumpPhotos, onAddBump, onUpdateBump, onDeleteBump, onBumpUpload,
+}) {
   const [view, setView] = useState('journal');
+
+  // Bump pill is data-gated: shown only once a profile has pregnancy data (a due date).
+  const hasPregnancy = Boolean(dueDate);
 
   return (
     <>
       <PillNav
         options={[
           { value: 'journal', label: 'Journal' },
-          { value: 'firsts',  label: 'Firsts' },
+          { value: 'firsts',  label: 'Firsts'  },
+          ...(hasPregnancy ? [{ value: 'bump', label: 'Bump' }] : []),
+          { value: 'book',    label: 'Book'    },
         ]}
         active={view}
         onChange={setView}
         activeClass="bg-color-highlight/10 border-color-highlight/30 text-color-highlight"
       />
-      {view === 'journal' && <JournalTab data={data} week={week} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
+      {view === 'journal' && <JournalTab data={data} week={week} babyName={babyName} onAdd={onAdd} onEdit={onEdit} onDelete={onDelete} onUpdateImage={onUpdateImage} onError={onError} />}
       {view === 'firsts'  && <FirstTimesTab firsts={firsts} babyName={babyName} onAdd={onAddFirst} onUpdate={onUpdateFirst} onDelete={onDeleteFirst} onUpload={onUpload} onError={onError} />}
+      {view === 'bump' && hasPregnancy && (
+        <BumpDiary
+          photos={bumpPhotos}
+          currentWeek={null}
+          weekRefDate={dueDate || data.profile?.birthdate || null}
+          onAdd={onAddBump}
+          onUpdate={onUpdateBump}
+          onDelete={onDeleteBump}
+          onUpload={onBumpUpload}
+          onError={onError}
+        />
+      )}
+      {view === 'book'    && (
+        <StorybookTab
+          week={week}
+          journalEntries={data.journal}
+          firsts={firsts}
+          bumpPhotos={bumpPhotos}
+          birthdate={data.profile?.birthdate}
+          babyName={babyName}
+          parentName={data.profile?.parentName}
+          phase={data.profile?.phase}
+          dueDate={dueDate}
+          onUpload={onUpload}
+          onError={onError}
+        />
+      )}
     </>
   );
 }
 
 // ── Journal ────────────────────────────────────────────────────────────────────
 
-function shortDate(raw) {
-  if (!raw) return '';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+const shortDate = raw => formatDate(raw, { style: 'short', withYear: false });
 
 function groupByMonth(entries) {
   const sorted = [...entries].sort((a, b) => {
@@ -50,10 +85,7 @@ function groupByMonth(entries) {
   const groups = [];
   for (const entry of sorted) {
     const raw = entry.entry_date || entry.date;
-    const d = raw ? new Date(raw) : null;
-    const label = d && !isNaN(d.getTime())
-      ? d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      : 'Unknown';
+    const label = formatMonthYear(raw) || 'Unknown';
     const last = groups[groups.length - 1];
     if (last && last.month === label) last.entries.push(entry);
     else groups.push({ month: label, entries: [entry] });
@@ -61,11 +93,7 @@ function groupByMonth(entries) {
   return groups;
 }
 
-function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
-  const cancelCropRef = useRef(null);
-  const newPhotoInputRef = useRef(null);
-  const editPhotoInputRef = useRef(null);
-  useEffect(() => () => cancelCropRef.current?.(), []);
+function JournalTab({ data, week, babyName, onAdd, onEdit, onDelete, onUpdateImage, onError }) {
 
   const [title, setTitle] = useState("");
   const [story, setStory] = useState("");
@@ -89,10 +117,7 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
     try {
       let imageUrl = null;
       if (croppedPhoto) {
-        const form = new FormData();
-        form.append('file', croppedPhoto.blob, 'photo.jpg');
-        const result = await apiUpload('/upload?context=journal', form);
-        imageUrl = result.url;
+        imageUrl = await uploadCroppedPhoto(f => apiUpload('/upload?context=journal', f), croppedPhoto.blob);
       }
       await onAdd(week, title || `Week ${week}`, story, imageUrl, croppedPhoto?.orientation || 'landscape');
       setTitle("");
@@ -150,37 +175,21 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
           <div>
             <Label>Story</Label>
             <Textarea rows={5} value={story} onChange={(e) => setStory(e.target.value)} placeholder="Today was special..." className="bg-color-warm/15 focus-visible:ring-color-highlight" />
+            <AiAssistField
+              promptType="journal"
+              context={{ babyName, title, seedText: story }}
+              onResult={setStory}
+            />
           </div>
 
           <div>
             <Label>Photo (optional)</Label>
-            <button
-              type="button"
-              onClick={async () => {
-                const file = await pickPhoto();
-                if (file) {
-                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
-                } else {
-                  newPhotoInputRef.current?.click();
-                }
-              }}
+            <PhotoPickerButton
+              onPicked={({ blob, orientation }) => setCroppedPhoto({ blob, orientation })}
               className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
             >
-              <Camera className="w-4 h-4" />
               {croppedPhoto ? `Photo ready (${croppedPhoto.orientation})` : "Add a photo"}
-            </button>
-            <input
-              ref={newPhotoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files[0];
-                if (!file) return;
-                e.target.value = '';
-                cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedPhoto({ blob, orientation }); });
-              }}
-            />
+            </PhotoPickerButton>
             {croppedPhoto && (
               <img src={URL.createObjectURL(croppedPhoto.blob)} alt="preview" className="mt-2 w-full max-w-xs rounded-lg object-cover" />
             )}
@@ -237,6 +246,11 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                         <div className="space-y-3">
                           <Input value={editTitle} onChange={ev => setEditTitle(ev.target.value)} placeholder="Title" className="font-semibold text-base focus-visible:ring-color-highlight" />
                           <Textarea rows={5} value={editStory} onChange={ev => setEditStory(ev.target.value)} placeholder="Story" className="focus-visible:ring-color-highlight" />
+                          <AiAssistField
+                            promptType="journal"
+                            context={{ babyName, title: editTitle, seedText: editStory }}
+                            onResult={setEditStory}
+                          />
                           <div>
                             {e.image_url && !editCroppedPhoto && (
                               <img src={e.image_url} alt={e.title} className="w-full max-w-xs rounded-lg object-cover mb-2" />
@@ -244,33 +258,12 @@ function JournalTab({ data, week, onAdd, onEdit, onDelete, onUpdateImage, onErro
                             {editCroppedPhoto && (
                               <img src={URL.createObjectURL(editCroppedPhoto.blob)} alt="new photo preview" className="w-full max-w-xs rounded-lg object-cover mb-2" />
                             )}
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const file = await pickPhoto();
-                                if (file) {
-                                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
-                                } else {
-                                  editPhotoInputRef.current?.click();
-                                }
-                              }}
+                            <PhotoPickerButton
+                              onPicked={({ blob, orientation }) => setEditCroppedPhoto({ blob, orientation })}
                               className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-primary transition-colors"
                             >
-                              <Camera className="w-4 h-4" />
                               {editCroppedPhoto ? `Photo ready (${editCroppedPhoto.orientation})` : e.image_url ? "Replace photo" : "Add a photo"}
-                            </button>
-                            <input
-                              ref={editPhotoInputRef}
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={ev => {
-                                const file = ev.target.files[0];
-                                if (!file) return;
-                                ev.target.value = '';
-                                cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedPhoto({ blob, orientation }); });
-                              }}
-                            />
+                            </PhotoPickerButton>
                           </div>
                           <div className="flex gap-2 pt-1">
                             <LoadingButton
@@ -364,9 +357,6 @@ const FIRST_TIME_PRESETS = [
 ];
 
 function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, onError }) {
-  const cancelCropRef = useRef(null);
-  const photoInputRef = useRef(null);
-  useEffect(() => () => cancelCropRef.current?.(), []);
 
   const [mode, setMode] = useState('suggestions'); // 'suggestions' | 'custom'
   const [label, setLabel] = useState('');
@@ -386,10 +376,7 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
       let imageUrl = null;
       if (croppedImage) {
         setUploadingPhoto(true);
-        const form = new FormData();
-        form.append('file', croppedImage.blob, 'photo.jpg');
-        const res = await onUpload(form);
-        imageUrl = res.url;
+        imageUrl = await uploadCroppedPhoto(onUpload, croppedImage.blob);
         setUploadingPhoto(false);
       }
       await onAdd({ label: label.trim(), occurredDate: date, imageUrl, notes: notes.trim() || null, imageOrientation: croppedImage?.orientation || 'landscape' });
@@ -454,33 +441,12 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Photo (optional)</Label>
-              <button
-                type="button"
-                onClick={async () => {
-                  const file = await pickPhoto();
-                  if (file) {
-                    cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
-                  } else {
-                    photoInputRef.current?.click();
-                  }
-                }}
+              <PhotoPickerButton
+                onPicked={({ blob, orientation }) => setCroppedImage({ blob, orientation })}
                 className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
               >
-                <Camera className="w-4 h-4" />
                 {croppedImage ? `Photo ready (${croppedImage.orientation})` : 'Add a photo'}
-              </button>
-              <input
-                ref={photoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  e.target.value = '';
-                  cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setCroppedImage({ blob, orientation }); });
-                }}
-              />
+              </PhotoPickerButton>
             </div>
           </div>
 
@@ -490,6 +456,12 @@ function FirstTimesTab({ firsts, babyName, onAdd, onUpdate, onDelete, onUpload, 
             onChange={e => setNotes(e.target.value)}
             rows={2}
             className="bg-color-warm/15 focus-visible:ring-color-highlight"
+          />
+
+          <AiAssistField
+            promptType="first_note"
+            context={{ babyName, label, seedText: notes }}
+            onResult={setNotes}
           />
 
           <button
@@ -535,11 +507,8 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const cancelCropRef = useRef(null);
-  const photoInputRef = useRef(null);
-  useEffect(() => () => cancelCropRef.current?.(), []);
 
-  const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : '';
+  const fmtDate = d => formatDate(d, { style: 'long' });
 
   function handleStartEdit() {
     setEditLabel(ft.label);
@@ -567,10 +536,7 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
       let imageUrl = undefined;
       if (editCroppedImage) {
         setUploadingPhoto(true);
-        const form = new FormData();
-        form.append('file', editCroppedImage.blob, 'photo.jpg');
-        const res = await onUpload(form);
-        imageUrl = res.url;
+        imageUrl = await uploadCroppedPhoto(onUpload, editCroppedImage.blob);
         setUploadingPhoto(false);
       }
       const patch = { label: editLabel.trim(), occurredDate: editDate, notes: editNotes.trim() || null };
@@ -629,33 +595,12 @@ function FirstTimeCard({ ft, babyName, onUpdate, onDelete, onUpload, onError }) 
       <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={2} placeholder="Notes" className="focus-visible:ring-color-highlight" />
       <div>
         <Label className="text-xs text-muted-foreground">{ft.imageUrl ? 'Replace photo (optional)' : 'Add photo (optional)'}</Label>
-        <button
-          type="button"
-          onClick={async () => {
-            const file = await pickPhoto();
-            if (file) {
-              cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
-            } else {
-              photoInputRef.current?.click();
-            }
-          }}
+        <PhotoPickerButton
+          onPicked={({ blob, orientation }) => setEditCroppedImage({ blob, orientation })}
           className="mt-1 flex items-center gap-2 cursor-pointer text-sm text-muted-foreground hover:text-color-highlight transition-colors"
         >
-          <Camera className="w-4 h-4" />
           {editCroppedImage ? `Photo ready (${editCroppedImage.orientation})` : ft.imageUrl ? 'Replace photo' : 'Add a photo'}
-        </button>
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            e.target.value = '';
-            cancelCropRef.current = openCropModal(file, ({ blob, orientation }) => { cancelCropRef.current = null; setEditCroppedImage({ blob, orientation }); });
-          }}
-        />
+        </PhotoPickerButton>
       </div>
       <div className="flex gap-2">
         <button

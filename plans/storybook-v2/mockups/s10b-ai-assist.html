@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S10b — AI assist: blended write / generate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Merriweather:ital@0;1&family=Playfair+Display:wght@700&family=Dancing+Script:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fg:#232150; --indigo:#6467F2; --purple:#7b6cf0; --pink:#D11F69; --muted:#6f6e92;
+    --border:#e7e7f0; --success:#2C9664; --page:#fcfcff; --card:#fff;
+    --purple-bg:#f1eefe; --purple-tx:#5b4fd6; --gold:#C2A36B; --warm:#fbf1e6;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#eef0f6; color:var(--fg); font-family:'Inter',system-ui,sans-serif; padding:26px 18px 90px; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  a.back { color:var(--pink); text-decoration:none; font-size:13px; font-weight:700; }
+  h1 { font-family:'Poppins',sans-serif; font-size:25px; font-weight:700; margin:8px 0 4px; }
+  .lede { color:var(--muted); font-size:14px; margin:0 0 22px; max-width:840px; line-height:1.55; }
+  .lede b { color:var(--fg); }
+
+  .sec { margin:34px 0 14px; }
+  .sec h2 { font-family:'Poppins',sans-serif; font-size:18px; margin:0 0 3px; }
+  .sec p { font-size:13px; color:var(--muted); margin:0; max-width:820px; line-height:1.5; }
+  .sec .num { color:var(--purple-tx); }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:18px; }
+
+  /* field card */
+  .fc { background:var(--page); border:1px solid var(--border); border-radius:16px; box-shadow:0 8px 26px rgba(35,33,80,.07); padding:16px 18px 20px; }
+  .fc .ctx { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--purple-tx); background:var(--purple-bg); border-radius:100px; padding:3px 10px; display:inline-block; margin-bottom:10px; }
+  .fc .file { font-size:10.5px; color:var(--muted); font-family:ui-monospace,monospace; float:right; margin-top:4px; }
+
+  /* empty/filled toggle */
+  .stog { display:inline-flex; background:#f0f0f6; border-radius:100px; padding:3px; margin-bottom:12px; gap:2px; }
+  .stog button { border:none; background:transparent; font-size:11.5px; font-weight:600; color:var(--muted); border-radius:100px; padding:5px 12px; cursor:pointer; }
+  .stog button.on { background:#fff; color:var(--fg); box-shadow:0 1px 2px rgba(35,33,80,.12); }
+
+  .lbl { font-size:12.5px; font-weight:600; color:var(--fg); margin-bottom:6px; display:block; }
+  textarea {
+    width:100%; min-height:80px; border:1px solid var(--border); border-radius:10px; padding:11px 12px;
+    font-family:'Inter',sans-serif; font-size:13.5px; line-height:1.6; color:var(--fg); background:#fff; resize:vertical;
+  }
+  textarea:focus { outline:2px solid var(--purple); outline-offset:1px; }
+  textarea.applied { background:#f2fbf6; border-color:#bfe6d1; }
+
+  /* assist row */
+  .assist { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:9px; }
+  .spark {
+    display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(123,108,240,.4); background:rgba(123,108,240,.06);
+    color:var(--purple-tx); font-size:12px; font-weight:600; border-radius:100px; padding:6px 13px; cursor:pointer; transition:.15s;
+  }
+  .spark:hover { background:rgba(123,108,240,.12); }
+  .spark:disabled { opacity:.6; cursor:default; }
+  .spark.recede { border-color:transparent; background:transparent; padding:4px 4px; text-decoration:underline; color:var(--muted); font-weight:600; }
+  .spark.recede:hover { color:var(--purple-tx); background:transparent; }
+  .spark.gone { border-color:#e4b4c6; background:#fdeef3; color:#b83a68; }
+  .hint { font-size:11px; color:var(--muted); }
+  .hint b { color:var(--fg); font-weight:600; }
+  .hint .em { color:var(--purple-tx); font-weight:600; }
+
+  /* Option A review box */
+  .draft { margin-top:12px; border:1px dashed rgba(123,108,240,.55); background:rgba(123,108,240,.045); border-radius:10px; padding:12px; }
+  .cmp { display:grid; gap:8px; }
+  .cmp .box { border-radius:8px; padding:9px 11px; font-size:13px; line-height:1.55; }
+  .cmp .yours { background:#fff; border:1px solid var(--border); }
+  .cmp .ai { background:#fff; border:1px solid rgba(123,108,240,.35); }
+  .cmp .cap { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; display:block; }
+  .cmp .ai .cap { color:var(--purple-tx); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:11px 0 10px; }
+  .chip { font-size:11.5px; font-weight:600; color:var(--purple-tx); background:#fff; border:1px solid rgba(123,108,240,.35); border-radius:100px; padding:4px 11px; cursor:pointer; }
+  .chip:hover { background:var(--purple-bg); }
+  .chip .p { opacity:.6; margin-right:2px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .btn { border:none; border-radius:8px; font-size:12.5px; font-weight:600; padding:7px 14px; cursor:pointer; font-family:inherit; }
+  .btn.primary { background:var(--purple); color:#fff; }
+  .btn.ghost { background:#fff; border:1px solid var(--border); color:var(--fg); }
+  .btn.subtle { background:transparent; color:var(--muted); padding:7px 8px; }
+
+  /* "how to start" split */
+  .split { display:flex; gap:9px; margin-top:9px; flex-wrap:wrap; }
+  .split button { flex:1; min-width:130px; display:flex; flex-direction:column; align-items:flex-start; gap:2px; border:1px solid var(--border); background:#fff; border-radius:11px; padding:11px 13px; cursor:pointer; transition:.15s; }
+  .split button:hover { border-color:var(--purple); background:#fbfaff; }
+  .split .t { font-size:13px; font-weight:600; color:var(--fg); }
+  .split .s { font-size:11px; color:var(--muted); }
+  .split .ai .t { color:var(--purple-tx); }
+
+  /* out of credits */
+  .oocc { margin-top:11px; border:1px solid #e4b4c6; background:#fdeef3; border-radius:10px; padding:11px 13px; font-size:12.5px; color:#8a2b52; display:flex; align-items:center; gap:10px; line-height:1.5; }
+  .oocc .buy { margin-left:auto; white-space:nowrap; background:var(--pink); color:#fff; border:none; border-radius:8px; font-weight:600; font-size:12px; padding:7px 13px; cursor:pointer; }
+
+  /* letter */
+  .letter { background:#FBF7EF; border-radius:12px; padding:22px 26px 18px; border:1px solid #efe4cf; }
+  .eyebrow { text-align:center; font-size:10px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--gold); }
+  .ltitle { text-align:center; font-family:'Playfair Display',serif; font-size:25px; color:#3A2E22; margin:9px 0 6px; }
+  .lhr { display:flex; align-items:center; justify-content:center; gap:9px; margin:5px 0 13px; color:var(--gold); font-size:12px; }
+  .lhr .l { height:1px; width:44px; background:var(--gold); opacity:.4; }
+  .lbody { font-family:'Merriweather',Georgia,serif; font-style:italic; font-size:14px; line-height:1.85; color:#3A2E22; min-height:60px; border:1px solid rgba(209,31,105,.35); border-radius:6px; padding:10px 12px; background:#fffdf9; }
+  .lbody.empty { color:#b3a894; }
+  .lsign { text-align:right; font-family:'Dancing Script',cursive; font-size:22px; color:#9A7B4F; margin-top:14px; }
+  .ftbar { display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center; max-width:470px; margin:12px auto 0; border:1px solid var(--border); background:#fff; border-radius:12px; padding:6px 8px; box-shadow:0 1px 3px rgba(35,33,80,.06); }
+  .ftbar button { width:30px; height:30px; border:none; background:transparent; border-radius:8px; color:var(--fg); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .ftbar button:hover { background:#f2f2f8; }
+  .ftbar .sep { width:1px; height:18px; background:var(--border); margin:0 3px; }
+  .ftbar .sparkbtn { width:auto; padding:0 11px; gap:5px; color:var(--purple-tx); background:var(--purple-bg); font-size:12px; }
+  .plc { display:flex; gap:8px; margin:0 0 12px; }
+  .plc button { font-size:12px; font-weight:600; border:1px solid var(--border); background:#fff; color:var(--muted); border-radius:100px; padding:6px 14px; cursor:pointer; }
+  .plc button.on { background:var(--purple-bg); color:var(--purple-tx); border-color:transparent; }
+
+  .callout { margin-top:30px; background:#fff; border:1px solid var(--border); border-radius:14px; padding:18px 22px; }
+  .callout h3 { font-family:'Poppins',sans-serif; font-size:15px; margin:0 0 10px; }
+  .callout ul { margin:0; padding-left:18px; }
+  .callout li { font-size:13px; color:var(--fg); line-height:1.7; margin-bottom:4px; }
+  .callout li b { color:var(--purple-tx); }
+  code { font-family:ui-monospace,monospace; font-size:.92em; background:#f2f2f8; padding:1px 5px; border-radius:4px; }
+
+  .spin { display:inline-block; width:13px; height:13px; border:2px solid rgba(123,108,240,.35); border-top-color:var(--purple); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← mockups</a>
+  <h1>S10b — AI assist: your words, or let AI help</h1>
+  <p class="lede">
+    Every one of these is a field you <b>write yourself</b> — AI is a helper on tap, never the only path.
+    Accept flow is <b>Option A (review before apply)</b>. Each card below uses the field's <b>real placeholder</b>.
+    Flip the <b>Empty / I've written something</b> toggle to watch the affordance adapt, then click ✨.
+  </p>
+
+  <!-- ============ PART 1 ============ -->
+  <div class="sec">
+    <h2>1 · The blended field, on the real fields</h2>
+    <p>The three framings we agreed on, live: <span class="num">(a)</span> adaptive label — <b>“Write this for me”</b>
+       when empty vs <b>“Polish my note”</b> once you've written; <span class="num">(b)</span> a “write your own, or ✨ let AI help”
+       hint on the empty state; <span class="num">(c)</span> the review box shows <b>your note vs. the reworded draft</b> for the polish case.</p>
+  </div>
+
+  <div class="grid" id="grid1"></div>
+
+  <!-- ============ PART 2 ============ -->
+  <div class="sec">
+    <h2>2 · The letter (Tiptap) — same blend, plus ✨ placement</h2>
+    <p>The letter body is a rich-text block, so its empty state isn't a placeholder — it's a tap-to-edit line we extend with
+       <b>“…or ✨ let AI draft it.”</b> Still deciding where ✨ lives: <b>in the format toolbar</b> that appears while editing, or an
+       <b>inline pill</b>. Toggle to compare; click ✨ to draft.</p>
+  </div>
+
+  <div class="fc" style="max-width:640px; margin:0 auto;">
+    <div class="stog">
+      <button class="on" onclick="setLetter('empty')">Empty</button>
+      <button onclick="setLetter('filled')">I've written something</button>
+    </div>
+    <div class="plc">
+      <button class="on" id="plcTool" onclick="setPlacement('tool')">✨ in the toolbar</button>
+      <button id="plcInline" onclick="setPlacement('inline')">✨ inline pill</button>
+    </div>
+
+    <div class="letter">
+      <div class="eyebrow">A Letter to You</div>
+      <div class="ltitle">To our darling Lily</div>
+      <div class="lhr"><span class="l"></span>♥<span class="l"></span></div>
+      <div class="lbody empty" id="lbody">Tap to write your letter… &nbsp;—&nbsp; or ✨ let AI draft it</div>
+      <div class="lsign">With all our love, Mum &amp; Dad</div>
+    </div>
+
+    <div class="ftbar" id="tbarTool">
+      <button><b>B</b></button><button><i>I</i></button>
+      <span class="sep"></span>
+      <button>⯇</button><button>≡</button><button>⯈</button>
+      <span class="sep"></span>
+      <button>S</button><button>M</button><button>L</button>
+      <span class="sep"></span>
+      <button class="sparkbtn" onclick="draftLetter()"><span id="ltoolIc">✨</span> <span id="ltoolLb">Write</span></button>
+    </div>
+    <div class="assist hidden" id="tbarInline" style="justify-content:center; margin-top:12px;">
+      <button class="spark" onclick="draftLetter()"><span id="linIc">✨</span> <span id="linLb">Write this letter for me</span></button>
+      <span class="hint">1 credit · <b>12</b> left</span>
+    </div>
+
+    <div class="draft hidden" id="ldraft" style="max-width:none;">
+      <div class="cmp"><div class="box ai"><span class="cap">✨ Suggested letter</span><span id="ldrafttext"></span></div></div>
+      <div class="chips">
+        <button class="chip" onclick="draftLetter()"><span class="p">↻</span>Shorter</button>
+        <button class="chip" onclick="draftLetter()"><span class="p">↻</span>Warmer</button>
+        <button class="chip" onclick="draftLetter()"><span class="p">↻</span>More detail</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" onclick="useLetter()">Use &amp; edit</button>
+        <button class="btn subtle" onclick="document.getElementById('ldraft').classList.add('hidden')">Discard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PART 3 ============ -->
+  <div class="sec">
+    <h2>3 · Extra ideas to make “write your own OR generate” obvious</h2>
+    <p>Optional patterns on top of Part 1. Each is cheap and reinforces that manual is first-class. Tell me which to keep.</p>
+  </div>
+
+  <div class="grid">
+    <!-- idea A: how to start -->
+    <div class="fc">
+      <span class="ctx">Idea A · empty-state split</span>
+      <span class="file">“How do you want to start?”</span>
+      <label class="lbl" style="margin-top:6px;">Journal entry</label>
+      <textarea placeholder="Today was special..." style="min-height:60px;"></textarea>
+      <div class="split">
+        <button onclick="this.closest('.fc').querySelector('textarea').focus()">
+          <span class="t">✍️ Write it myself</span><span class="s">Just start typing</span>
+        </button>
+        <button class="ai" onclick="alert('→ AI drafts, then Option A review')">
+          <span class="t">✨ Help me write it</span><span class="s">1 credit · 12 left</span>
+        </button>
+      </div>
+      <p class="hint" style="margin-top:9px;">Two co-equal doors on a blank field — AI isn't hidden behind a small pill, but manual is still the plain default.</p>
+    </div>
+
+    <!-- idea B: reshape chips -->
+    <div class="fc">
+      <span class="ctx">Idea B · reshape chips</span>
+      <span class="file">steer the draft</span>
+      <p class="hint" style="margin:6px 0 10px;">After a draft, quick modifiers turn one-shot AI into a back-and-forth you control.</p>
+      <div class="draft" style="margin-top:0;">
+        <div class="cmp"><div class="box ai"><span class="cap">✨ Suggested draft</span>The morning you arrived it was raining, and your dad paced the hall until the nurse finally called us in.</div></div>
+        <div class="chips">
+          <button class="chip"><span class="p">↻</span>Shorter</button>
+          <button class="chip"><span class="p">↻</span>Warmer</button>
+          <button class="chip"><span class="p">↻</span>More detail</button>
+          <button class="chip"><span class="p">↻</span>Simpler</button>
+        </div>
+        <div class="row"><button class="btn primary">Use &amp; edit</button><button class="btn subtle">Discard</button></div>
+      </div>
+    </div>
+
+    <!-- idea C: recede + out of credits -->
+    <div class="fc">
+      <span class="ctx">Idea C · AI recedes once you write</span>
+      <span class="file">+ out-of-credits</span>
+      <label class="lbl" style="margin-top:6px;">Bump diary note</label>
+      <textarea style="min-height:60px;">felt the first real kick last night while watching tv, took my breath away</textarea>
+      <div class="assist">
+        <button class="spark recede">✨ polish this</button>
+      </div>
+      <p class="hint" style="margin:2px 0 12px;">Once there are words, ✨ shrinks to a quiet link so it never nags over what you wrote.</p>
+      <div class="oocc">
+        You're out of AI credits.
+        <button class="buy">Get 20 credits · $2</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <h3>Wiring plan (after you pick placement)</h3>
+    <ul>
+      <li><b>Refactor first:</b> a <code>useAiCredits()</code> context owns the balance + spend-sync + out-of-credits hook; re-point the existing First Times field at it (parity), then wire the rest with no prop-drilling.</li>
+      <li><b>Fields:</b> person bio · birth note · bump note · letter body (Tiptap round-trip) · journal.</li>
+      <li><b>Journal</b> needs a new backend <code>journal</code> promptType in <code>AiAssistService.PROMPTS</code> (re-add — it was reverted last session).</li>
+      <li><b>Component:</b> the adaptive label + empty-hint + “Use &amp; edit” + review-box compare all live in one shared <code>AiAssistField</code>, so every field drops in the same way.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const FIELDS = [
+    { id:'journal', ctx:'Journal entry', file:'MemoriesTab.jsx:177', label:'Story',
+      placeholder:'Today was special...',
+      filled:"went to the park today and she saw a dog and laughed SO hard",
+      aiEmpty:"Today was one of those ordinary days that somehow felt like everything — the kind we'll want to remember.",
+      aiPolish:"We went to the park today, and the second Lily spotted a fluffy dog she burst into the biggest belly laugh — the kind that makes strangers smile." },
+    { id:'bump', ctx:'Bump diary', file:'BumpDiary.jsx:109', label:'This week',
+      placeholder:'How are you feeling? What happened this week?',
+      filled:"felt the first real kick last night while watching tv, took my breath away",
+      aiEmpty:"This week you made yourself known in the quietest, most wonderful way — and we felt it.",
+      aiPolish:"Last night, curled up in front of the TV, we felt your first real kick — a tiny flutter that stopped us mid-sentence and took our breath away." },
+    { id:'bio', ctx:'Person bio', file:'FamilyRosterPopup.jsx:299', label:'What makes Grandma Jo special',
+      placeholder:'What makes them special…',
+      filled:"bakes the best cookies, always has a story ready",
+      aiEmpty:"Someone whose warmth fills a room the moment they walk in.",
+      aiPolish:"Grandma Jo bakes the best cookies you'll ever taste and always has a story ready — the kind of grandmother whose kitchen is everyone's favourite place." },
+    { id:'birth', ctx:'Birth note', file:'ProfileEditModal.jsx:269', label:"Lily's birth-day note",
+      placeholder:'The morning you arrived it was raining, and your dad…',
+      filled:"born early morning, raining outside, everyone cried happy tears",
+      aiEmpty:"The day you arrived, the whole world seemed to hold its breath for you.",
+      aiPolish:"You arrived in the early morning with the rain tapping at the windows, and the moment we heard you cry, every one of us cried too — happy tears, all of them." },
+  ];
+
+  function hintEmpty(f){ return 'Write your own, or <span class="em">✨ let AI help</span> · 1 credit'; }
+  function hintFilled(){ return '<span class="em">✨ reworks what you wrote</span> · 1 credit · <b>12</b> left'; }
+
+  function card(f){
+    return `<div class="fc" data-id="${f.id}">
+      <span class="ctx">${f.ctx}</span><span class="file">${f.file}</span>
+      <div class="stog">
+        <button class="on" onclick="setState('${f.id}','empty')">Empty</button>
+        <button onclick="setState('${f.id}','filled')">I've written something</button>
+      </div>
+      <label class="lbl">${f.label}</label>
+      <textarea id="ta-${f.id}" placeholder="${f.placeholder}"></textarea>
+      <div class="assist">
+        <button class="spark" id="sp-${f.id}" onclick="assist('${f.id}')"><span class="ic">✨</span> <span class="lb">Write this for me</span></button>
+        <span class="hint" id="hint-${f.id}">${hintEmpty(f)}</span>
+      </div>
+      <div id="draft-${f.id}"></div>
+    </div>`;
+  }
+
+  function byId(id){ return FIELDS.find(f=>f.id===id); }
+  function setState(id, state){
+    const f=byId(id), ta=document.getElementById('ta-'+id), fc=document.querySelector(`.fc[data-id="${id}"]`);
+    fc.querySelectorAll('.stog button').forEach((b,i)=>b.classList.toggle('on', (i===0)===(state==='empty')));
+    ta.classList.remove('applied');
+    ta.value = state==='filled' ? f.filled : '';
+    const filled = state==='filled';
+    fc.querySelector('.lb').textContent = filled ? 'Polish my note' : 'Write this for me';
+    document.getElementById('hint-'+id).innerHTML = filled ? hintFilled() : hintEmpty(f);
+    document.getElementById('draft-'+id).innerHTML='';
+  }
+
+  function assist(id){
+    const f=byId(id), ta=document.getElementById('ta-'+id), sp=document.getElementById('sp-'+id);
+    const filled = ta.value.trim().length>0;
+    sp.disabled=true; sp.querySelector('.ic').innerHTML='<span class="spin"></span>'; sp.querySelector('.lb').textContent='Writing…';
+    setTimeout(()=>{
+      sp.disabled=false; sp.querySelector('.ic').textContent='✨';
+      sp.querySelector('.lb').textContent = filled ? 'Polish my note' : 'Write this for me';
+      const ai = filled ? f.aiPolish : f.aiEmpty;
+      const yours = filled ? `<div class="box yours"><span class="cap">Your note</span>${escapeHtml(ta.value)}</div>` : '';
+      document.getElementById('draft-'+id).innerHTML = `
+        <div class="draft">
+          <div class="cmp">${yours}<div class="box ai"><span class="cap">✨ ${filled?'Reworded':'Suggested draft'}</span><span class="atext">${ai}</span></div></div>
+          <div class="chips">
+            <button class="chip" onclick="assist('${id}')"><span class="p">↻</span>Shorter</button>
+            <button class="chip" onclick="assist('${id}')"><span class="p">↻</span>Warmer</button>
+            <button class="chip" onclick="assist('${id}')"><span class="p">↻</span>More detail</button>
+          </div>
+          <div class="row">
+            <button class="btn primary" onclick="useDraft('${id}')">Use &amp; edit</button>
+            <button class="btn subtle" onclick="document.getElementById('draft-${id}').innerHTML=''">Discard</button>
+          </div>
+        </div>`;
+    }, 720);
+  }
+  function useDraft(id){
+    const ta=document.getElementById('ta-'+id);
+    ta.value = document.querySelector(`#draft-${id} .atext`).textContent;
+    ta.classList.add('applied');
+    document.getElementById('draft-'+id).innerHTML='';
+    // now that there are words, flip to polish mode
+    const fc=document.querySelector(`.fc[data-id="${id}"]`);
+    fc.querySelector('.lb').textContent='Polish my note';
+    document.getElementById('hint-'+id).innerHTML=hintFilled();
+  }
+  function escapeHtml(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  document.getElementById('grid1').innerHTML = FIELDS.map(card).join('');
+
+  // ---- letter ----
+  const LETTER = "Dearest Lily,\nFrom the moment you arrived you turned our world upside down in the best possible way. Every yawn, every tiny grip of your hand, has undone us completely. We can't wait to watch you grow — and we'll be here, cheering, for all of it.";
+  let letterFilled=false;
+  function setLetter(state){
+    letterFilled = state==='filled';
+    document.querySelectorAll('.fc .stog button')[0]; // no-op guard
+    const btns=document.querySelector('.letter').closest('.fc').querySelectorAll('.stog button');
+    btns.forEach((b,i)=>b.classList.toggle('on',(i===0)===(state==='empty')));
+    const b=document.getElementById('lbody');
+    if(letterFilled){ b.classList.remove('empty'); b.textContent="from the day you arrived you've been the best kind of chaos, we love you more than words"; }
+    else { b.classList.add('empty'); b.innerHTML="Tap to write your letter… &nbsp;—&nbsp; or ✨ let AI draft it"; }
+    document.getElementById('ltoolLb').textContent = letterFilled ? 'Polish' : 'Write';
+    document.getElementById('linLb').textContent = letterFilled ? 'Polish this letter' : 'Write this letter for me';
+    document.getElementById('ldraft').classList.add('hidden');
+  }
+  function setPlacement(mode){
+    const tool=mode==='tool';
+    document.getElementById('plcTool').classList.toggle('on',tool);
+    document.getElementById('plcInline').classList.toggle('on',!tool);
+    document.getElementById('tbarTool').classList.toggle('hidden',!tool);
+    document.getElementById('tbarInline').classList.toggle('hidden',tool);
+  }
+  function draftLetter(){
+    ['ltoolIc','linIc'].forEach(i=>document.getElementById(i).innerHTML='<span class="spin"></span>');
+    setTimeout(()=>{
+      document.getElementById('ltoolIc').textContent='✨'; document.getElementById('linIc').textContent='✨';
+      document.getElementById('ldrafttext').textContent=LETTER;
+      document.getElementById('ldraft').classList.remove('hidden');
+    },780);
+  }
+  function useLetter(){
+    const b=document.getElementById('lbody'); b.classList.remove('empty'); b.textContent=LETTER;
+    document.getElementById('ldraft').classList.add('hidden');
+  }
+</script>
+</body>
+</html>

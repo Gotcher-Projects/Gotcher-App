@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingButton } from "@/components/ui/LoadingButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Moon, Sun, Trash2 } from "lucide-react";
-import { fmtDuration } from "@/lib/formatting";
+import { fmtDuration, formatDate } from "@/lib/formatting";
 
 export default function SleepTab({ logs, onAdd, onDelete, onError }) {
   const [form, setForm] = useState({ type: 'nap', date: '', startTime: '', endTime: '', notes: '' });
@@ -136,7 +136,7 @@ export default function SleepTab({ logs, onAdd, onDelete, onError }) {
             const dayLogs = logs.filter(l =>
               new Date(l.startedAt).toISOString().slice(0, 10) === date
             );
-            const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const dateLabel = formatDate(date, { style: 'short', withYear: false });
             return (
               <Card key={date} className="shadow-md rounded-2xl">
                 <CardContent className="p-5">

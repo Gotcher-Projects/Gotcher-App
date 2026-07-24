@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Branch Code Review — pregnancy-updates</title>
+<style>
+  :root {
+    --bg: #fbf9f5;
+    --card: #ffffff;
+    --ink: #2c2620;
+    --muted: #6b6255;
+    --line: #e7e0d4;
+    --accent: #9b7e5a;
+    --accent-soft: #f3ede1;
+    --red: #c0392b;
+    --amber: #b8860b;
+    --green: #4a7a4a;
+    --blue: #3a6ea5;
+    --code-bg: #f5f1e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 24px 80px; }
+  header.hero {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  header.hero h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.5px; }
+  header.hero .sub { color: var(--muted); font-size: 15px; }
+  header.hero .meta { margin-top: 14px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 16px; }
+  header.hero .meta b { color: var(--ink); font-weight: 600; }
+
+  h2.section {
+    font-size: 22px;
+    margin: 44px 0 4px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2.section .pill { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+  .pill.done { background: #e6f0e6; color: var(--green); border: 1px solid #cfe2cf; }
+  .pill.pending { background: #f3ede1; color: var(--muted); border: 1px solid var(--line); }
+  .pill.progress { background: #fdf3d8; color: var(--amber); border: 1px solid #efe0b0; }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  p.lead { color: var(--muted); margin: 6px 0 18px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 16px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td code, p code, li code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+
+  .sev { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .sev.remove { background: #fdeceb; color: var(--red); }
+  .sev.decide { background: #fdf3d8; color: var(--amber); }
+  .sev.info { background: #eaf1f8; color: var(--blue); }
+
+  .finding { border-left: 4px solid var(--line); padding: 4px 0 4px 16px; margin: 18px 0; }
+  .finding.remove { border-color: var(--red); }
+  .finding.decide { border-color: var(--amber); }
+  .finding.info { border-color: var(--blue); }
+  .finding h4 { margin: 0 0 4px; font-size: 15.5px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .finding .loc { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .finding p { margin: 6px 0; }
+  .finding .rec { background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin-top: 8px; }
+  .finding .rec b { color: var(--accent); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .muted { color: var(--muted); }
+  .note { background: #fffaf0; border: 1px solid #efe0b0; border-radius: 8px; padding: 12px 16px; font-size: 14px; margin: 14px 0; }
+  ul.tight { margin: 8px 0; padding-left: 22px; }
+  ul.tight li { margin: 4px 0; }
+  footer { margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Branch Code Review — <code style="font-size:24px">pregnancy-updates</code></h1>
+  <div class="sub">In-depth review of the storybook + pregnancy work on this branch. Findings only — no code has been changed.</div>
+  <div class="meta">
+    <span><b>Scope:</b> branch diff vs <code>main</code> (~8.3k LOC of source)</span>
+    <span><b>Merge base:</b> <code>7a9978f</code></span>
+    <span><b>Generated:</b> 2026-06-19</span>
+    <span><b>Reviewer:</b> Claude (Opus 4.8)</span>
+  </div>
+</header>
+
+<div class="card">
+  <h3 style="margin-top:0">How this review is organised</h3>
+  <p class="lead" style="margin-bottom:10px">
+    This is a <b>living document</b>. The review runs as five focused passes, one per working session, so each
+    pass can be thorough rather than rushed. Each completed pass is appended below.
+  </p>
+  <table>
+    <thead><tr><th style="width:42px">#</th><th>Pass</th><th style="width:120px">Status</th><th>Summary</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Dead code</b></td><td><span class="pill done">Complete</span></td><td>Unused files, props, fields, and unreachable branches.</td></tr>
+      <tr><td>2</td><td><b>Duplicated code → utilities</b></td><td><span class="pill done">Complete</span></td><td>Repeated logic to extract into shared helpers.</td></tr>
+      <tr><td>3</td><td><b>Missing test coverage</b></td><td><span class="pill done">Complete</span></td><td>Untested logic + proposed new tests.</td></tr>
+      <tr><td>4</td><td><b>Documentation gaps</b></td><td><span class="pill done">Complete</span></td><td>Arch docs / inline comments / CLAUDE.md additions.</td></tr>
+      <tr><td>5</td><td><b>General improvements</b></td><td><span class="pill done">Complete</span></td><td>Error handling, security, performance, consistency, a11y.</td></tr>
+    </tbody>
+  </table>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--red)"></span> <b>Remove</b> — safe to delete now</span>
+    <span><span class="dot" style="background:var(--amber)"></span> <b>Decide</b> — reserved/deferred; needs a keep-or-cut call</span>
+    <span><span class="dot" style="background:var(--blue)"></span> <b>Info</b> — minor / vestigial, low urgency</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════ PASS 1 ════════════════════════════ -->
+<h2 class="section">Pass 1 — Dead Code <span class="pill done">Complete</span></h2>
+<p class="lead">
+  Every changed source file (frontend components + lib, backend storybook package, touched tabs) was read in full and
+  each exported/declared symbol was traced for references. Findings are grouped by confidence.
+  <b>Headline:</b> two whole files are unused, a sizeable backend surface (share + unlock) has no caller yet,
+  and several props/fields are dead.
+</p>
+
+<h3>A. Confirmed dead — safe to remove</h3>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Unused component file: <code>PaidGate.jsx</code></h4>
+  <div class="loc">Frontend/src/components/ui/PaidGate.jsx</div>
+  <p>
+    The whole file is unused — <code>PaidGate</code> is never imported anywhere (grep across <code>src</code> returns only
+    the definition). The actual paywall is implemented inline in <code>StorybookTab.jsx</code> (the amber "upgrade to Plus"
+    banner) and in <code>StorybookWizard.jsx</code> (the <code>isPaid</code> checks), so this component duplicates an idea
+    that already lives elsewhere.
+  </p>
+  <div class="rec"><b>Recommendation:</b> delete the file. If you want a reusable paywall later, Pass 2 will note the inline
+    paywall copy as an extraction candidate.</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Unused record: <code>StorybookChapter.java</code></h4>
+  <div class="loc">Backend/src/main/java/com/gotcherapp/api/storybook/StorybookChapter.java</div>
+  <p>
+    This 14-field record is never referenced. <code>StorybookService</code> reads rows as raw
+    <code>Map&lt;String,Object&gt;</code> and maps straight to <code>ChapterResponse</code> via <code>mapRow()</code>;
+    nothing constructs or consumes a <code>StorybookChapter</code>. It also drifts from the real schema (it lacks
+    <code>image_url</code>, <code>layout_data</code>, <code>generated_content</code>, etc.), so leaving it invites confusion.
+  </p>
+  <div class="rec"><b>Recommendation:</b> delete the file.</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Dead props on <code>MomentHeroCanvas</code>: <code>selectedSource</code>, <code>onFontChange</code></h4>
+  <div class="loc">Frontend/src/components/storybook/MomentHeroCanvas.jsx:67,71 &nbsp;·&nbsp; call site ScrapbookBuilder.jsx:1129,1132</div>
+  <p>
+    Both props are destructured in the component signature but never referenced in the body — MomentHero has no font
+    picker and no click-to-place "armed" highlight. <code>ScrapbookBuilder</code> still passes
+    <code>selectedSource={selectedSource}</code> and <code>onFontChange={handleFontChange}</code> into it.
+  </p>
+  <div class="rec"><b>Recommendation:</b> remove both from the destructure and from the call site. (<code>handleFontChange</code>
+    itself stays — it's still used by the generic <code>Slot</code> renderer.)</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Dead prop chain: <code>onNavigate</code> into <code>StorybookTab</code></h4>
+  <div class="loc">Frontend/src/components/tabs/StorybookTab.jsx:23 &nbsp;·&nbsp; MemoriesTab.jsx:79–85 &nbsp;·&nbsp; CradleHq.jsx:771–776</div>
+  <p>
+    <code>StorybookTab</code> destructures <code>onNavigate</code> but never calls it (it no longer renders the
+    milestone/first-time cross-links that used to use it). Because of that, the wrapper <code>MemoriesTab</code> builds
+    around it (the <code>'firsts'</code> vs <code>onNavigate?.(target)</code> switch) and the
+    <code>'health-milestones'</code> handler <code>CradleHq</code> passes down are <b>all unreachable</b>.
+  </p>
+  <div class="rec"><b>Recommendation:</b> drop <code>onNavigate</code> from <code>StorybookTab</code>. Then either remove the
+    whole chain, or — if cross-tab navigation is still wanted — re-wire it (this is a small product decision, not just cleanup).</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Unreachable branch: no-groups page generation</h4>
+  <div class="loc">CradleHq.jsx:398 <code>wizardGeneratePages</code> &nbsp;·&nbsp; StorybookTab.jsx:65–67 (<code>else</code> branch)</div>
+  <p>
+    <code>StorybookTab.handleGeneratePages</code> only calls the <code>onGeneratePages(chapterId)</code> prop in its
+    <code>else</code> (no-groups) branch. But the single caller — <code>StorybookWizard.runGenerateFirst</code> — always
+    passes a groups array (<code>autoSuggestGroups(...).filter(...)</code> is always truthy), so the <code>if (groups)</code>
+    branch always wins. The <code>else</code> branch, and the <code>wizardGeneratePages</code> function it delegates to, are
+    never executed.
+  </p>
+  <div class="rec"><b>Recommendation:</b> remove the <code>else</code> branch and <code>wizardGeneratePages</code>, or
+    consolidate so there's one code path. Low risk.</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE</span> Dead request field: <code>WizardRequest.skipGeneration</code></h4>
+  <div class="loc">Backend dto/WizardRequest.java:16 &nbsp;·&nbsp; sent from StorybookWizard.jsx:185 (buildPayload)</div>
+  <p>
+    The client always sends <code>skipGeneration: true</code>, but <code>StorybookService.wizard()</code> never reads
+    <code>req.skipGeneration()</code>. It's a no-op field on both ends.
+  </p>
+  <div class="rec"><b>Recommendation:</b> remove the field from the DTO and from <code>buildPayload()</code>.</div>
+</div>
+
+<h3>B. Reserved / deferred — needs a keep-or-cut decision</h3>
+<div class="note">
+  These are not <em>accidental</em> dead code — they're a complete backend feature surface with no frontend caller yet.
+  Your memory notes the share-link work was explicitly deferred (<code>plans/storybook/sDeferred-share-link.md</code>).
+  The choice is: <b>keep</b> (and document as "reserved, not yet wired") or <b>remove</b> until the feature resumes so the
+  codebase reflects what actually ships.
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">REMOVE — decided</span> Book sharing endpoints — stale, needs a full redo</h4>
+  <div class="loc">StorybookController.java:143–168 &nbsp;·&nbsp; StorybookService.java:425–496, 600–601 &nbsp;·&nbsp; migration V25</div>
+  <p>
+    <code>GET/DELETE /storybook/share</code> and the public <code>GET /book/public/{token}</code> exist
+    (<code>getOrCreateShareToken</code>, <code>revokeShareToken</code>, <code>getPublicBook</code>,
+    <code>generateSecureToken</code>, <code>extractFirstName</code>, the <code>PublicBookResponse</code>/<code>PublicChapter</code>
+    records). But the feature is <b>not just unwired — it's stale</b>:
+  </p>
+  <ul class="tight">
+    <li><b>No frontend at all</b> — no share button, no public viewer, no route (grep finds nothing).</li>
+    <li><b>Serves the wrong data.</b> <code>getPublicBook</code> returns each chapter's legacy <code>body</code> text
+        (StorybookService.java:466–477). Every chapter on this branch stores content in <code>layout_data</code> (v2 pages),
+        so a public viewer would render empty/text-only for modern scrapbook chapters. The path predates the layout rewrite.</li>
+  </ul>
+  <p>
+    <b>Decision (confirmed with you): remove it.</b> When sharing is built for real, <code>getPublicBook</code> has to be
+    rewritten to emit <code>layoutData</code> and a public renderer built from scratch regardless — so almost nothing here
+    is reusable.
+  </p>
+  <div class="rec"><b>Recommendation:</b> delete the two controller share endpoints + the public endpoint, the five service
+    methods, and the <code>PublicBookResponse</code>/<code>PublicChapter</code> records. <b>Keep migration V25</b>
+    (<code>book_share_tokens</code>) — it's the one durable piece and a migration recreates it in minutes when the feature
+    resumes. (~90 lines of untested, token-minting surface removed.)</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">DECIDE</span> <code>/storybook/unlock</code> endpoint — superseded by the period wizard</h4>
+  <div class="loc">StorybookController.java:50–61 &nbsp;·&nbsp; StorybookService.java:75–126 &nbsp;·&nbsp; dto/UnlockRequest.java</div>
+  <p>
+    <code>unlock()</code> + <code>validateUnlockRequest()</code> + the <code>UnlockRequest</code> DTO support
+    <code>milestone</code> / <code>first_time</code> / <code>period</code> anchor types, but the current frontend only
+    creates <em>period</em> chapters through <code>/storybook/wizard</code>. No frontend code calls
+    <code>/storybook/unlock</code>. This looks like leftover scaffolding from the earlier milestone/first-time chapter model.
+  </p>
+  <div class="rec"><b>Recommendation:</b> confirm milestone/first-time chapters are off the table, then remove the endpoint,
+    service method, validator, and DTO. If they're coming back, leave a comment saying so.</div>
+</div>
+
+<h3>C. Vestigial data — low urgency</h3>
+
+<div class="finding info">
+  <h4><span class="sev info">INFO</span> <code>ChapterResponse.generatedAt</code> is never written</h4>
+  <div class="loc">ChapterResponse.java:17 &nbsp;·&nbsp; column <code>generated_at</code></div>
+  <p>The <code>generated_at</code> column is selected and mapped but no code ever sets it (page generation writes
+    <code>generated_content</code>, not <code>generated_at</code>). The field is always <code>null</code> on the wire.</p>
+  <div class="rec"><b>Recommendation:</b> either start stamping it when pages generate (useful for "last generated" UI), or drop
+    the column/field. No action required for correctness.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">INFO</span> <code>WizardRequest.supplementaryNotes</code> always null from this client</h4>
+  <div class="loc">StorybookWizard.jsx:182 (buildPayload) &nbsp;·&nbsp; stored at StorybookService.java:161,171</div>
+  <p>The backend stores it, but <code>buildPayload()</code> hard-codes <code>supplementaryNotes: null</code> — there's no UI
+    that populates it. Not dead code (it's persisted), but currently dead <em>data</em>.</p>
+  <div class="rec"><b>Recommendation:</b> leave as-is if a "notes for the whole chapter" field is planned; otherwise remove to
+    reduce surface. (Lower priority than the items above.)</div>
+</div>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Pass 1 — what's clean</h3>
+  <p class="muted" style="margin-bottom:8px">For confidence, these were checked and found fully used (no dead code):</p>
+  <ul class="tight muted">
+    <li>All <code>lib/</code> exports — <code>storybookGrouping</code>, <code>storybookTemplates</code>, <code>bookCanvas</code>
+        (<code>injectDropCap</code>, <code>FONT_OPTIONS</code>, <code>REVERSE_FONT_MAP</code>), <code>tiptap</code>,
+        <code>fitText</code>, <code>pregnancy</code>, <code>pregnancySizes</code>, <code>bumpDiary</code>,
+        <code>twemoji</code>, <code>camera</code>, <code>bookThemes</code>, <code>storybookPeriods</code> — all referenced.</li>
+    <li>Pregnancy components (<code>PregnancyHome/Shell</code>, <code>BumpCard</code>, <code>BumpDiary</code>) — all wired and reachable.</li>
+    <li>The small touched tabs (<code>DashboardTab</code>, <code>DiaperTab</code>, <code>FeedingTab</code>, <code>dialog.jsx</code>)
+        are pure responsive-CSS tweaks — no logic dead code.</li>
+    <li><code>auth.js</code> changes are functional (persist user on <code>validateSession</code>).</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════ PASS 2 ════════════════════════════ -->
+<h2 class="section">Pass 2 — Duplicated Code → Utilities <span class="pill done">Complete</span></h2>
+<p class="lead">
+  Twelve duplication clusters across the branch, each with a concrete extraction. Badge colour = priority:
+  <span class="sev remove">HIGH</span> (correctness risk or 4+ copies) ·
+  <span class="sev decide">MED</span> (clear win, moderate spread) ·
+  <span class="sev info">LOW</span> (nice-to-have). The two HIGH items are worth doing first because they're
+  <em>divergence</em> risks — copies that can silently drift apart.
+</p>
+
+<h3>High priority</h3>
+
+<div class="finding remove">
+  <h4><span class="sev remove">HIGH</span> <code>toTiptapDoc</code> implemented twice</h4>
+  <div class="loc">lib/tiptap.js:77 (canonical) &nbsp;vs&nbsp; lib/storybookGrouping.js:162–174 (private copy)</div>
+  <p>
+    <code>storybookGrouping.js</code> defines its own <code>toTiptapDoc</code> that overlaps the exported one in
+    <code>tiptap.js</code>. They aren't identical — the private copy splits on <code>\n{2,}</code> and emits an empty
+    paragraph for blank input, while the canonical one routes through <code>stringToTiptapDoc</code>. Two functions named
+    the same producing slightly different Tiptap JSON is exactly how the renderer and the builder end up disagreeing.
+  </p>
+  <div class="rec"><b>Extract:</b> delete the private copy; <code>import { toTiptapDoc } from '@/lib/tiptap'</code>. Verify the
+    output shape matches what <code>buildGroupedLayoutData</code> expects (a quick test, see Pass 3).</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">HIGH</span> Body-cleanup regex copied in 3 places</h4>
+  <div class="loc">ScrapbookBuilder.jsx:35–37 (<code>cleanBody</code>) · storybookGrouping.js:159 (<code>extractPieceText</code>) · storybookPdf.js:273</div>
+  <p>
+    The "<code>[PHOTO:…]</code> strip + collapse blank lines + trim" cleanup is written three times — and the PDF copy is
+    <em>subtly different</em> (it strips photos and trims but skips the <code>\n{3,}→\n\n</code> collapse), so exported text
+    can differ from on-screen text. Classic drift bug.
+  </p>
+  <div class="rec"><b>Extract:</b> one <code>cleanBodyText(s)</code> in <code>lib/tiptap.js</code> (or a new
+    <code>lib/storybookText.js</code>): <code>(s||'').replace(/\[PHOTO:[^\]]+\]/g,'').replace(/\n{3,}/g,'\n\n').trim()</code>.
+    Call it from all three sites.</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">HIGH</span> Photo pick → crop → upload flow repeated 5+ times</h4>
+  <div class="loc">BumpDiary.jsx:17–57 · MemoriesTab.jsx (×4: 215–241, 305–331, 515–541, 690–716) · BookCover.jsx:38–73 · StorybookWizard.jsx:116–157</div>
+  <p>
+    The same two patterns recur all over. (1) <b>Pick UI:</b> <code>pickPhoto()</code> → on null fall back to a hidden
+    <code>&lt;input type=file&gt;</code> → <code>openCropModal</code> → store <code>{blob, orientation}</code>, with a
+    <code>cancelCropRef</code> cleanup effect. (2) <b>Upload:</b>
+    <code>const form = new FormData(); form.append('file', blob, 'photo.jpg'); const {url} = await onUpload(form)</code>.
+    <code>BumpDiary</code> already factored (1) into a local <code>PhotoPicker</code> component — that's the model; it just
+    needs to be lifted to a shared location and the other four call sites switched to it.
+  </p>
+  <div class="rec"><b>Extract two things:</b>
+    a shared <code>&lt;PhotoPickerButton onPicked={({blob,orientation})=&gt;…}&gt;</code> in
+    <code>components/ui/</code> (generalise BumpDiary's), and a tiny
+    <code>uploadCroppedPhoto(onUpload, blob) → url</code> helper in <code>lib/imageUtils.jsx</code>. This is the single
+    biggest dedupe on the branch (~5 components, ~120 lines).</div>
+</div>
+
+<h3>Medium priority</h3>
+
+<div class="finding decide">
+  <h4><span class="sev decide">MED</span> Virtual-canvas constants re-declared in the PDF module</h4>
+  <div class="loc">storybookPdf.js:9–10 &nbsp;vs&nbsp; bookCanvas.jsx:32–33</div>
+  <p>
+    <code>CANVAS_W = 600 / CANVAS_H = 800</code> are redefined locally — the comment even says
+    "<em>must match LayoutRenderer constants</em>", which is a self-documented drift hazard. If the canvas size ever changes
+    in <code>bookCanvas</code>, the PDF silently renders at the wrong scale.
+  </p>
+  <div class="rec"><b>Extract:</b> <code>import { CANVAS_W, CANVAS_H } from '@/lib/bookCanvas'</code> in <code>storybookPdf.js</code>.</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">MED</span> Off-screen <code>html2canvas</code> capture boilerplate ×3</h4>
+  <div class="loc">storybookPdf.js: captureComponent (34–83) · captureCoverElement (165–186) · inline classic-chapter (280–288)</div>
+  <p>
+    Three copies of: append element to <code>body</code> → <code>await document.fonts.ready</code> → wait for all
+    <code>&lt;img&gt;</code> to load → <code>html2canvas(el, {useCORS, scale:2, width, height, backgroundColor, …})</code> →
+    <code>toDataURL('image/jpeg', 0.92)</code> → remove element. The options object and the image-settle logic are repeated
+    verbatim.
+  </p>
+  <div class="rec"><b>Extract:</b> <code>async function captureElement(el, bgColor)</code> (mount + settle + capture + cleanup)
+    inside <code>storybookPdf.js</code>; the three callers just build their element and call it.</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">MED</span> Canvas scale-to-fit hook duplicated</h4>
+  <div class="loc">ScrapbookBuilder.jsx:581–615 &nbsp;vs&nbsp; LayoutRenderer.jsx:7–22</div>
+  <p>
+    Both set up the identical <code>containerRef</code> + <code>containerSize</code> state + <code>ResizeObserver</code> +
+    <code>scale = containerSize / CANVAS_W</code> machinery to fit the 600×800 canvas into a responsive box.
+  </p>
+  <div class="rec"><b>Extract:</b> <code>useCanvasScale(ref) → { containerSize, scale }</code> in <code>lib/bookCanvas.jsx</code>
+    (or <code>lib/fitText.js</code> alongside <code>useFittedFontSize</code>).</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">MED</span> Date formatters re-implemented ~6 times</h4>
+  <div class="loc">StorybookWizard.jsx:17 · MemoriesTab.jsx:95,600 · BumpCard.jsx:21 · PregnancyHome.jsx:127 · BookCover.jsx:15 ≈ storybookPdf.js:95</div>
+  <p>
+    Several local helpers parse a date-only string with a <code>'T12:00:00'</code> (or <code>'T00:00:00'</code>) anchor to
+    dodge the timezone-shift bug, then <code>toLocaleDateString</code> with month/day(/year). Notably the existing
+    <code>lib/formatting.js → formatEntryDate</code> uses bare <code>new Date(date)</code> — which <em>has</em> that TZ bug —
+    so the local copies are effectively bug-fixes that never made it back to the shared helper. The "born …" subtitle is even
+    duplicated between <code>BookCover</code> and <code>storybookPdf</code>.
+  </p>
+  <div class="rec"><b>Extract:</b> consolidate into <code>lib/formatting.js</code> — a TZ-safe
+    <code>formatDate(value, { style: 'long'|'short', withYear })</code>, and fix <code>formatEntryDate</code> to anchor the
+    time. Point all six sites at it.</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">MED</span> Twemoji-with-fallback image duplicated</h4>
+  <div class="loc">PregnancyHome.jsx:17–30 (<code>SizeIcon</code>) &nbsp;vs&nbsp; BumpCard.jsx:7–19 (<code>SizeEmoji</code>)</div>
+  <p>
+    Both render <code>twemojiSrc(emoji)</code> in an <code>&lt;img&gt;</code> with an <code>onError</code> that falls back to
+    the native emoji glyph. Same logic, only sizing/aria differ.
+  </p>
+  <div class="rec"><b>Extract:</b> <code>&lt;TwemojiImage emoji label className /&gt;</code> in <code>components/ui/</code>
+    (or co-located with <code>lib/twemoji.js</code>); pass size via <code>className</code>.</div>
+</div>
+
+<h3>Low priority</h3>
+
+<div class="finding info">
+  <h4><span class="sev info">LOW</span> "Cropped/stored image" render ternary repeated</h4>
+  <div class="loc">ScrapbookBuilder.jsx:421–424,538–541 · bookCanvas.jsx:117–120,164–168 · MomentHeroCanvas.jsx:99–101</div>
+  <p>The <code>block.crop ? &lt;img style={cropStyle(block.crop)}/&gt; : &lt;img class="…object-cover"/&gt;</code> pattern
+    appears in five render paths.</p>
+  <div class="rec"><b>Extract:</b> a small <code>&lt;SlotImage url crop label /&gt;</code> presentational component in
+    <code>bookCanvas.jsx</code>.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">LOW</span> Modal mount/unmount boilerplate in <code>imageUtils</code></h4>
+  <div class="loc">imageUtils.jsx: openCropModal (231–250) &nbsp;vs&nbsp; openSlotCropModal (209–229)</div>
+  <p>Both create a container div, mount a React root, define <code>close()</code>, render the modal, and return
+    <code>close</code> — identical except for which modal component renders.</p>
+  <div class="rec"><b>Extract:</b> <code>mountModal(render → element) → closeFn</code> helper; both exported openers become
+    one-liners.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">LOW</span> Inline confirm-delete UI repeated</h4>
+  <div class="loc">BumpDiary.jsx:278–297 · MemoriesTab.jsx:271–290 (and pre-existing in DiaperTab/others)</div>
+  <p>The <code>confirmDelete</code> state + "Delete? Yes / No" inline row is re-implemented per card. Several copies predate
+    this branch, so this is broader cleanup, not branch-specific.</p>
+  <div class="rec"><b>Extract (optional):</b> a <code>&lt;ConfirmDeleteButton onConfirm /&gt;</code> in <code>components/ui/</code>.
+    Lower priority since it spans pre-existing code.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">LOW</span> Font maps spread across modules</h4>
+  <div class="loc">bookCanvas.jsx:9–28 (<code>FONT_MAP</code>/<code>FONT_OPTIONS</code>/<code>REVERSE_FONT_MAP</code>) · storybookPdf.js:18–26 (<code>FONT_CLASS_MAP</code>)</div>
+  <p>The PDF module keeps its own font-class→CSS-family map because it renders to raw DOM (no Tailwind), so it's not a literal
+    duplicate of <code>FONT_MAP</code> — but the two define the same font universe in two spots, easy to fall out of sync when
+    a font is added.</p>
+  <div class="rec"><b>Extract (optional):</b> co-locate <code>FONT_CLASS_MAP</code> in <code>bookCanvas.jsx</code> next to the other
+    font tables so adding a font is a one-file change.</div>
+</div>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Suggested order if/when we implement</h3>
+  <ol class="tight">
+    <li><b>HIGH dedupes first</b> (toTiptapDoc, cleanBodyText, photo flow) — these remove real divergence bugs.</li>
+    <li><b>Then the cheap MED wins</b> (CANVAS constants import, html2canvas helper, useCanvasScale).</li>
+    <li><b>Date + Twemoji</b> consolidation (touches more files, so do once tests exist — see Pass 3).</li>
+    <li>LOW items as opportunistic cleanup.</li>
+  </ol>
+  <p class="muted" style="margin-bottom:0">Note: the photo-flow and date extractions overlap with files Pass 3 will want tests for —
+    worth adding the util test alongside the extraction.</p>
+</div>
+
+<!-- ════════════════════════════ PASS 3 ════════════════════════════ -->
+<h2 class="section">Pass 3 — Missing Test Coverage <span class="pill done">Complete</span></h2>
+<p class="lead">
+  Good news first: the <b>frontend <code>lib</code> layer is already well tested</b> on this branch
+  (grouping, templates, tiptap, pregnancy math, bump grouping, sizes, drop-cap). The real hole is the
+  <b>backend</b> — every other service has a Mockito test, but the two new packages (<code>storybook</code>,
+  <code>bump</code>) have <b>zero</b>. Badge colour = priority:
+  <span class="sev remove">P1</span> ·
+  <span class="sev decide">P2</span> ·
+  <span class="sev info">P3</span>.
+</p>
+
+<div class="note">
+  <b>Don't write tests for code we're deleting.</b> Per Pass 1, the share endpoints and <code>/storybook/unlock</code> are being
+  removed — skip <code>getPublicBook</code>, <code>generateSecureToken</code>, <code>extractFirstName</code>, <code>unlock</code>,
+  and <code>validateUnlockRequest</code>. Do the removal first, then test what remains.
+</div>
+
+<h3>Coverage snapshot</h3>
+<table>
+  <thead><tr><th>Area</th><th>Module</th><th>State</th></tr></thead>
+  <tbody>
+    <tr><td>Frontend lib</td><td>storybookGrouping, storybookTemplates, tiptap, pregnancy, pregnancySizes, bumpDiary (partial), bookCanvas (partial)</td><td>✅ Tested</td></tr>
+    <tr><td>Frontend lib</td><td><b>twemoji</b>, <b>bumpDiary.deriveWeek</b>, <b>bookCanvas.cropStyle/blockBoxStyle</b>, bookThemes, storybookPdf</td><td>❌ Gaps</td></tr>
+    <tr><td>Frontend cmp</td><td>renderSmoke covers mount; <b>ScrapbookBuilder helpers</b> (split/migrate/initPages) not unit-tested</td><td>❌ Gaps</td></tr>
+    <tr><td>Backend</td><td><b>StorybookService, StorybookController, BumpPhotoService, BumpPhotoController, ClaudeClient</b></td><td>❌ None</td></tr>
+    <tr><td>Backend</td><td>auth, baby, diaper, feeding, sleep, growth, journal, firsttimes, upload, appointments</td><td>✅ Tested</td></tr>
+  </tbody>
+</table>
+
+<h3>Priority 1 — Backend services with zero coverage</h3>
+
+<div class="finding remove">
+  <h4><span class="sev remove">P1</span> <code>StorybookServiceTest</code> — the centerpiece</h4>
+  <div class="loc">new: Backend/src/test/java/com/gotcherapp/api/storybook/StorybookServiceTest.java</div>
+  <p>Model it on <code>DiaperServiceTest</code> (mock <code>JdbcTemplate</code> + <code>BabyProfileRepository</code> with
+    <code>@ExtendWith(MockitoExtension.class)</code>). Two tiers of cases:</p>
+  <p><b>Pure helpers (no mocking — make them package-private/static and assert directly):</b></p>
+  <ul class="tight">
+    <li><code>extractJson</code> — unwraps <code>{…}</code> from prose/<code>```json</code> fences; returns <code>{}</code> for null;
+        passes through when no braces.</li>
+    <li><code>parseIdsCsv</code> / <code>serializeIds</code> — round-trip; <code>null</code> → null, <code>""</code> → empty list,
+        whitespace/empty tokens filtered.</li>
+    <li><code>parseJsonMap</code> / <code>parseJsonObject</code> / <code>parseJsonList</code> / <code>parseGeneratedContent</code>
+        — malformed JSON returns the documented fallback (<code>null</code> or <code>List.of()</code>), never throws.</li>
+  </ul>
+  <p><b>DB-backed logic (mock jdbc) — the high-value behaviour:</b></p>
+  <ul class="tight">
+    <li><code>generatePages</code> credit flow: free tier → <code>ForbiddenException</code>; no profile → Forbidden;
+        0 entries → <code>IllegalArgumentException</code>; credits &lt; entries → <code>InsufficientCreditsException</code>.</li>
+    <li><code>generatePages</code> <b>credit refund</b>: when the Claude call throws, verify
+        <code>ai_credits_remaining</code> is added back (the <code>catch</code> at line 242) — and again on JSON parse failure
+        (line 271). This is the most important behaviour to lock down (real money/credits).</li>
+    <li><code>generatePages</code> happy path: charges exactly <code>totalEntries</code>, writes <code>generated_content</code>,
+        echoes <code>sourceKey</code>s back.</li>
+    <li><code>wizard</code>: missing required fields → <code>IllegalArgumentException</code>; create branch vs. update branch
+        (existing chapter found).</li>
+    <li><code>update</code>: dynamic SET building — <code>clearLayoutData</code> → <code>layout_data = NULL</code>;
+        <code>layoutData</code> present → serialized; <code>status='published'</code> → stamps <code>published_at</code>;
+        empty patch → returns current row without an UPDATE.</li>
+  </ul>
+  <div class="rec"><b>Why first:</b> this is the largest, most logic-dense, money-touching service on the branch and has no safety net.</div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">P1</span> <code>BumpPhotoServiceTest</code></h4>
+  <div class="loc">new: Backend/src/test/java/com/gotcherapp/api/bump/BumpPhotoServiceTest.java</div>
+  <p>Direct parity with the existing <code>FirstTimeServiceTest</code> — same ownership-via-<code>baby_profile_id</code> shape:
+    list returns <code>[]</code> with no profile; create inserts &amp; maps; update applies patch; delete returns
+    <code>true/false</code> on rows-affected; any default-value logic (e.g. orientation) is exercised.</p>
+  <div class="rec"><b>Effort:</b> low — copy the FirstTime test and adjust columns.</div>
+</div>
+
+<h3>Priority 2 — Controller status mapping + frontend lib gaps</h3>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> <code>StorybookControllerTest</code> (and <code>BumpPhotoControllerTest</code>)</h4>
+  <div class="loc">model on FeedingControllerTest / GrowthControllerTest</div>
+  <p>The storybook controller has rich exception→status mapping worth pinning: <code>ForbiddenException</code> → 403,
+    <code>InsufficientCreditsException</code> → 402, <code>NoSuchElementException</code> → 404,
+    <code>IllegalArgumentException</code> → 400, anything else → 500. A regression here silently changes API contracts
+    (e.g. the frontend keys off 402/403 strings in <code>StorybookWizard.handleStartPath</code>).</p>
+  <div class="rec"><b>Test:</b> mock the service to throw each exception type; assert the HTTP status. Skip the share endpoints (being removed).</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> <code>twemoji.test.js</code></h4>
+  <div class="loc">new: Frontend/src/test/twemoji.test.js · covers lib/twemoji.js</div>
+  <p>Pure, deterministic codepoint logic that's easy to get subtly wrong:</p>
+  <ul class="tight">
+    <li><code>twemojiCode('🍌')</code> → <code>'1f34c'</code> (single codepoint).</li>
+    <li>Variation selector stripped: an emoji carrying <code>U+FE0F</code> must <b>not</b> include <code>fe0f</code> in the filename.</li>
+    <li>Multi-codepoint / ZWJ sequence → hyphen-joined hex (guards the spread-over-code-units bug).</li>
+    <li><code>twemojiSrc</code> returns <code>/images/twemoji/&lt;code&gt;.svg</code>.</li>
+  </ul>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> <code>bumpDiary.deriveWeek</code> — untested branch</h4>
+  <div class="loc">add cases to Frontend/src/test/bumpDiary.test.js</div>
+  <p><code>bumpDiary.test.js</code> covers <code>firstEmptyWeek</code> and <code>groupByWeek</code> but not <code>deriveWeek</code>
+    (the S5 Date→Week feature). Cases: <code>null</code> refDate or dateStr → <code>null</code>; invalid date string →
+    <code>null</code>; a valid date resolves to the same week <code>weeksPregnant</code> would (UTC-anchored, TZ-stable).</p>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> <code>bookCanvas.cropStyle</code> / <code>blockBoxStyle</code></h4>
+  <div class="loc">add to Frontend/src/test/bookCanvas.test.js (currently only tests injectDropCap)</div>
+  <p>Both are pure functions producing CSS objects from normalized numbers — fast to test and they underpin every rendered
+    photo. e.g. <code>cropStyle({x:0.25,y:0,width:0.5,height:1})</code> → <code>left:'-50%'</code>, <code>width:'200%'</code>;
+    <code>blockBoxStyle</code> maps normalized x/y/w/h onto the 600×800 canvas.</p>
+</div>
+
+<h3>Priority 3 — opportunistic / blocked on other work</h3>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> ScrapbookBuilder helpers — extract, then test</h4>
+  <div class="loc">ScrapbookBuilder.jsx: splitTextParts, migrateBlock, initPages, buildLayoutData (all module-private)</div>
+  <p><code>splitTextParts</code> (paragraph→sentence→word boundary splitting) and the <code>initPages</code>/<code>buildLayoutData</code>
+    v1→v2 migration round-trip have genuine branching logic but aren't exported, so they can't be unit-tested today. This pairs
+    with Pass 2 — once they move to a <code>lib</code> module, add a small test file.</p>
+  <div class="rec"><b>Order:</b> do after the Pass 2 extraction so you're not exporting just for tests.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> <code>downloadPdf</code> slug + <code>getTheme</code> fallback</h4>
+  <div class="loc">storybookPdf.js:295 · bookThemes.js:42</div>
+  <p>Tiny pure bits worth a line each: <code>downloadPdf</code>'s <code>babyName → kebab</code> slug (spaces collapsed,
+    lowercased, default <code>'storybook'</code>); <code>getTheme(key)</code> returns the match or falls back to
+    <code>classic</code> for unknown/empty keys.</p>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Not worth unit-testing (note, don't chase)</h4>
+  <p><code>fitText.useFittedFontSize</code> relies on real <code>scrollHeight/clientHeight</code> (always 0 in jsdom) and
+    <code>storybookPdf</code>'s <code>html2canvas</code> capture needs a real browser — both are better verified by the existing
+    <code>renderSmoke</code> test + manual/visual checks than by brittle mocks. <code>camera.pickPhoto</code> is a thin Capacitor
+    wrapper; skip.</p>
+</div>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Suggested order</h3>
+  <ol class="tight">
+    <li><b>Remove</b> the dead share/unlock code (Pass 1) so you don't test soon-to-be-deleted paths.</li>
+    <li><b>StorybookServiceTest</b> — pure helpers first (no mocks), then the credit-refund flow.</li>
+    <li><b>BumpPhotoServiceTest</b> — copy/adapt FirstTimeServiceTest (quick win).</li>
+    <li><b>Controller tests</b> + the small <b>frontend lib</b> gaps (twemoji, deriveWeek, cropStyle).</li>
+    <li>ScrapbookBuilder helper tests <em>after</em> the Pass 2 extraction.</li>
+  </ol>
+  <p class="muted" style="margin-bottom:0">These are documented as proposals (report-only mode). Say the word and I'll write any/all of
+    them as real test files — the backend <code>StorybookServiceTest</code> is the highest-value place to start.</p>
+</div>
+
+<!-- ════════════════════════════ PASS 4 ════════════════════════════ -->
+<h2 class="section">Pass 4 — Documentation Gaps <span class="pill done">Complete</span></h2>
+<p class="lead">
+  Targets: in-repo arch docs · inline comments · CLAUDE.md. The headline isn't a <em>missing</em> doc — it's a
+  <b>confidently-wrong one</b>. The main storybook onboarding primer describes the architecture this branch
+  <em>replaced</em>, which is worse than no doc at all. Badge colour = priority:
+  <span class="sev remove">P1</span> · <span class="sev decide">P2</span> · <span class="sev info">P3</span>.
+</p>
+
+<div class="finding remove">
+  <h4><span class="sev remove">P1</span> <code>storybook-context.md</code> is stale &amp; misleading — rewrite it</h4>
+  <div class="loc">plans/storybook/storybook-context.md (last mapped 2026-05-30, pre-rewrite)</div>
+  <p>
+    This is the "paste into a new session for correct context" primer — so when it's wrong, every future session (human or AI)
+    starts from false assumptions. I verified it now contradicts the code on the branch in major ways:
+  </p>
+  <table>
+    <thead><tr><th>Primer says</th><th>Reality on this branch</th></tr></thead>
+    <tbody>
+      <tr><td>"THREE AI generation paths with TWO system prompts"; each page is an independent Claude call</td><td><b>One</b> path: <code>generatePages()</code> → a single <b>batched</b> <code>claudeClient.generatePagesBatch()</code> call for all memories. No <code>SYSTEM_PROMPT</code>/<code>SINGLE_ENTRY_SYSTEM_PROMPT</code>, no <code>generate()</code>/per-memory loop.</td></tr>
+      <tr><td>Components: <code>LayoutEditor</code>, <code>BookChapterReview</code>, <code>LegacyChapterRenderer</code></td><td>None exist. Replaced by <code>ScrapbookBuilder</code>, <code>MomentHeroCanvas</code>, <code>BookCover</code>, <code>PhotoTray</code>, <code>FormatToolbar</code>, <code>FontPicker</code>, <code>RichTextEditor</code>.</td></tr>
+      <tr><td>Wizard: "One Story" vs "One Page Per Memory", steps 1–6 incl. supplementary-notes + review</td><td>"Scrapbook" vs "Quick Build" (generate-first for both), steps 1→2→3→6, no review step.</td></tr>
+      <tr><td>Block types incl. <code>sticker</code>; <code>lib/stickers.js</code>, <code>stickerMaskStyle</code></td><td>Stickers removed entirely. New block type <code>l-wrap</code> + the <code>moment_hero</code> renderer (role-id blocks) — <b>both undocumented</b>.</td></tr>
+      <tr><td><code>fitText</code> "only shrinks, never grows"</td><td><code>useFittedFontSize</code> now takes <code>maxSize</code> and grows-to-fill (binary search both directions).</td></tr>
+      <tr><td>Endpoints incl. <code>POST /storybook/generate/{id}</code></td><td>Gone. Only <code>/storybook/generate-pages/{id}</code> (batched) remains.</td></tr>
+      <tr><td>No mention of <code>generated_content</code> column</td><td>New JSONB column storing AI output keyed by <code>sourceKey</code> (central to the builder's memory panel).</td></tr>
+    </tbody>
+  </table>
+  <div class="rec"><b>Recommendation (highest-value doc work on the branch):</b> rewrite the primer against current code — the
+    single batched generation model, the <code>ScrapbookBuilder</code> drag/click-to-place flow, the <code>l-wrap</code> and
+    <code>moment_hero</code> systems, and <code>generated_content</code>. Add a "Last verified against commit …" line so drift is
+    visible next time. <span class="muted">(Your private memory file <code>project_storybook_architecture.md</code> likely has the
+    same drift and should be refreshed in the same pass.)</span></div>
+</div>
+
+<div class="finding remove">
+  <h4><span class="sev remove">P1</span> <code>CLAUDE.md</code> is near-empty — it only documents the Plans rule</h4>
+  <div class="loc">CLAUDE.md (10 lines total)</div>
+  <p>
+    The checked-in project instructions contain <em>only</em> the "check a plan's Status" rule. Everything else a fresh
+    contributor — or a Claude session <b>without your private memory</b> — needs to know lives nowhere in the repo: what the app
+    is, the stack, how to run it, and the hard-won conventions. The rich context currently exists only in your
+    <code>~/.claude</code> memory, which doesn't travel with the repo.
+  </p>
+  <div class="rec"><b>Recommendation:</b> add concise sections to CLAUDE.md (these are durable, not session-specific):
+    <ul class="tight" style="margin-top:6px">
+      <li><b>Overview &amp; stack</b> — CradleHQ baby/pregnancy app; Vite+React (JSX, no TS) front, Spring Boot + raw JdbcTemplate back, Postgres/Flyway.</li>
+      <li><b>Run</b> — <code>cd Backend &amp;&amp; ./start-services.sh</code> (Docker + API 3001 + front 3000); tests: <code>npm run test</code> / <code>./gradlew test</code>.</li>
+      <li><b>Gotchas</b> — the Spring "uncaught RuntimeException → /error → 401 not 500" trap; the TavernTales shared-port-5432 hazard.</li>
+      <li><b>Conventions</b> — discuss before coding; never add <code>Co-Authored-By: Claude</code>; multi-session work uses <code>plans/&lt;name&gt;/sN</code>; mark plans <em>Needs Verification</em> before <em>Complete</em>.</li>
+      <li><b>Pointers</b> — link to <code>plans/storybook/storybook-context.md</code> (once rewritten) and the pregnancy plans.</li>
+    </ul></div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> Undocumented magic-string contract: <code>moment_hero</code> role IDs</h4>
+  <div class="loc">storybookTemplates.js:108–131 ↔ MomentHeroCanvas.jsx:80–86</div>
+  <p>
+    <code>MomentHeroCanvas</code> looks blocks up by hard-coded ids — <code>blk('badge')</code>, <code>'title'</code>,
+    <code>'date'</code>, <code>'photo'</code>, <code>'note'</code>, <code>'attrib'</code> — which must exactly match the
+    <code>id:</code> fields in the two <code>moment-hero-*</code> templates. Nothing states this coupling; renaming a template
+    id silently blanks part of the page with no error.
+  </p>
+  <div class="rec"><b>Recommendation:</b> a one-line comment at both ends ("these ids are a contract — MomentHeroCanvas resolves
+    blocks by id"), and ideally a comment listing the required id set above the moment-hero templates.</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> Undocumented core convention: the <code>sourceKey</code> identity scheme</h4>
+  <div class="loc">used pervasively: storybookGrouping, ScrapbookBuilder, StorybookService, layout_data</div>
+  <p>
+    <code>"journal:&lt;id&gt;"</code> / <code>"first_time:&lt;id&gt;"</code> (and <code>"upload:…"</code>, <code>"slot:N"</code>) is
+    the string identity that ties memories → generated content → placed blocks together across the whole feature, front and back.
+    It's never defined in one place; you reverse-engineer it from <code>split(':')</code> calls. Also subtle: l-wrap blocks track
+    photo provenance on a <em>separate</em> <code>photoSourceKey</code> from the text <code>sourceKey</code> — easy to miss.
+  </p>
+  <div class="rec"><b>Recommendation:</b> document the <code>sourceKey</code> grammar + the <code>photoSourceKey</code> split in the
+    rewritten primer, and drop a short comment where keys are parsed (e.g. <code>ScrapbookBuilder.placeIntoSlot</code>).</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> No pregnancy context primer (storybook has one; pregnancy doesn't)</h4>
+  <div class="loc">plans/pregnancy/ has sN plans but no equivalent "primer"</div>
+  <p>
+    The pregnancy code is small and well-commented (<code>pregnancy.js</code>, <code>bumpDiary.js</code>, the components), so this
+    is lower priority. But a half-page primer would help: the <code>phase</code> model (<code>incomplete</code>→<code>pregnancy</code>→<code>baby</code>),
+    the due-date→week math (LMP = due − 280d), the Date→Week derivation (S5), and that the bump diary is reachable from <b>both</b>
+    pregnancy mode and the baby-mode "Bump" pill.
+  </p>
+  <div class="rec"><b>Recommendation:</b> optional <code>plans/pregnancy/pregnancy-context.md</code>, or fold a short pregnancy section
+    into the rewritten storybook primer's neighbourhood. Note your memory's <code>project_pregnancy_feature.md</code> flags S4/S5
+    as not-started — keep the primer's status line in sync.</p></div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Credit accounting deserves a one-liner where it lives</h4>
+  <div class="loc">StorybookService.generatePages:233–246, 271–275</div>
+  <p>The charge-up-front-then-refund-on-failure pattern is partly commented, but the <em>why</em> (idempotency/at-most-once billing
+    intent, and that the batched call still bills per-memory) is the kind of thing a future editor will break. A short comment block
+    is cheap insurance — and pairs naturally with the Pass 3 credit-refund tests.</p>
+</div>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Suggested order</h3>
+  <ol class="tight">
+    <li><b>Rewrite <code>storybook-context.md</code></b> — biggest leverage; everything else references it.</li>
+    <li><b>Flesh out <code>CLAUDE.md</code></b> — gives memory-less sessions/contributors ground truth.</li>
+    <li>Add the two P2 inline-contract comments (moment_hero ids, sourceKey grammar) — minutes of work, prevents silent breakage.</li>
+    <li>Pregnancy primer + credit comment when convenient.</li>
+  </ol>
+  <p class="muted" style="margin-bottom:0">Report-only as agreed — I haven't edited any docs. The primer rewrite is the one I'd most
+    recommend doing soon (and I can draft it from what I've already mapped this session).</p>
+</div>
+
+<!-- ════════════════════════════ PASS 5 ════════════════════════════ -->
+<h2 class="section">Pass 5 — General Improvements <span class="pill done">Complete</span></h2>
+<p class="lead">
+  Five themes: <b>security</b>, <b>error handling</b>, <b>performance/maintainability</b>, <b>consistency</b>, <b>accessibility</b>.
+  There is <b>one genuine security bug</b> (cross-tenant data exposure) — that's the most important single item in this whole
+  review. Badge colour = priority: <span class="sev remove">P1</span> · <span class="sev decide">P2</span> · <span class="sev info">P3</span>.
+</p>
+
+<h3>Security</h3>
+
+<div class="finding remove">
+  <h4><span class="sev remove">P1 · SECURITY</span> IDOR — page generation reads entries without owner scoping</h4>
+  <div class="loc">StorybookService.buildBatchPagesPrompt:289,310 &nbsp;·&nbsp; wizard():143–172 (stores IDs unvalidated)</div>
+  <p>
+    <code>wizard()</code> stores the client-supplied <code>selectedJournalIds</code> / <code>selectedFirstTimeIds</code>
+    verbatim, with <b>no check that they belong to the caller's baby profile</b>. Later, <code>buildBatchPagesPrompt</code>
+    fetches them with <code>SELECT … FROM journal_entries WHERE id IN (…)</code> and
+    <code>… FROM first_times WHERE id IN (…)</code> — again <b>no <code>baby_profile_id</code> filter</b>. So a user can submit
+    another user's entry IDs and have that content pulled into their own chapter / sent to Claude and returned in the generated
+    pages. Every other read in the service is correctly ownership-scoped — these two are the exception.
+  </p>
+  <div class="rec"><b>Fix:</b> scope both queries by the caller's <code>baby_profile_id</code>
+    (<code>… WHERE id IN (…) AND baby_profile_id = ?</code>), and/or validate the selected IDs against the profile at
+    <code>wizard()</code> time before storing. Add a regression test (pairs with Pass 3). <b>This should be fixed before the
+    branch ships.</b></div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2 · SECURITY</span> Credit check-then-decrement is a race (TOCTOU)</h4>
+  <div class="loc">StorybookService.generatePages:212–235</div>
+  <p>
+    Credits are validated (<code>if (credits &lt; totalEntries) throw…</code>) and then decremented in a separate statement.
+    Two concurrent generate calls can both pass the check before either decrements, overspending credits or driving the balance
+    negative — the same class of bug the <code>jti</code> fix addressed for refresh tokens.
+  </p>
+  <div class="rec"><b>Fix:</b> make it one atomic conditional update —
+    <code>UPDATE users SET ai_credits_remaining = ai_credits_remaining - ? WHERE id = ? AND ai_credits_remaining &gt;= ?</code>
+    — and treat a 0-row result as "insufficient credits."</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2 · SECURITY</span> Upload endpoint accepts arbitrary bytes (no type/size guard)</h4>
+  <div class="loc">UploadController.upload:28–43 &nbsp;·&nbsp; ImageUploadService.upload:25–31</div>
+  <p>
+    The controller only checks <code>file.isEmpty()</code>; <code>ImageUploadService</code> streams
+    <code>file.getBytes()</code> straight to Cloudinary with no content-type or size validation. An authenticated user can push
+    non-image or very large payloads (and <code>getBytes()</code> buffers the whole file in memory).
+  </p>
+  <div class="rec"><b>Fix:</b> validate <code>Content-Type</code> is <code>image/*</code> and enforce a max size (a Spring
+    <code>spring.servlet.multipart.max-file-size</code> limit plus an explicit check). Applies to both <code>/upload</code> and
+    <code>/storybook/{id}/chapter-photos</code>.</div>
+</div>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2 · PRIVACY</span> Account-deletion photo cleanup misses folders</h4>
+  <div class="loc">ImageUploadService.deleteAllForUser:36 &nbsp;·&nbsp; UploadController:31–36 &nbsp;·&nbsp; StorybookService.uploadChapterPhoto:396</div>
+  <p>
+    The cleanup folder list is <code>{ journal, misc, marketplace, babies, first-times }</code>, but actual upload folders are
+    <code>journal</code>, <code>marketplace</code>, <code>bump_photos</code>, <code>misc</code>, and <code>storybook</code> (chapter
+    photos). So on account deletion, <b><code>bump_photos</code> and <code>storybook</code> assets are never removed</b> (a
+    retention/GDPR gap), while the list references <code>first-times</code> — a folder that's never written (the
+    <code>first_times</code> context falls through to <code>misc</code>). Three places define the folder taxonomy and they
+    disagree.
+  </p>
+  <div class="rec"><b>Fix:</b> centralise the folder names in one constant, add <code>bump_photos</code> + <code>storybook</code> to
+    <code>deleteAllForUser</code>, and drop the dead <code>first-times</code> entry (or give <code>first_times</code> its own folder
+    in the controller switch).</div>
+</div>
+
+<h3>Error handling &amp; robustness</h3>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> A couple of controller methods can hit the 401 trap</h4>
+  <div class="loc">StorybookController.reorder:37–48, getAll:32–35 (no try/catch)</div>
+  <p>
+    Most storybook endpoints wrap the service call and map exceptions via <code>ApiError</code>, but <code>reorder</code> and
+    <code>getAll</code> don't. Per the project-wide gotcha, an uncaught <code>RuntimeException</code> re-dispatches to
+    <code>/error</code> unauthenticated and surfaces as a confusing <b>401 instead of 500</b>.
+  </p>
+  <div class="rec"><b>Fix:</b> wrap them like the others (or add a <code>@RestControllerAdvice</code> to handle this uniformly —
+    a better long-term answer than per-method try/catch everywhere).</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Frontend error routing relies on string-matching status codes</h4>
+  <div class="loc">StorybookWizard.handleStartPath:233–242</div>
+  <p><code>msg.includes('402') || msg.includes('credit')</code> / <code>msg.includes('403')</code> is brittle — it couples the UI
+    to exact error text and HTTP status digits appearing in the message. A structured error (status field) would be sturdier.
+    Also minor: <code>ChapterCard.handlePublish</code> calls <code>onError(...)</code> without optional chaining, unlike most
+    call sites that use <code>onError?.()</code>.</p>
+</div>
+
+<h3>Performance &amp; maintainability</h3>
+
+<div class="finding decide">
+  <h4><span class="sev decide">P2</span> <code>ScrapbookBuilder.jsx</code> is 1,304 lines in one file</h4>
+  <div class="loc">Frontend/src/components/storybook/ScrapbookBuilder.jsx</div>
+  <p>
+    It's actually well-structured internally (sub-components are module-scoped, state is memoised, autosave is debounced), so
+    this is a <b>maintainability</b> concern more than a runtime one. But a single 1.3k-line file holding the memory panel,
+    template picker, slot renderer, page management, and all handlers is hard to navigate and test.
+  </p>
+  <div class="rec"><b>Refactor:</b> split into the builder shell + extracted pieces — <code>MemoryPanel</code>,
+    <code>TemplateSheet</code>, <code>Slot</code>, and the page/placement logic as hooks. This dovetails with Pass 2
+    (<code>useCanvasScale</code>) and Pass 3 (extracting <code>splitTextParts</code>/<code>initPages</code> so they're testable).</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> PDF export is sequential with fixed per-page waits</h4>
+  <div class="loc">storybookPdf.js: captureComponent:53,65 (400ms + 100ms per page)</div>
+  <p>Each page renders off-screen and waits a fixed ~500ms for fonts/layout/images before <code>html2canvas</code>. For a long
+    book this is slow (linear, blocking). Functionally fine; just flag it as a known cost.</p>
+  <div class="rec"><b>Optional:</b> replace the fixed timeouts with explicit readiness waits already partially in place
+    (<code>document.fonts.ready</code> + image <code>onload</code>) and trim the magic sleeps; the cover capture could overlap.</div>
+</div>
+
+<h3>Consistency</h3>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Mixed import styles</h4>
+  <div class="loc">e.g. <code>@/lib/imageUtils.jsx</code> (BumpDiary, MemoriesTab) vs <code>@/lib/imageUtils</code> (ScrapbookBuilder, StorybookWizard); <code>@/</code> alias vs <code>../../</code> relative (pregnancy components)</div>
+  <p>The same module is imported with and without its <code>.jsx</code> extension, and pregnancy components use relative paths
+    while storybook uses the <code>@/</code> alias. Harmless but adds friction and noise to diffs/grep.</p>
+  <div class="rec"><b>Fix:</b> pick one (alias, no extension) and apply via a lint rule.</div>
+</div>
+
+<h3>Accessibility</h3>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Custom overlays aren't proper dialogs</h4>
+  <div class="loc">imageUtils crop modals (70–132, 160–206) · PhotoTray · ScrapbookBuilder TemplateSheet</div>
+  <p>These hand-rolled overlays close on backdrop click but have no <code>role="dialog"</code>/<code>aria-modal</code>, no focus
+    trap, and no <kbd>Esc</kbd>-to-close. Keyboard and screen-reader users can tab out behind them. (The Radix
+    <code>Dialog</code> used elsewhere handles all this — these predate/sidestep it.)</p>
+  <div class="rec"><b>Fix (incremental):</b> at minimum add <kbd>Esc</kbd> handling + <code>role="dialog"</code>/<code>aria-modal</code>;
+    ideally route through the shared Radix <code>Dialog</code>.</div>
+</div>
+
+<div class="finding info">
+  <h4><span class="sev info">P3</span> Drag-and-drop keyboard story (already mostly handled)</h4>
+  <div class="loc">ScrapbookBuilder sensors:597–600 (Pointer + Touch only)</div>
+  <p>No <code>KeyboardSensor</code> is configured, so dragging is pointer-only — but the builder intentionally offers
+    <b>click-to-place</b> as a full alternative, which is the right a11y fallback. Noting it so it stays a conscious choice; the
+    icon-only buttons mostly carry <code>title</code> but could add <code>aria-label</code> for screen readers.</p>
+</div>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Pass 5 priorities</h3>
+  <ol class="tight">
+    <li><b>Fix the IDOR</b> (owner-scope the entry queries) — security, do before shipping.</li>
+    <li><b>Credits race + upload validation + deletion cleanup</b> — the P2 security/privacy trio.</li>
+    <li><b>Controller error wrapping</b> (consider a <code>@RestControllerAdvice</code>).</li>
+    <li>ScrapbookBuilder split + consistency/a11y items as ongoing cleanup.</li>
+  </ol>
+</div>
+
+<div class="card" style="margin-top:28px; border-color: var(--accent);">
+  <h3 style="margin-top:0">Review complete — the three things to do first</h3>
+  <p style="margin-bottom:8px">Across all five passes, if you do nothing else:</p>
+  <ol class="tight">
+    <li><b>Fix the page-generation IDOR</b> (Pass 5, P1) — it's the only real bug and it's cross-tenant data exposure.</li>
+    <li><b>Rewrite <code>storybook-context.md</code></b> (Pass 4, P1) — the primer actively misleads every future session.</li>
+    <li><b>Add <code>StorybookServiceTest</code></b> (Pass 3, P1) — the biggest, money-touching service has zero coverage; start with the credit-refund flow.</li>
+  </ol>
+  <p class="muted" style="margin-bottom:0">Then the cleanups: remove the dead share/unlock code (Pass 1) and the photo-flow / <code>toTiptapDoc</code> / body-cleanup
+    dedupes (Pass 2). I can pick up any of these as real changes whenever you'd like.</p>
+</div>
+
+<footer>
+  Generated by Claude Code · All 5 passes complete · No source files were modified — this is a findings document only.
+</footer>
+
+</div>
+</body>
+</html>

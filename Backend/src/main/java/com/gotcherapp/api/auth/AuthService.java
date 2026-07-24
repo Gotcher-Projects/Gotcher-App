@@ -4,6 +4,7 @@ import com.gotcherapp.api.auth.dto.*;
 import com.gotcherapp.api.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,13 +25,24 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final int freeGrantLimit;
+    private final int freeGrantSize;
+    // Print pr8 — global print kill switch (app.print.enabled), surfaced on every UserDto so the frontend
+    // shows the "Order a printed book" entry point only when print is on. Config-driven, not per-user.
+    private final boolean printEnabled;
 
     public AuthService(JdbcTemplate jdbc, JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       @Value("${app.free-grant.limit:500}") int freeGrantLimit,
+                       @Value("${app.free-grant.size:5}") int freeGrantSize,
+                       @Value("${app.print.enabled:false}") boolean printEnabled) {
         this.jdbc = jdbc;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.emailVerificationService = emailVerificationService;
+        this.freeGrantLimit = freeGrantLimit;
+        this.freeGrantSize = freeGrantSize;
+        this.printEnabled = printEnabled;
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -56,6 +68,8 @@ public class AuthService {
         String email = (String) row.get("email");
         String displayName = (String) row.get("display_name");
 
+        int credits = grantFreeCredits(userId);
+
         String accessToken = jwtUtil.generateAccessToken(userId, email);
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, refreshToken, 7);
@@ -66,7 +80,40 @@ public class AuthService {
             log.warn("Failed to send verification email to {}: {}", email, e.getMessage());
         }
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, false, "free", credits, printEnabled));
+    }
+
+    // Grant the launch promotion to the first `freeGrantLimit` signups (sv2-grant). Returns the user's
+    // resulting credit balance — 0 when the cap is reached, so a late signup gets a normal account.
+    //
+    // The cap check and the write live in ONE statement: a read-then-write would let two concurrent
+    // signups both observe limit-1 and both grant. This is not fully race-free either — under READ
+    // COMMITTED the count subquery reads a snapshot, and concurrent signups touch different rows, so
+    // simultaneous grants can still overshoot by roughly the number of in-flight registrations. That is
+    // accepted: the cap is a spend ceiling, not a correctness boundary. What the statement DOES
+    // guarantee is the part that matters — `free_grant_at IS NULL` is evaluated against the row
+    // Postgres locks, so a user can never be granted twice.
+    //
+    // Never let this fail a signup. A user created without a grant is self-consistent (free_grant_at
+    // stays null), so we log and fall through to a 0-credit account, same stance as the verification
+    // email below.
+    private int grantFreeCredits(Long userId) {
+        if (freeGrantLimit <= 0 || freeGrantSize <= 0) return 0;
+        try {
+            List<Map<String, Object>> granted = jdbc.queryForList(
+                "UPDATE users SET ai_credits_remaining = ai_credits_remaining + ?, free_grant_at = NOW() " +
+                "WHERE id = ? AND free_grant_at IS NULL " +
+                "AND (SELECT count(*) FROM users WHERE free_grant_at IS NOT NULL) < ? " +
+                "RETURNING ai_credits_remaining",
+                freeGrantSize, userId, freeGrantLimit
+            );
+            if (granted == null || granted.isEmpty()) return 0;  // cap reached, or already granted
+            Object balance = granted.get(0).get("ai_credits_remaining");
+            return balance != null ? ((Number) balance).intValue() : 0;
+        } catch (Exception e) {
+            log.warn("Free credit grant failed for user {}: {}", userId, e.getMessage());
+            return 0;
+        }
     }
 
     public AuthResponse login(LoginRequest req) {
@@ -75,7 +122,7 @@ public class AuthService {
         }
 
         List<Map<String, Object>> rows = jdbc.queryForList(
-            "SELECT id, email, password_hash, display_name, is_active, email_verified FROM users WHERE email = ?",
+            "SELECT id, email, password_hash, display_name, is_active, email_verified, tier, ai_credits_remaining FROM users WHERE email = ?",
             req.email().toLowerCase()
         );
 
@@ -92,6 +139,8 @@ public class AuthService {
         String email = (String) user.get("email");
         String displayName = (String) user.get("display_name");
         boolean emailVerified = Boolean.TRUE.equals(user.get("email_verified"));
+        String tier = (String) user.get("tier");
+        int credits = user.get("ai_credits_remaining") != null ? ((Number) user.get("ai_credits_remaining")).intValue() : 0;
 
         jdbc.update("UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = ?", userId);
 
@@ -99,7 +148,7 @@ public class AuthService {
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, refreshToken, req.rememberMe() ? 30 : 7);
 
-        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified));
+        return new AuthResponse(accessToken, refreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits, printEnabled));
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -133,17 +182,19 @@ public class AuthService {
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE id = ?", stored.get("id"));
 
         List<Map<String, Object>> userRows = jdbc.queryForList(
-            "SELECT id, email, display_name, email_verified FROM users WHERE id = ?", userId);
+            "SELECT id, email, display_name, email_verified, tier, ai_credits_remaining FROM users WHERE id = ?", userId);
         if (userRows.isEmpty()) throw new InvalidTokenException();
 
         String email = (String) userRows.get(0).get("email");
         String displayName = (String) userRows.get(0).get("display_name");
         boolean emailVerified = Boolean.TRUE.equals(userRows.get(0).get("email_verified"));
+        String tier = (String) userRows.get(0).get("tier");
+        int credits = userRows.get(0).get("ai_credits_remaining") != null ? ((Number) userRows.get(0).get("ai_credits_remaining")).intValue() : 0;
         String newAccessToken = jwtUtil.generateAccessToken(userId, email);
         String newRefreshToken = jwtUtil.generateRefreshToken(userId);
         storeRefreshToken(userId, newRefreshToken, 7);
 
-        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified));
+        return new AuthResponse(newAccessToken, newRefreshToken, new UserDto(userId, email, displayName, emailVerified, tier, credits, printEnabled));
     }
 
     public void logout(String refreshToken) {
@@ -151,6 +202,23 @@ public class AuthService {
             throw new IllegalArgumentException("Refresh token required");
         }
         jdbc.update("UPDATE refresh_tokens SET is_revoked = TRUE WHERE token = ?", refreshToken);
+    }
+
+    public UserDto getUser(Long userId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT id, email, display_name, email_verified, tier, ai_credits_remaining FROM users WHERE id = ?", userId);
+        if (rows.isEmpty()) throw new InvalidTokenException();
+        Map<String, Object> u = rows.get(0);
+        int credits = u.get("ai_credits_remaining") != null ? ((Number) u.get("ai_credits_remaining")).intValue() : 0;
+        return new UserDto(
+            ((Number) u.get("id")).longValue(),
+            (String) u.get("email"),
+            (String) u.get("display_name"),
+            Boolean.TRUE.equals(u.get("email_verified")),
+            (String) u.get("tier"),
+            credits,
+            printEnabled
+        );
     }
 
     private void storeRefreshToken(Long userId, String token, int days) {

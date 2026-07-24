@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, UserRound } from "lucide-react";
 import { getWeek, getMonths, getActivities } from "../lib/babyAge";
+import { profilePhase } from "../lib/pregnancy";
+import CreditsPill from "./CreditsPill";
+import PregnancyShell from "./pregnancy/PregnancyShell";
 import DashboardTab from "./tabs/DashboardTab";
 import MemoriesTab from "./tabs/MemoriesTab";
 import TrackTab from "./tabs/TrackTab";
@@ -27,10 +30,10 @@ function loadLocal(key) {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner }) {
+export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBanner, onUserUpdate }) {
   const { theme } = useTheme();
   const [data, setData] = useState({
-    profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "" },
+    profile: { name: "", birthdate: "", parentName: "", email: "", phone: "", sex: "", dueDate: "", phase: "", photoUrl: "" },
     milestones: {},
     journal: []
   });
@@ -41,8 +44,11 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   const [vaccines, setVaccines] = useState({});
   const [appointments, setAppointments] = useState([]);
   const [firsts, setFirsts] = useState([]);
+  const [bumpPhotos, setBumpPhotos] = useState([]);
+  const [birthDetails, setBirthDetails] = useState(null);
 
   const [needsOnboarding, setNeedsOnboarding] = useState(null); // null=loading, true=no profile, false=has profile
+  const [obStep, setObStep] = useState('choice'); // 'choice' (expecting vs. have baby) → 'details'
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -100,6 +106,9 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             parentName: profile.parentName || d.profile.parentName,
             phone: profile.phone || d.profile.phone,
             sex: profile.sex || d.profile.sex,
+            dueDate: profile.dueDate || d.profile.dueDate,
+            phase: profile.phase || d.profile.phase,
+            photoUrl: profile.photoUrl || d.profile.photoUrl,
           }
         }));
         setNeedsOnboarding(false);
@@ -111,6 +120,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           setNeedsOnboarding(false); // network/auth error — fail open
         }
       });
+  }, []);
+
+  useEffect(() => {
+    apiRequest('/birth-details')
+      .then(setBirthDetails)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -172,6 +187,14 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
   useEffect(() => {
     apiRequest('/first-times')
       .then(list => setFirsts(list))
+      .catch(() => {});
+  }, []);
+
+  // Bump photos load in both phases (the diary is reachable in pregnancy mode and the baby-mode
+  // Memories "Bump" pill). Returns [] for profiles with no pregnancy data — harmless.
+  useEffect(() => {
+    apiRequest('/bump-photos')
+      .then(list => setBumpPhotos(list))
       .catch(() => {});
   }, []);
 
@@ -348,6 +371,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     setFirsts(f => [ft, ...f]);
   }
 
+
   async function updateFirstTime(id, patch) {
     const ft = await apiRequest(`/first-times/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
     setFirsts(f => f.map(x => x.id === id ? ft : x));
@@ -360,6 +384,28 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
       () => apiRequest('/first-times').then(list => setFirsts(list)),
       "Failed to delete first time",
       "Failed to restore first times",
+    );
+  }
+
+
+  // ── Bump photos ──
+  async function addBumpPhoto(req) {
+    const photo = await apiRequest('/bump-photos', { method: 'POST', body: JSON.stringify(req) });
+    setBumpPhotos(p => [...p, photo]);
+  }
+
+  async function updateBumpPhoto(id, patch) {
+    const photo = await apiRequest(`/bump-photos/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+    setBumpPhotos(p => p.map(x => x.id === id ? photo : x));
+  }
+
+  async function deleteBumpPhoto(id) {
+    await deleteWithRecovery(
+      () => setBumpPhotos(p => p.filter(x => x.id !== id)),
+      `/bump-photos/${id}`,
+      () => apiRequest('/bump-photos').then(list => setBumpPhotos(list)),
+      "Failed to delete bump photo",
+      "Failed to restore bump photos",
     );
   }
 
@@ -388,6 +434,8 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           parentName: data.profile.parentName,
           phone: data.profile.phone,
           sex: data.profile.sex || null,
+          dueDate: data.profile.dueDate || null,
+          phase: data.profile.phase || 'baby',
         }),
       });
       setData(d => ({
@@ -399,6 +447,9 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           parentName: savedProfile.parentName || d.profile.parentName,
           phone: savedProfile.phone || d.profile.phone,
           sex: savedProfile.sex || d.profile.sex,
+          dueDate: savedProfile.dueDate || d.profile.dueDate,
+          phase: savedProfile.phase || d.profile.phase,
+          photoUrl: savedProfile.photoUrl || d.profile.photoUrl,
         }
       }));
       setProfileSaved(true);
@@ -416,6 +467,43 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     if (ok) setNeedsOnboarding(false);
   }
 
+  // Square avatar upload — separate endpoint from the book cover photo. Returns the new URL so the
+  // modal can show it immediately; also pushes it into profile state.
+  async function uploadProfilePhoto(formData) {
+    const res = await apiUpload('/baby-profile/photo', formData);
+    setData(d => ({ ...d, profile: { ...d.profile, photoUrl: res.url } }));
+    return res;
+  }
+
+  // Birth details (sv2-s2) — saved from the Edit-Profile modal's "Birth details" tab.
+  async function saveBirthDetails(payload) {
+    const saved = await apiRequest('/birth-details', { method: 'PUT', body: JSON.stringify(payload) });
+    setBirthDetails(saved);
+    return saved;
+  }
+
+  // The only two client-side paths that change phase after onboarding. Both hit dedicated
+  // endpoints — never the profile upsert. There is no generic always-available swap toggle.
+  async function markBorn(birthdate, sex) {
+    // Throws on failure so the mark-as-born dialog can keep itself open and surface the error.
+    const body = { birthdate };
+    if (sex !== undefined) body.sex = sex;
+    await apiRequest('/baby-profile/mark-born', { method: 'POST', body: JSON.stringify(body) });
+    setData(d => ({
+      ...d,
+      profile: { ...d.profile, birthdate, phase: 'baby', ...(sex !== undefined ? { sex } : {}) },
+    }));
+  }
+
+  async function undoBirth() {
+    try {
+      await apiRequest('/baby-profile/phase', { method: 'POST', body: JSON.stringify({ phase: 'pregnancy' }) });
+      setData(d => ({ ...d, profile: { ...d.profile, phase: 'pregnancy' } }));
+    } catch {
+      onError("Failed to undo birth announcement");
+    }
+  }
+
   async function handleDeleteAccount() {
     if (deleteInput !== "DELETE") return;
     setDeleteInProgress(true);
@@ -429,6 +517,7 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
     }
   }
 
+  const phase = profilePhase(data.profile);
   const week = getWeek(data.profile.birthdate);
   const months = getMonths(data.profile.birthdate);
   const activities = getActivities(week);
@@ -475,7 +564,8 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               <p className="hidden sm:block text-sm text-muted-foreground">Milestone tracker • Journal • Growth • Feeding • Sleep • Diaper</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <CreditsPill />
             {user?.display_name && (
               <span className="hidden sm:inline text-sm text-slate-600">Hi, <strong>{user.display_name}</strong></span>
             )}
@@ -632,56 +722,131 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
                 <img src="/images/cradleLogo.png" alt="CradleHQ" className="h-14 mb-3" />
                 <h2 className="font-display font-bold text-2xl text-brand-navy">Welcome to CradleHQ!</h2>
                 <p className="text-muted-foreground text-sm mt-1 text-center">
-                  Tell us a little about your baby to get started.
+                  {obStep === 'choice'
+                    ? "Where are you in the journey?"
+                    : "Tell us a little to get started."}
                 </p>
               </div>
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ob-name">Baby's Name</Label>
-                  <Input
-                    id="ob-name"
-                    placeholder="e.g. Emma"
-                    value={data.profile.name}
-                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ob-birthdate">Birth Date</Label>
-                  <Input
-                    id="ob-birthdate"
-                    type="date"
-                    value={data.profile.birthdate}
-                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="ob-sex">
-                    Sex <span className="text-muted-foreground font-normal">(optional)</span>
-                  </Label>
-                  <select
-                    id="ob-sex"
-                    value={data.profile.sex}
-                    onChange={e => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+
+              {obStep === 'choice' && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => { setData(d => ({ ...d, profile: { ...d.profile, phase: 'pregnancy' } })); setObStep('details'); }}
+                    className="w-full text-left rounded-xl border-2 border-input hover:border-primary hover:bg-primary/5 p-4 transition-colors"
                   >
-                    <option value="">Prefer not to say</option>
-                    <option value="boy">Boy</option>
-                    <option value="girl">Girl</option>
-                  </select>
+                    <div className="font-semibold text-brand-navy">I'm expecting 🤰</div>
+                    <div className="text-sm text-muted-foreground">Track your pregnancy week by week.</div>
+                  </button>
+                  <button
+                    onClick={() => { setData(d => ({ ...d, profile: { ...d.profile, phase: 'baby' } })); setObStep('details'); }}
+                    className="w-full text-left rounded-xl border-2 border-input hover:border-primary hover:bg-primary/5 p-4 transition-colors"
+                  >
+                    <div className="font-semibold text-brand-navy">I already have my baby 👶</div>
+                    <div className="text-sm text-muted-foreground">Track milestones, growth, and memories.</div>
+                  </button>
                 </div>
-              </div>
-              <Button
-                className="w-full mt-6"
-                onClick={handleOnboardingSubmit}
-                disabled={!data.profile.name.trim() || !data.profile.birthdate || profileSaving}
-              >
-                {profileSaving ? "Saving…" : "Get Started →"}
-              </Button>
+              )}
+
+              {obStep === 'details' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ob-name">
+                        {data.profile.phase === 'pregnancy'
+                          ? "Baby's name "
+                          : "Baby's Name"}
+                        {data.profile.phase === 'pregnancy' && (
+                          <span className="text-muted-foreground font-normal">(or a nickname — optional)</span>
+                        )}
+                      </Label>
+                      <Input
+                        id="ob-name"
+                        placeholder={data.profile.phase === 'pregnancy' ? "e.g. Peanut" : "e.g. Emma"}
+                        value={data.profile.name}
+                        onChange={e => setData(d => ({ ...d, profile: { ...d.profile, name: e.target.value } }))}
+                      />
+                    </div>
+                    {data.profile.phase === 'pregnancy' ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="ob-duedate">Due Date</Label>
+                        <Input
+                          id="ob-duedate"
+                          type="date"
+                          value={data.profile.dueDate}
+                          onChange={e => setData(d => ({ ...d, profile: { ...d.profile, dueDate: e.target.value } }))}
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="ob-birthdate">Birth Date</Label>
+                        <Input
+                          id="ob-birthdate"
+                          type="date"
+                          value={data.profile.birthdate}
+                          onChange={e => setData(d => ({ ...d, profile: { ...d.profile, birthdate: e.target.value } }))}
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ob-sex">
+                        Sex <span className="text-muted-foreground font-normal">(optional)</span>
+                      </Label>
+                      <select
+                        id="ob-sex"
+                        value={data.profile.sex}
+                        onChange={e => setData(d => ({ ...d, profile: { ...d.profile, sex: e.target.value } }))}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="">Prefer not to say</option>
+                        <option value="boy">Boy</option>
+                        <option value="girl">Girl</option>
+                        {data.profile.phase === 'pregnancy' && (
+                          <option value="unknown">Not sure yet</option>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full mt-6"
+                    onClick={handleOnboardingSubmit}
+                    disabled={
+                      !data.profile.name.trim() ||
+                      (data.profile.phase === 'pregnancy' ? !data.profile.dueDate : !data.profile.birthdate) ||
+                      profileSaving
+                    }
+                  >
+                    {profileSaving ? "Saving…" : "Get Started →"}
+                  </Button>
+                  <button
+                    onClick={() => setObStep('choice')}
+                    className="w-full mt-3 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    ← Back
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
 
-        {needsOnboarding === false && (
+        {needsOnboarding === false && phase === 'pregnancy' && (
+          <PregnancyShell
+            profile={data.profile}
+            appointments={appointments}
+            onAddAppointment={addAppointment}
+            onUpdateAppointment={updateAppointment}
+            onDeleteAppointment={deleteAppointment}
+            bumpPhotos={bumpPhotos}
+            onAddBump={addBumpPhoto}
+            onUpdateBump={updateBumpPhoto}
+            onDeleteBump={deleteBumpPhoto}
+            onBumpUpload={img => apiUpload('/upload?context=bump_photos', img)}
+            onMarkBorn={markBorn}
+            onError={onError}
+          />
+        )}
+
+        {needsOnboarding === false && phase !== 'pregnancy' && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full h-auto flex-nowrap overflow-x-auto justify-start gap-1.5 bg-card/80 p-2">
             <TabsTrigger value="dashboard" className="shrink-0 text-xs sm:text-sm font-medium">Dashboard</TabsTrigger>
@@ -697,6 +862,13 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               setData={setData}
               week={week}
               months={months}
+              onSaveProfile={saveProfile}
+              onUploadPhoto={uploadProfilePhoto}
+              birthDetails={birthDetails}
+              onSaveBirthDetails={saveBirthDetails}
+              onUploadBirthPhoto={img => apiUpload('/upload?context=birth_details', img)}
+              profileSaving={profileSaving}
+              profileSaved={profileSaved}
               onToggleMilestone={toggleMilestone}
               appointments={appointments}
               feeding={feeding}
@@ -725,6 +897,12 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               onDeleteFirst={deleteFirstTime}
               onUpload={img => apiUpload('/upload?context=first_times', img)}
               onError={onError}
+              dueDate={data.profile?.dueDate}
+              bumpPhotos={bumpPhotos}
+              onAddBump={addBumpPhoto}
+              onUpdateBump={updateBumpPhoto}
+              onDeleteBump={deleteBumpPhoto}
+              onBumpUpload={img => apiUpload('/upload?context=bump_photos', img)}
             />
           </TabsContent>
 
@@ -786,6 +964,20 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
           {" · "}
           <a href="/terms.html" className="hover:underline">Terms of Service</a>
         </p>
+        {needsOnboarding === false && phase === 'baby' && (
+          <p className="mt-3">
+            <button
+              onClick={() => {
+                if (window.confirm("Undo birth announcement? This puts CradleHQ back into pregnancy mode.")) {
+                  undoBirth();
+                }
+              }}
+              className="text-xs text-slate-400 hover:text-slate-600 hover:underline"
+            >
+              Undo birth announcement
+            </button>
+          </p>
+        )}
       </footer>
     </div>
   );

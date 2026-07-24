@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>S7 — Book library &amp; new-book chooser (in-app)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fg:#232150; --indigo:#6467F2; --pink:#D11F69; --muted:#6f6e92; --border:#e7e7f0;
+    --success:#2C9664; --page:#fcfcff; --pillpink-bg:#fde4ee; --pillpink-tx:#c01e63;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#eef0f6; color:var(--fg); font-family:'Inter',system-ui,sans-serif; padding:26px 18px 80px; }
+  .mockhead { max-width:1180px; margin:0 auto 18px; }
+  a.back { color:var(--pink); text-decoration:none; font-size:13px; font-weight:700; }
+  .mockhead h1 { font-family:'Poppins',sans-serif; font-size:24px; font-weight:700; margin:8px 0 3px; }
+  .mockhead p { color:var(--muted); font-size:14px; margin:0; max-width:900px; }
+  .steplabel { font-family:'Poppins',sans-serif; font-weight:600; font-size:15px; color:var(--muted); margin:30px auto 12px; max-width:1180px; }
+  .steplabel b { color:var(--fg); }
+
+  .win { max-width:1180px; margin:0 auto; background:var(--page); border:1px solid var(--border); border-radius:14px; box-shadow:0 24px 60px rgba(35,33,80,.16); overflow:hidden; position:relative; }
+
+  .hdr { display:flex; align-items:center; padding:16px 28px 4px; }
+  .hdr .logo { width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,#7b6cf0,#9a7af5); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; margin-right:10px; }
+  .hdr .brand { font-family:'Poppins',sans-serif; font-weight:700; font-size:18px; }
+  .hdr .brand .hq { color:var(--indigo); }
+  .hdr .brand small { display:block; font-family:'Inter'; font-weight:400; font-size:10.5px; color:var(--muted); margin-top:1px; }
+  .hdr .signout { margin-left:auto; border:1px solid var(--border); border-radius:8px; background:#fff; font-size:12.5px; font-weight:600; padding:7px 14px; color:var(--fg); }
+
+  .tabs { display:flex; justify-content:center; gap:42px; padding:10px 0 12px; border-bottom:1px solid #ececf4; }
+  .tabs a { font-size:14px; font-weight:500; color:var(--muted); text-decoration:none; padding:6px 14px; border-radius:9px; }
+  .tabs a.on { color:var(--fg); font-weight:600; border:1px solid var(--border); background:#fff; box-shadow:0 1px 2px rgba(35,33,80,.05); }
+
+  .content { max-width:940px; margin:0 auto; padding:22px 24px 34px; }
+  .pills { display:flex; gap:10px; margin-bottom:22px; }
+  .pills .p { font-size:13px; font-weight:600; color:var(--muted); background:transparent; border-radius:100px; padding:6px 16px; }
+  .pills .p.on { background:var(--pillpink-bg); color:var(--pillpink-tx); }
+
+  .shelfhead { display:flex; align-items:center; margin-bottom:18px; }
+  .shelfhead h2 { font-family:'Poppins',sans-serif; font-weight:600; font-size:21px; margin:0; }
+  .shelfhead p { font-size:13px; color:var(--muted); margin:3px 0 0; }
+  .newbtn { margin-left:auto; background:var(--pink); color:#fff; border:none; border-radius:10px; font-weight:600; font-size:13.5px; padding:11px 18px; cursor:pointer; display:inline-flex; gap:8px; align-items:center; }
+
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+
+  /* book card */
+  .bcard { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(35,33,80,.05); transition:.15s; cursor:pointer; }
+  .bcard:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(35,33,80,.12); border-color:#d9d9ec; }
+  .bcover { aspect-ratio:4/3; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; }
+  .bcover .typebadge { position:absolute; top:10px; left:10px; font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:100px; background:rgba(255,255,255,.85); }
+  .tb-guided { color:var(--pink); } .tb-free { color:#4b4ed0; }
+  .bcover .div { display:flex; align-items:center; gap:8px; justify-content:center; margin-bottom:8px; width:70%; }
+  .bcover .div .l { height:1px; flex:1; opacity:.4; } .bcover .div .d { font-size:11px; opacity:.6; }
+  .bcover h3 { font-family:'Playfair Display',serif; font-weight:700; font-size:19px; text-align:center; margin:0; line-height:1.15; }
+  .bcover .yr { font-size:11px; margin-top:8px; opacity:.7; }
+  .binfo { padding:13px 16px; border-top:1px solid var(--border); }
+  .binfo .nm { font-family:'Poppins',sans-serif; font-weight:600; font-size:14.5px; }
+  .binfo .meta { font-size:12px; color:var(--muted); margin-top:3px; display:flex; align-items:center; gap:6px; }
+  .miniprog { height:6px; border-radius:100px; background:#ececf6; overflow:hidden; margin-top:9px; }
+  .miniprog > i { display:block; height:100%; border-radius:100px; }
+  .bfoot { display:flex; align-items:center; gap:8px; padding:11px 16px; border-top:1px solid var(--border); }
+  .bfoot .open { flex:1; background:var(--fg); color:#fff; border:none; border-radius:8px; font-weight:600; font-size:13px; padding:9px; cursor:pointer; }
+  .bfoot .open.primary { background:var(--pink); }
+  .bfoot .menu { border:1px solid var(--border); border-radius:8px; background:#fff; width:36px; height:36px; font-size:16px; color:var(--muted); cursor:pointer; }
+
+  /* new-book tile */
+  .newtile { border:2px dashed #d3d3e6; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--muted); cursor:pointer; min-height:220px; transition:.15s; }
+  .newtile:hover { border-color:var(--pink); color:var(--pink); background:#fff7fb; }
+  .newtile .plus { width:46px; height:46px; border-radius:50%; background:#f0f0f8; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:12px; }
+  .newtile:hover .plus { background:#fde4ee; }
+  .newtile b { font-family:'Poppins',sans-serif; font-size:14.5px; color:inherit; }
+  .newtile span { font-size:12px; margin-top:3px; }
+
+  /* ===== dialog (chooser) ===== */
+  .scrim { position:absolute; inset:0; background:rgba(35,33,80,.42); display:flex; align-items:center; justify-content:center; padding:30px; }
+  .dialog { background:#fff; border-radius:16px; width:540px; max-width:100%; box-shadow:0 30px 80px rgba(0,0,0,.3); overflow:hidden; }
+  .dialog .dh { padding:22px 24px 6px; position:relative; }
+  .dialog .dh h3 { font-family:'Poppins',sans-serif; font-weight:600; font-size:19px; margin:0 0 4px; }
+  .dialog .dh p { font-size:13px; color:var(--muted); margin:0; }
+  .dialog .x { position:absolute; top:18px; right:20px; color:var(--muted); font-size:18px; cursor:pointer; }
+  .dialog .db { padding:16px 24px 24px; display:flex; flex-direction:column; gap:13px; }
+  .choice { border:1px solid var(--border); border-radius:13px; padding:16px; display:flex; gap:14px; align-items:flex-start; cursor:pointer; transition:.15s; }
+  .choice:hover { transform:translateY(-1px); }
+  .choice.rec { border-color:var(--pink); background:linear-gradient(180deg,#fff,#fff7fa); box-shadow:0 6px 18px rgba(209,31,105,.10); }
+  .choice .ic { width:46px; height:46px; border-radius:11px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .choice h4 { font-family:'Poppins',sans-serif; font-weight:600; font-size:16px; margin:0 0 3px; display:flex; align-items:center; gap:9px; }
+  .choice p { margin:0; font-size:12.5px; color:var(--muted); line-height:1.45; }
+  .recbadge { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#fff; background:var(--pink); border-radius:100px; padding:2px 8px; }
+  .advbadge { font-size:9px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); background:#eee; border-radius:100px; padding:2px 8px; }
+  .choice .go { margin-left:auto; align-self:center; color:var(--muted); font-size:18px; }
+
+  .callout { background:#fdf6dd; border:1px solid #f1e6b8; border-radius:13px; padding:15px 20px; font-size:13px; color:#7a6a25; margin:26px auto 0; max-width:1180px; line-height:1.55; }
+  .callout b{ color:#5e5210; } .callout code{ background:#fff; border:1px solid #f1e6b8; border-radius:4px; padding:1px 5px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="mockhead">
+  <a class="back" href="index.html">← all mockups</a>
+  <h1>S7 — Choosing a book: the library + new-book chooser</h1>
+  <p>Two states of the Memories → <b>Book</b> tab. <b>(1)</b> a shelf of your books — pick one to edit (or
+     start a new one). <b>(2)</b> the new-book dialog where you choose <b>Guided</b> vs <b>Freeform</b>.
+     This introduces the idea of <i>multiple</i> books (today there's just one).</p>
+</div>
+
+<div class="steplabel"><b>1.</b> Your books — pick one to edit, or start a new one</div>
+
+<!-- ===== WINDOW 1: library ===== -->
+<div class="win">
+  <div class="hdr">
+    <div class="logo">🌱</div>
+    <div class="brand">Cradle<span class="hq">HQ</span><small>Milestone tracker · Journal · Growth · Feeding · Sleep · Diaper</small></div>
+    <button class="signout">Sign Out</button>
+  </div>
+  <div class="tabs"><a>Dashboard</a><a class="on">Memories</a><a>Track</a><a>Health</a><a>Discover</a></div>
+  <div class="content">
+    <div class="pills"><span class="p">Journal</span><span class="p">Firsts</span><span class="p on">Book</span></div>
+
+    <div class="shelfhead">
+      <div>
+        <h2>Lily's Books</h2>
+        <p>Keepsake books you can fill, edit, and export to print.</p>
+      </div>
+      <button class="newbtn">＋ New book</button>
+    </div>
+
+    <div class="grid">
+      <!-- Guided book in progress -->
+      <div class="bcard">
+        <div class="bcover" style="background:#fdeef0">
+          <span class="typebadge tb-guided">📘 Guided</span>
+          <div class="div"><span class="l" style="background:#e08aa0"></span><span class="d" style="color:#e08aa0">♡</span><span class="l" style="background:#e08aa0"></span></div>
+          <h3 style="color:#2a2540">Lily's<br>First Year</h3>
+          <div class="yr" style="color:#a87f8c">2025 – 2026</div>
+        </div>
+        <div class="binfo">
+          <div class="nm">Lily's First Year</div>
+          <div class="meta">Guided · 9 of 25 pages</div>
+          <div class="miniprog"><i style="width:36%;background:linear-gradient(90deg,#6467F2,#D11F69)"></i></div>
+        </div>
+        <div class="bfoot">
+          <button class="open primary">Continue</button>
+          <button class="menu">⋯</button>
+        </div>
+      </div>
+
+      <!-- Freeform scrapbook -->
+      <div class="bcard">
+        <div class="bcover" style="background:#f6efe0">
+          <span class="typebadge tb-free">🧩 Freeform</span>
+          <div class="div"><span class="l" style="background:#c9a96e"></span><span class="d" style="color:#c9a96e">◆</span><span class="l" style="background:#c9a96e"></span></div>
+          <h3 style="color:#2C1810">Everyday<br>Moments</h3>
+          <div class="yr" style="color:#A07860">a scrapbook</div>
+        </div>
+        <div class="binfo">
+          <div class="nm">Everyday Moments</div>
+          <div class="meta">Freeform · 6 chapters</div>
+          <div class="miniprog"><i style="width:100%;background:#c9a96e"></i></div>
+        </div>
+        <div class="bfoot">
+          <button class="open">Open</button>
+          <button class="menu">⋯</button>
+        </div>
+      </div>
+
+      <!-- new-book tile -->
+      <div class="newtile">
+        <div class="plus">＋</div>
+        <b>Start a new book</b>
+        <span>Guided or freeform</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="steplabel"><b>2.</b> Clicking “New book” → choose how to build it</div>
+
+<!-- ===== WINDOW 2: chooser dialog over the shelf ===== -->
+<div class="win">
+  <div class="hdr">
+    <div class="logo">🌱</div>
+    <div class="brand">Cradle<span class="hq">HQ</span><small>Milestone tracker · Journal · Growth · Feeding · Sleep · Diaper</small></div>
+    <button class="signout">Sign Out</button>
+  </div>
+  <div class="tabs"><a>Dashboard</a><a class="on">Memories</a><a>Track</a><a>Health</a><a>Discover</a></div>
+  <div class="content" style="filter:blur(1.5px); opacity:.6; pointer-events:none">
+    <div class="pills"><span class="p">Journal</span><span class="p">Firsts</span><span class="p on">Book</span></div>
+    <div class="shelfhead"><div><h2>Lily's Books</h2><p>Keepsake books you can fill, edit, and export to print.</p></div><button class="newbtn">＋ New book</button></div>
+    <div class="grid">
+      <div class="bcard"><div class="bcover" style="background:#fdeef0"><span class="typebadge tb-guided">📘 Guided</span><h3 style="color:#2a2540">Lily's<br>First Year</h3></div><div class="binfo"><div class="nm">Lily's First Year</div></div></div>
+      <div class="bcard"><div class="bcover" style="background:#f6efe0"><span class="typebadge tb-free">🧩 Freeform</span><h3 style="color:#2C1810">Everyday<br>Moments</h3></div><div class="binfo"><div class="nm">Everyday Moments</div></div></div>
+      <div class="newtile"><div class="plus">＋</div><b>Start a new book</b></div>
+    </div>
+  </div>
+
+  <!-- dialog -->
+  <div class="scrim">
+    <div class="dialog">
+      <div class="dh">
+        <span class="x">✕</span>
+        <h3>Start a new book</h3>
+        <p>Pick how you'd like to build it. You can make as many as you like.</p>
+      </div>
+      <div class="db">
+        <div class="choice rec">
+          <div class="ic" style="background:#fde4ee">📘</div>
+          <div style="flex:1">
+            <h4>Guided Book <span class="recbadge">Recommended</span></h4>
+            <p>A ready-made keepsake — we lay out ~25 pages, you drop in photos &amp; words. Some pages
+               fill themselves from your data. Best for a complete first-year story.</p>
+          </div>
+          <span class="go">›</span>
+        </div>
+        <div class="choice">
+          <div class="ic" style="background:#ececff">🧩</div>
+          <div style="flex:1">
+            <h4>Freeform Scrapbook <span class="advbadge">Advanced</span></h4>
+            <p>Build chapters page-by-page from scratch — choose any layout, add / remove / reorder pages.
+               Best when you want full control over every page.</p>
+          </div>
+          <span class="go">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  <b>New concept:</b> books become a <b>library</b> (today there's a single implicit book). Each card shows
+  its <b>type</b> (Guided / Freeform), cover theme, and progress; <b>⋯</b> = rename / duplicate / delete /
+  export. <b>New book</b> opens the chooser dialog — Guided seeds the locked 25-page arc; Freeform opens an
+  empty chapter list. <b>Open scope question for you:</b> do we actually want multiple books per baby in v1,
+  or one book at a time (chooser only appears the first time)?
+</div>
+</body>
+</html>

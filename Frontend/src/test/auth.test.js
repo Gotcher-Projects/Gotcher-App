@@ -113,7 +113,7 @@ describe('validateSession', () => {
   });
 
   it('returns true when /auth/me succeeds', async () => {
-    fetch.mockResolvedValueOnce({ ok: true, status: 200 });
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ user: { id: 1 } }) });
     expect(await validateSession()).toBe(true);
     expect(fetch).toHaveBeenCalledTimes(1);
   });

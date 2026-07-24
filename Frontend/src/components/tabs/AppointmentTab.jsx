@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingButton } from "@/components/ui/LoadingButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { formatDate } from "@/lib/formatting";
 
 const fmtTime = t => new Date(`1970-01-01T${t}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
@@ -193,9 +194,7 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
   const upcoming = appointments.filter(a => a.appointmentDate >= today && !a.isCompleted);
   const past = appointments.filter(a => a.appointmentDate < today || a.isCompleted);
 
-  function fmtDate(d) {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
+  const fmtDate = d => formatDate(d, { style: 'short' });
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">

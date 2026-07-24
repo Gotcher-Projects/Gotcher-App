@@ -9,11 +9,22 @@ Frontend/coverage/
 .env.*.local
 .DS_Store
 .claude/
+# Agent skills installed via `npx skills add` (regenerable, local tooling)
+.agents/
+skills-lock.json
 Backend/build/
 Backend/.gradle/
 Backend/bin/
 logs/
 *.log
 ScreenshotsForClaude/
+
+# Owner hand-off bundle — generated copies for zipping/sending, not source
+plans/storybook-v2/handoffs/CradleHQ-Owner-Setup/
+
+# pr5.5 Part B print-quality comparison PDFs (throwaway/regenerable)
+print-preview/
+
+# Mobile build artifacts
 MobileAppScreenshots/
 build-android.sh
