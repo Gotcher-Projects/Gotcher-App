@@ -2,24 +2,20 @@ import React, { useState } from "react";
 import PillNav from "@/components/ui/PillNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Baby, ShoppingBag, Users } from "lucide-react";
+import { Baby, ShoppingBag } from "lucide-react";
 
 export default function DiscoverTab({ activities, week, months, birthdate, babyName }) {
-  const [view, setView] = useState('marketplace');
+  const [view, setView] = useState('activities');
 
   return (
     <>
       <PillNav
         options={[
-          { value: 'marketplace', label: 'Marketplace' },
-          { value: 'playdates',   label: 'Playdates' },
           { value: 'activities',  label: 'Activities' },
         ]}
         active={view}
         onChange={setView}
       />
-      {view === 'marketplace' && <MarketplaceTab />}
-      {view === 'playdates'   && <PlaydatesTab />}
       {view === 'activities'  && (
         <ActivitiesTab
           activities={activities}
@@ -30,34 +26,6 @@ export default function DiscoverTab({ activities, week, months, birthdate, babyN
         />
       )}
     </>
-  );
-}
-
-function MarketplaceTab() {
-  return (
-    <Card className="shadow-xl rounded-2xl">
-      <CardContent className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-        <ShoppingBag className="w-12 h-12 text-primary/30" />
-        <h3 className="font-display font-semibold text-xl text-foreground">Marketplace — Coming Soon</h3>
-        <p className="text-muted-foreground max-w-xs text-sm">
-          Buy and sell baby items with other parents in your community. This feature is in the works!
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PlaydatesTab() {
-  return (
-    <Card className="shadow-xl rounded-2xl">
-      <CardContent className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-        <Users className="w-12 h-12 text-primary/30" />
-        <h3 className="font-display font-semibold text-xl text-foreground">Playdates — Coming Soon</h3>
-        <p className="text-muted-foreground max-w-xs text-sm">
-          Find other families nearby to schedule playdates. This feature is in the works!
-        </p>
-      </CardContent>
-    </Card>
   );
 }
 
