@@ -57,6 +57,10 @@ public class BillingWebhookService {
     public void handle(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
 
+        // Log every verified event on arrival, so "did Stripe reach us and what did we do with it" is always
+        // answerable from the logs (a misconfigured endpoint URL shows up as simply no line here).
+        log.info("Stripe webhook received: id={} type={} livemode={}", event.getId(), event.getType(), event.getLivemode());
+
         // We never create subscriptions/invoices, so Stripe won't send them — but acknowledge every type we
         // don't handle with a 200 rather than erroring on something we simply didn't subscribe to.
         String type = event.getType();
