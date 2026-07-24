@@ -42,7 +42,13 @@ public class BillingWebhookController {
     ) {
         String payload;
         try {
-            payload = new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            byte[] raw = request.getInputStream().readAllBytes();
+            payload = new String(raw, StandardCharsets.UTF_8);
+            // TEMP DEBUG (webhook signature diagnosis) — remove once resolved.
+            log.warn("WEBHOOK DEBUG: rawBytes={} strLen={} contentType=[{}] contentLength={} sig=[{}] head=[{}] tail=[{}]",
+                raw.length, payload.length(), request.getContentType(), request.getContentLength(), sigHeader,
+                payload.length() > 80 ? payload.substring(0, 80) : payload,
+                payload.length() > 80 ? payload.substring(payload.length() - 80) : "");
         } catch (IOException e) {
             // Could not read the body at all — a transient read error. Let Stripe retry.
             log.error("Stripe webhook: failed to read request body: {}", e.getMessage());
