@@ -197,9 +197,9 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
   const fmtDate = d => formatDate(d, { style: 'short' });
 
   return (
-    <div className="grid md:grid-cols-3 gap-6">
-      <Card className="shadow-xl rounded-2xl md:col-span-1 md:sticky md:top-6 md:self-start">
-        <CardContent className="p-5">
+    <div className="grid lg:grid-cols-3 gap-6">
+      <Card className="shadow-xl rounded-2xl lg:col-span-1 lg:sticky lg:top-6 lg:self-start min-w-0">
+        <CardContent className="p-5 overflow-x-hidden">
           <h2 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <CalendarDays className="w-5 h-5 text-color-success" />
             Add Appointment
@@ -259,7 +259,7 @@ export default function AppointmentTab({ appointments, onAdd, onUpdate, onDelete
         </CardContent>
       </Card>
 
-      <div className="md:col-span-2 space-y-5">
+      <div className="lg:col-span-2 space-y-5 min-w-0">
         <Card className="shadow-xl rounded-2xl">
           <CardContent className="p-5">
             <h3 className="font-display font-semibold text-foreground mb-3 flex items-center gap-1.5">

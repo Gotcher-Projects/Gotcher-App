@@ -1,5 +1,6 @@
 package com.gotcherapp.api.auth;
 
+import com.gotcherapp.api.admin.AdminService;
 import com.gotcherapp.api.auth.AuthService.*;
 import com.gotcherapp.api.auth.dto.*;
 import com.gotcherapp.api.common.ApiError;
@@ -28,16 +29,19 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
     private final CookieUtil cookieUtil;
+    private final AdminService adminService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
     public AuthController(AuthService authService, EmailVerificationService emailVerificationService,
-                          PasswordResetService passwordResetService, CookieUtil cookieUtil) {
+                          PasswordResetService passwordResetService, CookieUtil cookieUtil,
+                          AdminService adminService) {
         this.authService = authService;
         this.emailVerificationService = emailVerificationService;
         this.passwordResetService = passwordResetService;
         this.cookieUtil = cookieUtil;
+        this.adminService = adminService;
     }
 
     @PostMapping("/register")
@@ -143,6 +147,24 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("message", "Verification email sent"));
         } catch (Exception e) {
             return ApiError.serverError("Failed to send verification email");
+        }
+    }
+
+    @DeleteMapping("/account")
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthPrincipal principal,
+                                           HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String refreshToken = CookieUtil.getCookieValue(request, "refresh_token");
+            if (refreshToken != null) {
+                try { authService.logout(refreshToken); } catch (Exception ignored) {}
+            }
+            adminService.deleteAccount(principal.email());
+            cookieUtil.clearAuthCookies(response);
+            return ResponseEntity.ok(Map.of("message", "Account deleted"));
+        } catch (AdminService.UserNotFoundException e) {
+            return ApiError.notFound(e.getMessage());
+        } catch (Exception e) {
+            return ApiError.serverError("Account deletion failed: " + e.getMessage());
         }
     }
 }

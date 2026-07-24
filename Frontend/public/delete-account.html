@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Your Account — CradleHQ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: hsl(238, 100%, 97%);
+      color: hsl(244, 44%, 20%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid hsl(214, 32%, 91%);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header img { width: 36px; height: 36px; }
+
+    header span {
+      font-size: 20px;
+      font-weight: 700;
+      color: hsl(244, 44%, 20%);
+    }
+
+    header span em {
+      color: hsl(239, 84%, 67%);
+      font-style: normal;
+    }
+
+    main {
+      max-width: 520px;
+      margin: 60px auto;
+      padding: 0 24px;
+      flex: 1;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: hsl(244, 20%, 50%);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      border: 1px solid hsl(214, 32%, 91%);
+    }
+
+    .card h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .field { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: hsl(244, 44%, 20%);
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid hsl(214, 32%, 85%);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      color: hsl(244, 44%, 20%);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus { border-color: hsl(239, 84%, 67%); }
+
+    .warning-box {
+      background: hsl(0, 100%, 97%);
+      border: 1px solid hsl(0, 80%, 85%);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: hsl(0, 60%, 40%);
+      line-height: 1.6;
+    }
+
+    .warning-box strong { color: hsl(0, 60%, 30%); }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      background: hsl(0, 100%, 95%);
+      color: hsl(0, 60%, 40%);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-danger {
+      background: hsl(0, 72%, 51%);
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) { background: hsl(0, 72%, 44%); }
+    .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      background: hsl(0, 100%, 97%);
+      border: 1px solid hsl(0, 80%, 85%);
+      color: hsl(0, 60%, 40%);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      border: 1px solid hsl(214, 32%, 91%);
+      text-align: center;
+      display: none;
+    }
+
+    .success-card .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .success-card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .success-card p {
+      font-size: 14px;
+      color: hsl(244, 20%, 50%);
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 13px;
+      color: hsl(244, 20%, 60%);
+    }
+
+    footer a { color: hsl(239, 84%, 67%); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 22px; }
+      .card, .success-card { padding: 24px; }
+      main { margin: 32px auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="/images/cradleVector.png" alt="CradleHQ">
+    <span>Cradle<em>HQ</em></span>
+  </header>
+
+  <main>
+    <h1>Delete Your Account</h1>
+    <p class="subtitle">Permanently remove your CradleHQ account and all associated data. This cannot be undone.</p>
+
+    <div class="card" id="form-card">
+      <h2>Sign in to confirm deletion</h2>
+
+      <div class="warning-box">
+        <strong>The following data will be permanently deleted:</strong>
+        <div class="tags">
+          <span class="tag">Account &amp; login</span>
+          <span class="tag">Baby profile</span>
+          <span class="tag">Feeding logs</span>
+          <span class="tag">Sleep logs</span>
+          <span class="tag">Diaper logs</span>
+          <span class="tag">Growth records</span>
+          <span class="tag">Vaccine records</span>
+          <span class="tag">Appointments</span>
+          <span class="tag">Journal entries</span>
+          <span class="tag">First times</span>
+          <span class="tag">Milestones</span>
+          <span class="tag">Photos</span>
+        </div>
+      </div>
+
+      <div id="error-msg" class="error-msg"></div>
+
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <div class="field">
+        <label for="confirm-input">Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="confirm-input" placeholder="DELETE" autocomplete="off" />
+      </div>
+
+      <button class="btn btn-danger" id="delete-btn" disabled onclick="handleDelete()">
+        Delete My Account
+      </button>
+    </div>
+
+    <div class="success-card" id="success-card">
+      <div class="icon">✓</div>
+      <h2>Account deleted</h2>
+      <p>Your account and all associated data have been permanently removed from CradleHQ.</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CradleHQ LLC &nbsp;·&nbsp; <a href="/privacy.html">Privacy Policy</a></p>
+  </footer>
+
+  <script>
+    const API = '';  // same origin in production; update if needed
+
+    const emailEl   = document.getElementById('email');
+    const passEl    = document.getElementById('password');
+    const confirmEl = document.getElementById('confirm-input');
+    const deleteBtn = document.getElementById('delete-btn');
+    const errorEl   = document.getElementById('error-msg');
+
+    function updateBtn() {
+      deleteBtn.disabled = confirmEl.value !== 'DELETE' || !emailEl.value || !passEl.value;
+    }
+
+    emailEl.addEventListener('input', updateBtn);
+    passEl.addEventListener('input', updateBtn);
+    confirmEl.addEventListener('input', updateBtn);
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    function hideError() {
+      errorEl.style.display = 'none';
+    }
+
+    async function handleDelete() {
+      hideError();
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting…';
+
+      try {
+        // Step 1: log in to get auth cookies
+        const loginRes = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailEl.value, password: passEl.value }),
+        });
+
+        if (!loginRes.ok) {
+          const data = await loginRes.json().catch(() => ({}));
+          showError(data.error || 'Incorrect email or password.');
+          deleteBtn.textContent = 'Delete My Account';
+          updateBtn();
+          return;
+        }
+
+        // Step 2: delete the account
+        const deleteRes = await fetch(`${API}/auth/account`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+
+        if (!deleteRes.ok) {
+          const data = await deleteRes.json().catch(() => ({}));
+          showError(data.error || 'Deletion failed. Please try again or contact support.');
+          deleteBtn.textContent = 'Delete My Account';
+          updateBtn();
+          return;
+        }
+
+        // Success
+        document.getElementById('form-card').style.display = 'none';
+        document.getElementById('success-card').style.display = 'block';
+
+      } catch (err) {
+        showError('Network error. Please check your connection and try again.');
+        deleteBtn.textContent = 'Delete My Account';
+        updateBtn();
+      }
+    }
+  </script>
+</body>
+</html>

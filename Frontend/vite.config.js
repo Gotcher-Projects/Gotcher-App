@@ -14,6 +14,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    proxy: {
+      '/auth': 'http://localhost:3001',
+    },
   },
   test: {
     environment: "jsdom",

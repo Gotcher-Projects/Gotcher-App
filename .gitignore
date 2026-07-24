@@ -24,3 +24,7 @@ plans/storybook-v2/handoffs/CradleHQ-Owner-Setup/
 
 # pr5.5 Part B print-quality comparison PDFs (throwaway/regenerable)
 print-preview/
+
+# Mobile build artifacts
+MobileAppScreenshots/
+build-android.sh

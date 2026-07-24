@@ -290,9 +290,9 @@ export default function FeedingTab({ logs, onStart, onStop, onDelete, onManualAd
       </Dialog>
 
       <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="font-display text-lg font-bold text-foreground">History</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex rounded-lg overflow-hidden border border-border">
               {DAYS_OPTIONS.map(opt => (
                 <button
