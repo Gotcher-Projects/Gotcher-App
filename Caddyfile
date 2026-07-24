@@ -1,4 +1,8 @@
 {$APP_DOMAIN} {
+    log {
+        output stdout
+        format console
+    }
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy api:3001
