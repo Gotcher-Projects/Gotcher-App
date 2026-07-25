@@ -7,6 +7,10 @@ workflows:
     environment:
       node: 24
       xcode: latest
+      vars:
+        # Numeric App Store Connect Apple ID — App Store Connect → your app → App Information → "Apple ID".
+        # Used to fetch the latest uploaded build number so each build auto-increments.
+        APP_APPLE_ID: "REPLACE_WITH_YOUR_NUMERIC_APPLE_ID"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.gotcherapp.cradlehq
@@ -17,6 +21,13 @@ workflows:
         script: cd Frontend && npm run build
       - name: Capacitor sync
         script: cd Frontend && npx cap sync ios
+      - name: Auto-increment build number
+        script: |
+          cd Frontend/ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_APPLE_ID")
+          NEW=$((LATEST + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW;/g" App.xcodeproj/project.pbxproj
+          echo "Set CURRENT_PROJECT_VERSION to $NEW (latest uploaded was $LATEST)"
       - name: Set up code signing
         script: |
           keychain initialize
