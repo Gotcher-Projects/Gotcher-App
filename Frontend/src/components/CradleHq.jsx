@@ -565,7 +565,10 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <CreditsPill />
+            {/* Desktop: pill inline in the header actions. On mobile it moves to its own row below. */}
+            <div className="hidden sm:flex items-center">
+              <CreditsPill />
+            </div>
             {user?.display_name && (
               <span className="hidden sm:inline text-sm text-slate-600">Hi, <strong>{user.display_name}</strong></span>
             )}
@@ -577,6 +580,10 @@ export default function CradleHq({ user, onLogout, verifiedBanner, onDismissBann
               Sign Out
             </Button>
           </div>
+        </div>
+        {/* Mobile only: credits pill on its own right-aligned row so it never crowds the wordmark. */}
+        <div className="flex justify-end mt-2 sm:hidden">
+          <CreditsPill />
         </div>
       </header>
 
